@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Калькулятор доставки</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f0f4f8;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 4px 32px rgba(0,0,0,0.10);
+      padding: 40px 36px 36px;
+      width: 100%;
+      max-width: 480px;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    .card-icon {
+      background: #e8f0fe;
+      border-radius: 14px;
+      width: 52px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      flex-shrink: 0;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #1a202c;
+      line-height: 1.2;
+    }
+
+    h1 span {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 400;
+      color: #718096;
+      margin-top: 2px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #4a5568;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    select, input[type="number"] {
+      width: 100%;
+      padding: 14px 16px;
+      font-size: 1rem;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      background: #f7fafc;
+      color: #1a202c;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23718096' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 16px center;
+      padding-right: 44px;
+      cursor: pointer;
+    }
+
+    select:focus, input[type="number"]:focus {
+      border-color: #4299e1;
+      box-shadow: 0 0 0 3px rgba(66,153,225,0.15);
+      background: #fff;
+    }
+
+    .weight-hint {
+      font-size: 0.78rem;
+      color: #a0aec0;
+      margin-top: 6px;
+    }
+
+    .divider {
+      height: 1px;
+      background: #e2e8f0;
+      margin: 24px 0;
+    }
+
+    .btn-calc {
+      width: 100%;
+      padding: 16px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      background: linear-gradient(135deg, #4299e1, #3182ce);
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 4px 14px rgba(66,153,225,0.35);
+      letter-spacing: 0.02em;
+    }
+
+    .btn-calc:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(66,153,225,0.45);
+    }
+
+    .btn-calc:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 8px rgba(66,153,225,0.3);
+    }
+
+    .result {
+      display: none;
+      margin-top: 24px;
+      background: linear-gradient(135deg, #ebf8ff, #e8f0fe);
+      border-radius: 16px;
+      padding: 24px;
+      border: 1.5px solid #bee3f8;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #4a5568;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+
+    .result-price {
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: #2b6cb0;
+      line-height: 1;
+      margin-bottom: 16px;
+    }
+
+    .result-price span {
+      font-size: 1.3rem;
+      font-weight: 600;
+    }
+
+    .result-breakdown {
+      border-top: 1px solid #bee3f8;
+      padding-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .breakdown-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.88rem;
+      color: #4a5568;
+    }
+
+    .breakdown-row .val {
+      font-weight: 600;
+      color: #2d3748;
+    }
+
+    .result-route {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+      font-size: 0.9rem;
+      color: #4a5568;
+      flex-wrap: wrap;
+    }
+
+    .city-tag {
+      background: #fff;
+      border: 1.5px solid #bee3f8;
+      border-radius: 8px;
+      padding: 4px 10px;
+      font-weight: 600;
+      color: #2b6cb0;
+    }
+
+    .arrow { color: #90cdf4; font-size: 1.1rem; }
+
+    .error {
+      display: none;
+      margin-top: 16px;
+      background: #fff5f5;
+      border: 1.5px solid #fed7d7;
+      border-radius: 12px;
+      padding: 14px 16px;
+      color: #c53030;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    @media (max-width: 520px) {
+      .card { padding: 28px 20px 24px; }
+      h1 { font-size: 1.25rem; }
+      .result-price { font-size: 2rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <div class="card-header">
+    <div class="card-icon">📦</div>
+    <h1>Калькулятор доставки<span>Рассчитайте стоимость отправления</span></h1>
+  </div>
+
+  <div class="form-group">
+    <label>Город отправления</label>
+    <select id="fromCity">
+      <option value="">— Выберите город —</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>Город получения</label>
+    <select id="toCity">
+      <option value="">— Выберите город —</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>Вес посылки</label>
+    <input type="number" id="weight" placeholder="Например: 2.5" min="0.1" max="500" step="0.1" />
+    <div class="weight-hint">Введите вес в килограммах (до 500 кг)</div>
+  </div>
+
+  <div class="divider"></div>
+
+  <button class="btn-calc" onclick="calculate()">🚚 Рассчитать стоимость</button>
+
+  <div class="error" id="error"></div>
+
+  <div class="result" id="result">
+    <div class="result-label">Маршрут</div>
+    <div class="result-route">
+      <span class="city-tag" id="res-from"></span>
+      <span class="arrow">→</span>
+      <span class="city-tag" id="res-to"></span>
+    </div>
+    <div class="result-label">Итоговая стоимость</div>
+    <div class="result-price" id="res-price"></div>
+    <div class="result-breakdown">
+      <div class="breakdown-row"><span>Базовый тариф</span><span class="val" id="bd-base"></span></div>
+      <div class="breakdown-row"><span>За вес (<span id="bd-kg"></span> кг)</span><span class="val" id="bd-weight"></span></div>
+      <div class="breakdown-row"><span>Расстояние (зона <span id="bd-zone"></span>)</span><span class="val" id="bd-dist"></span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const cities = [
+    { name: "Москва",           zone: 1 },
+    { name: "Санкт-Петербург",  zone: 1 },
+    { name: "Нижний Новгород",  zone: 2 },
+    { name: "Казань",           zone: 2 },
+    { name: "Самара",           zone: 2 },
+    { name: "Воронеж",          zone: 2 },
+    { name: "Ростов-на-Дону",   zone: 2 },
+    { name: "Краснодар",        zone: 2 },
+    { name: "Волгоград",        zone: 2 },
+    { name: "Саратов",          zone: 2 },
+    { name: "Уфа",              zone: 3 },
+    { name: "Пермь",            zone: 3 },
+    { name: "Екатеринбург",     zone: 3 },
+    { name: "Челябинск",        zone: 3 },
+    { name: "Тюмень",           zone: 3 },
+    { name: "Омск",             zone: 3 },
+    { name: "Новосибирск",      zone: 4 },
+    { name: "Красноярск",       zone: 4 },
+    { name: "Иркутск",          zone: 4 },
+    { name: "Хабаровск",        zone: 4 },
+    { name: "Владивосток",      zone: 4 },
+    { name: "Якутск",           zone: 4 },
+  ];
+
+  const BASE_RATE   = 150;
+  const RATE_PER_KG = 35;
+
+  function getZoneCost(z1, z2) {
+    const diff = Math.abs(z1 - z2);
+    const maxZ = Math.max(z1, z2);
+    if (diff === 0 && maxZ === 1) return { cost: 0,   zone: "1" };
+    if (diff === 0 && maxZ === 2) return { cost: 200, zone: "2" };
+    if (diff === 0 && maxZ === 3) return { cost: 450, zone: "3" };
+    if (diff === 0 && maxZ === 4) return { cost: 950, zone: "4" };
+    if (diff === 1 && maxZ <= 2)  return { cost: 200, zone: "2" };
+    if (diff === 1 && maxZ === 3) return { cost: 450, zone: "3" };
+    if (diff === 1 && maxZ === 4) return { cost: 650, zone: "3–4" };
+    if (diff === 2 && maxZ <= 3)  return { cost: 450, zone: "3" };
+    return { cost: 950, zone: "4" };
+  }
+
+  const selFrom = document.getElementById('fromCity');
+  const selTo   = document.getElementById('toCity');
+
+  cities.forEach(c => {
+    [selFrom, selTo].forEach(sel => {
+      const opt = document.createElement('option');
+      opt.value = c.name;
+      opt.textContent = c.name;
+      sel.appendChild(opt);
+    });
+  });
+
+  function fmt(n) {
+    return n.toLocaleString('ru-RU') + ' ₽';
+  }
+
+  function calculate() {
+    const fromVal   = selFrom.value;
+    const toVal     = selTo.value;
+    const weightRaw = document.getElementById('weight').value;
+    const errEl     = document.getElementById('error');
+    const resEl     = document.getElementById('result');
+
+    errEl.style.display = 'none';
+    resEl.style.display = 'none';
+
+    if (!fromVal)                              { showError('Выберите город отправления.'); return; }
+    if (!toVal)                                { showError('Выберите город получения.'); return; }
+    if (!weightRaw || isNaN(weightRaw) || +weightRaw <= 0) {
+      showError('Введите корректный вес посылки (больше 0 кг).'); return;
+    }
+    const weight = parseFloat(weightRaw);
+    if (weight > 500)   { showError('Максимальный вес — 500 кг.'); return; }
+    if (fromVal === toVal) { showError('Город отправления и получения совпадают.'); return; }
+
+    const cityFrom    = cities.find(c => c.name === fromVal);
+    const cityTo      = cities.find(c => c.name === toVal);
+    const weightCost  = Math.ceil(weight) * RATE_PER_KG;
+    const { cost: distCost, zone } = getZoneCost(cityFrom.zone, cityTo.zone);
+    const total = BASE_RATE + weightCost + distCost;
+
+    document.getElementById('res-from').textContent  = fromVal;
+    document.getElementById('res-to').textContent    = toVal;
+    document.getElementById('res-price').innerHTML   = fmt(total).replace(' ₽', ' <span>₽</span>');
+    document.getElementById('bd-base').textContent   = fmt(BASE_RATE);
+    document.getElementById('bd-kg').textContent     = weight;
+    document.getElementById('bd-weight').textContent = fmt(weightCost);
+    document.getElementById('bd-zone').textContent   = zone;
+    document.getElementById('bd-dist').textContent   = distCost === 0 ? 'бесплатно' : fmt(distCost);
+
+    resEl.style.display = 'block';
+  }
+
+  function showError(msg) {
+    const errEl = document.getElementById('error');
+    errEl.textContent = '⚠️ ' + msg;
+    errEl.style.display = 'block';
+  }
+
+  document.getElementById('weight').addEventListener('keydown', e => {
+    if (e.key === 'Enter') calculate();
+  });
+</script>
+</body>
+</html>
