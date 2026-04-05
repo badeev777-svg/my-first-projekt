@@ -415,11 +415,114 @@
     .anim-card { animation: scaleIn .25s ease both; }
     .anim-show { animation: fadeUp .25s ease both; }
     .anim-mini { animation: fadeUp .22s ease both; }
+
+    /* ── HAMBURGER ── */
+    .hamburger {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--text);
+      font-size: 22px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+      flex-shrink: 0;
+    }
+    .hamburger:hover { background: var(--surface2); }
+
+    /* ── SIDEBAR OVERLAY ── */
+    .sidebar-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.55);
+      z-index: 199;
+    }
+    .sidebar-overlay.open { display: block; }
+
+    /* ── MOBILE ── */
+    @media (max-width: 700px) {
+      body { overflow: auto; height: auto; min-height: 100vh; }
+
+      /* Sidebar → выезжающий drawer */
+      .sidebar {
+        position: fixed;
+        top: 0; bottom: 0; left: 0;
+        z-index: 200;
+        transform: translateX(-100%);
+        transition: transform .25s cubic-bezier(.4,0,.2,1);
+        width: 220px;
+      }
+      .sidebar.open { transform: translateX(0); }
+      .sidebar-footer { display: none; }
+
+      .hamburger { display: flex; }
+
+      /* Topbar */
+      .main { width: 100%; }
+      .topbar { padding: 12px 14px; gap: 8px; }
+      .topbar h1 { font-size: 16px; flex: 1; }
+      .topbar-actions { gap: 6px; }
+      .search-box { width: 130px; font-size: 12px; padding: 6px 10px; }
+
+      /* Content */
+      .content { padding: 14px; }
+
+      /* Stats 2×2 */
+      .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+      .stat-card { padding: 14px 12px; }
+      .stat-value { font-size: 22px; }
+
+      /* Dash grid 1 колонка */
+      .dash-grid { grid-template-columns: 1fr; gap: 12px; }
+      .dash-block { padding: 14px; }
+
+      /* Таблицы — горизонтальный скролл */
+      .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      table { min-width: 560px; }
+      td, thead th { padding: 10px 10px; font-size: 12px; }
+
+      /* Форма — 1 колонка */
+      .form-grid { grid-template-columns: 1fr; }
+      .form-full { grid-column: 1; }
+
+      /* Модал — снизу экрана */
+      .modal-overlay { align-items: flex-end; }
+      .modal {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: 88vh !important;
+        border-radius: 20px 20px 0 0;
+        padding: 20px 16px;
+      }
+
+      /* Показы — кнопки под текстом */
+      .showing-card { flex-wrap: wrap; padding: 12px 14px; gap: 10px; }
+      .showing-actions { width: 100%; justify-content: flex-end; margin-top: 4px; }
+
+      /* Канбан — меньше ширина */
+      .kanban-col { width: 180px; }
+
+      /* Toast */
+      .toast-container { top: auto; bottom: 80px; right: 12px; left: 12px; }
+      .toast { min-width: unset; }
+
+      /* Filter bar */
+      .filter-bar { gap: 6px; }
+      .filter-btn { padding: 5px 10px; font-size: 11px; }
+    }
+
+    @media (max-width: 400px) {
+      .stats-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+      .stat-value { font-size: 20px; }
+      .search-box { display: none; }
+      .topbar { padding: 10px 12px; }
+    }
   </style>
 </head>
 <body>
 
-<aside class="sidebar">
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+<aside class="sidebar" id="sidebar">
   <div class="sidebar-logo">
     🏠 CRM Риелтора
     <span>Управление недвижимостью</span>
@@ -436,6 +539,7 @@
 
 <div class="main">
   <div class="topbar">
+    <button class="hamburger" id="hamburger">☰</button>
     <h1 id="page-title">Дашборд</h1>
     <div class="topbar-actions">
       <input class="search-box" id="global-search" type="text" placeholder="🔍 Поиск..." />
@@ -1245,6 +1349,22 @@ function seedDemo() {
     { id:uid(), propId:p2, clientId:c3, propName:'пр. Мира, 88, кв. 7', clientName:'Алексей Сидоров', sum:'2850000', commission:'2.5', stage:'Переговоры', date:today, notes:'' },
   ]);
 }
+
+// ===== MOBILE SIDEBAR =====
+const sidebar = document.getElementById('sidebar');
+const overlay = document.getElementById('sidebar-overlay');
+const hamburger = document.getElementById('hamburger');
+
+function openSidebar()  { sidebar.classList.add('open');  overlay.classList.add('open'); }
+function closeSidebar() { sidebar.classList.remove('open'); overlay.classList.remove('open'); }
+
+hamburger.addEventListener('click', () => sidebar.classList.contains('open') ? closeSidebar() : openSidebar());
+overlay.addEventListener('click', closeSidebar);
+
+// Закрывать sidebar при выборе пункта меню на мобильном
+document.querySelectorAll('.nav-item').forEach(el => {
+  el.addEventListener('click', () => { if (window.innerWidth <= 700) closeSidebar(); });
+});
 
 seedDemo();
 renderPage();
