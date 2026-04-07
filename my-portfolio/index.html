@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Бадеев Александр — Разработчик веб-приложений</title>
+  <meta name="description" content="Портфолио Бадеева Александра — разработка веб-приложений, CRM-систем, лендингов и мобильных приложений" />
+  <style>
+    /* ── Reset & Variables ─────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #08090e;
+      --bg2:       #0f1117;
+      --card:      #141620;
+      --card-b:    #1e2130;
+      --accent:    #7c6cff;
+      --accent2:   #00d4ff;
+      --accent-g:  linear-gradient(135deg, #7c6cff, #00d4ff);
+      --text:      #e8eaf0;
+      --muted:     #7a7f96;
+      --border:    rgba(124,108,255,.18);
+      --radius:    14px;
+      --shadow:    0 8px 40px rgba(0,0,0,.55);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      line-height: 1.65;
+      overflow-x: hidden;
+    }
+
+    /* ── Scrollbar ─────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 3px; }
+
+    /* ── Utility ───────────────────────────────────────── */
+    .container { max-width: 1160px; margin: 0 auto; padding: 0 24px; }
+    .gradient-text {
+      background: var(--accent-g);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .tag {
+      display: inline-block;
+      padding: 3px 11px;
+      border-radius: 20px;
+      font-size: .72rem;
+      font-weight: 600;
+      letter-spacing: .03em;
+      background: rgba(124,108,255,.12);
+      color: #a49fff;
+      border: 1px solid rgba(124,108,255,.25);
+    }
+
+    /* ── Fade-in on scroll ─────────────────────────────── */
+    .fade-up {
+      opacity: 0;
+      transform: translateY(28px);
+      transition: opacity .55s ease, transform .55s ease;
+    }
+    .fade-up.visible { opacity: 1; transform: none; }
+
+    /* ═══════════════════════════════════════════════════
+       NAV
+    ═══════════════════════════════════════════════════ */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 999;
+      padding: 14px 0;
+      background: rgba(8,9,14,.82);
+      backdrop-filter: blur(18px);
+      border-bottom: 1px solid rgba(255,255,255,.05);
+      transition: padding .3s;
+    }
+    nav .inner {
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-logo {
+      font-size: 1.1rem; font-weight: 700;
+      background: var(--accent-g);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-decoration: none;
+    }
+    .nav-links { display: flex; gap: 28px; list-style: none; }
+    .nav-links a {
+      color: var(--muted); font-size: .9rem; text-decoration: none;
+      transition: color .25s;
+    }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta {
+      padding: 8px 20px; border-radius: 8px;
+      background: var(--accent-g); color: #fff !important;
+      font-weight: 600; font-size: .85rem !important;
+    }
+    .burger { display: none; flex-direction: column; gap: 5px; cursor: pointer; }
+    .burger span { display: block; width: 24px; height: 2px; background: var(--text); border-radius: 2px; transition: .3s; }
+
+    /* ═══════════════════════════════════════════════════
+       HERO
+    ═══════════════════════════════════════════════════ */
+    #hero {
+      min-height: 100vh;
+      display: flex; align-items: center;
+      position: relative; overflow: hidden;
+      padding-top: 80px;
+    }
+    .hero-bg {
+      position: absolute; inset: 0; z-index: 0;
+      background:
+        radial-gradient(ellipse 700px 600px at 70% 40%, rgba(124,108,255,.14) 0%, transparent 70%),
+        radial-gradient(ellipse 500px 400px at 20% 70%, rgba(0,212,255,.12) 0%, transparent 70%);
+      will-change: transform, opacity;
+      transition: transform .3s ease-out;
+    }
+    /* grid lines */
+    .hero-grid {
+      position: absolute; inset: 0; z-index: 0;
+      background-image:
+        linear-gradient(rgba(124,108,255,.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(124,108,255,.08) 1px, transparent 1px);
+      background-size: 60px 60px;
+      opacity: .55;
+      will-change: transform, opacity;
+      transition: transform .3s ease-out;
+    }
+    .hero-content {
+      position: relative; z-index: 1;
+      max-width: 680px;
+    }
+    .hero-content h1 {
+      background: linear-gradient(110deg, #7c6cff, #00d4ff, #a65cff, #4be2ff);
+      background-size: 180% 180%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: hueShift 9s ease infinite;
+    }
+    .hero-content img {
+      display: block;
+      border-radius: 20px;
+      box-shadow: 0 24px 80px rgba(0,0,0,.3);
+      animation: float 8s ease-in-out infinite;
+    }
+    @keyframes hueShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 16px; border-radius: 30px;
+      border: 1px solid var(--border);
+      background: rgba(124,108,255,.08);
+      font-size: .8rem; color: #a49fff;
+      margin-bottom: 28px;
+    }
+    .hero-badge::before {
+      content: '';
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #7fff7f;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(127,255,127,.4); }
+      50%      { box-shadow: 0 0 0 6px rgba(127,255,127,0); }
+    }
+    h1 {
+      font-size: clamp(2.4rem, 6vw, 4rem);
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 20px;
+    }
+    .hero-sub {
+      font-size: 1.15rem; color: var(--muted);
+      max-width: 500px; margin-bottom: 40px;
+    }
+    .hero-btns { display: flex; gap: 14px; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 13px 28px; border-radius: 10px;
+      font-weight: 600; font-size: .95rem;
+      text-decoration: none; cursor: pointer;
+      transition: transform .22s ease, box-shadow .22s ease, opacity .2s ease, background .25s ease, color .25s ease, border-color .25s ease;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn-primary {
+      background: var(--accent-g); color: #fff;
+      box-shadow: 0 6px 32px rgba(124,108,255,.35);
+      background-size: 220% 220%;
+    }
+    .btn-primary:hover {
+      background-position: right center;
+      box-shadow: 0 12px 38px rgba(124,108,255,.5);
+    }
+    .btn-primary:hover { box-shadow: 0 6px 32px rgba(124,108,255,.6); }
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+    .hero-stats {
+      display: flex; gap: 40px; margin-top: 56px;
+      padding-top: 40px;
+      border-top: 1px solid rgba(255,255,255,.07);
+    }
+    .stat-num {
+      font-size: 2rem; font-weight: 800;
+      background: var(--accent-g);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .stat-label { font-size: .8rem; color: var(--muted); margin-top: 2px; }
+
+    /* ═══════════════════════════════════════════════════
+       SECTION SHARED
+    ═══════════════════════════════════════════════════ */
+    section { padding: 96px 0; }
+    .section-tag {
+      font-size: .75rem; font-weight: 700; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--accent);
+      margin-bottom: 10px;
+    }
+    .section-title {
+      font-size: clamp(1.7rem, 4vw, 2.4rem);
+      font-weight: 800; margin-bottom: 14px;
+    }
+    .section-sub { color: var(--muted); font-size: 1.05rem; max-width: 520px; }
+
+    /* ═══════════════════════════════════════════════════
+       SERVICES
+    ═══════════════════════════════════════════════════ */
+    #services { background: var(--bg2); }
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 20px;
+      margin-top: 52px;
+    }
+    .service-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      transition: transform .25s, border-color .25s, box-shadow .25s;
+    }
+    .service-card:hover {
+      transform: translateY(-5px);
+      border-color: rgba(124,108,255,.4);
+      box-shadow: 0 12px 40px rgba(124,108,255,.12);
+    }
+    .service-icon {
+      width: 52px; height: 52px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 18px;
+    }
+    .service-card h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 10px; }
+    .service-card p { font-size: .88rem; color: var(--muted); }
+
+    /* ═══════════════════════════════════════════════════
+       PROJECTS
+    ═══════════════════════════════════════════════════ */
+    #projects .section-header { margin-bottom: 52px; }
+    .projects-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+      gap: 24px;
+    }
+    .project-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      display: flex; flex-direction: column;
+      transition: transform .25s, box-shadow .25s, border-color .25s;
+    }
+    .project-card:hover {
+      transform: translateY(-6px);
+      box-shadow: var(--shadow);
+      border-color: rgba(124,108,255,.35);
+    }
+    .project-preview {
+      height: 180px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 3.5rem;
+      position: relative; overflow: hidden;
+    }
+    .project-preview::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: inherit;
+      filter: blur(60px);
+      opacity: .3;
+    }
+    .project-preview span { position: relative; z-index: 1; }
+    .project-body { padding: 22px; flex: 1; display: flex; flex-direction: column; }
+    .project-meta {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 10px;
+    }
+    .project-cat {
+      font-size: .72rem; font-weight: 700; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--accent2);
+    }
+    .project-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 10px; }
+    .project-card p { font-size: .875rem; color: var(--muted); flex: 1; margin-bottom: 18px; }
+    .project-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; }
+    .project-footer {
+      display: flex; gap: 10px;
+      padding-top: 18px;
+      border-top: 1px solid rgba(255,255,255,.06);
+    }
+    .project-footer .btn {
+      flex: 1; justify-content: center;
+      padding: 10px 16px; font-size: .85rem;
+    }
+    .btn-sm-ghost {
+      background: transparent; border: 1px solid var(--border);
+      color: var(--muted); border-radius: 8px;
+    }
+    .btn-sm-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* featured card spans 2 cols */
+    .project-card.featured {
+      grid-column: span 2;
+      flex-direction: row;
+    }
+    .project-card.featured .project-preview { width: 280px; height: auto; flex-shrink: 0; }
+    .project-card.featured .project-body { padding: 28px; }
+
+    /* ═══════════════════════════════════════════════════
+       SKILLS
+    ═══════════════════════════════════════════════════ */
+    #skills { background: var(--bg2); }
+    .skills-wrap {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      margin-top: 52px;
+      align-items: start;
+    }
+    .skills-list { display: flex; flex-direction: column; gap: 18px; }
+    .skill-item {}
+    .skill-header { display: flex; justify-content: space-between; margin-bottom: 7px; font-size: .9rem; }
+    .skill-pct { color: var(--accent); font-weight: 700; }
+    .skill-bar { height: 6px; background: rgba(255,255,255,.07); border-radius: 3px; overflow: hidden; }
+    .skill-fill {
+      height: 100%; border-radius: 3px;
+      background: var(--accent-g);
+      width: 0; transition: width 1s ease;
+    }
+    .skill-fill.animated { width: var(--w); }
+
+    .tech-cloud { display: flex; flex-wrap: wrap; gap: 10px; }
+    .tech-pill {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 16px; border-radius: 10px;
+      background: var(--card); border: 1px solid var(--border);
+      font-size: .85rem; color: var(--text);
+      transition: border-color .2s, color .2s;
+    }
+    .tech-pill:hover { border-color: var(--accent); color: var(--accent); }
+    .tech-pill .ico { font-size: 1.1rem; }
+
+    /* ═══════════════════════════════════════════════════
+       PROCESS
+    ═══════════════════════════════════════════════════ */
+    #process .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 0;
+      margin-top: 52px;
+      position: relative;
+    }
+    #process .steps::before {
+      content: '';
+      position: absolute;
+      top: 36px; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+    }
+    .step { padding: 0 20px 0 0; position: relative; }
+    .step-num {
+      width: 56px; height: 56px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; font-weight: 800;
+      background: var(--card); border: 1px solid var(--border);
+      margin-bottom: 20px; position: relative; z-index: 1;
+      transition: border-color .3s, background .3s;
+    }
+    .step:hover .step-num {
+      border-color: var(--accent);
+      background: rgba(124,108,255,.12);
+    }
+    .step h4 { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+    .step p { font-size: .85rem; color: var(--muted); }
+
+    /* ═══════════════════════════════════════════════════
+       CTA
+    ═══════════════════════════════════════════════════ */
+    #cta {
+      background: var(--bg2);
+      text-align: center;
+      padding: 80px 0;
+    }
+    .cta-box {
+      max-width: 640px; margin: 0 auto;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 52px 40px;
+      position: relative; overflow: hidden;
+    }
+    .cta-box::before {
+      content: '';
+      position: absolute; top: -80px; right: -80px;
+      width: 280px; height: 280px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(124,108,255,.15), transparent 70%);
+    }
+    .cta-box h2 { font-size: 1.9rem; font-weight: 800; margin-bottom: 14px; }
+    .cta-box p { color: var(--muted); margin-bottom: 30px; }
+    .cta-contacts { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; margin-top: 28px; }
+    .contact-chip {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 20px; border-radius: 10px;
+      background: rgba(255,255,255,.05); border: 1px solid var(--border);
+      color: var(--text); font-size: .88rem; text-decoration: none;
+      transition: border-color .2s, background .2s;
+    }
+    .contact-chip:hover { border-color: var(--accent); background: rgba(124,108,255,.08); }
+
+    /* ═══════════════════════════════════════════════════
+       FOOTER
+    ═══════════════════════════════════════════════════ */
+    footer {
+      padding: 28px 0;
+      border-top: 1px solid rgba(255,255,255,.05);
+      text-align: center;
+      color: var(--muted); font-size: .82rem;
+    }
+
+    /* ═══════════════════════════════════════════════════
+       MOBILE
+    ═══════════════════════════════════════════════════ */
+    @media (max-width: 900px) {
+      .project-card.featured { grid-column: span 1; flex-direction: column; }
+      .project-card.featured .project-preview { width: 100%; height: 160px; }
+      .skills-wrap { grid-template-columns: 1fr; gap: 36px; }
+    }
+    @media (max-width: 760px) {
+      .nav-links { display: none; }
+      .burger { display: flex; }
+      nav.open .nav-links {
+        display: flex; flex-direction: column;
+        position: fixed; inset: 0; top: 56px;
+        background: var(--bg);
+        align-items: center; justify-content: center;
+        gap: 32px;
+      }
+      nav.open .nav-links a { font-size: 1.2rem; }
+      .hero-stats { flex-wrap: wrap; gap: 24px; }
+      .projects-grid { grid-template-columns: 1fr; }
+      #process .steps { grid-template-columns: 1fr 1fr; }
+      #process .steps::before { display: none; }
+      .step { padding-bottom: 28px; }
+      .cta-box { padding: 36px 24px; }
+    }
+    @media (max-width: 480px) {
+      #process .steps { grid-template-columns: 1fr; }
+    }
+
+    /* ═══════════════════════════════════════════════════
+       ABOUT
+    ═══════════════════════════════════════════════════ */
+    #about { background: var(--bg); }
+    .about-wrap {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 60px;
+      align-items: center;
+      margin-top: 52px;
+    }
+    .about-avatar {
+      width: 200px; height: 200px;
+      border-radius: 24px;
+      background: var(--card);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 5rem;
+      position: relative;
+    }
+    .about-avatar::before {
+      content: '';
+      position: absolute; inset: -2px;
+      border-radius: 26px;
+      background: var(--accent-g);
+      z-index: -1;
+    }
+    .about-text h3 { font-size: 1.4rem; font-weight: 700; margin-bottom: 16px; }
+    .about-text p { color: var(--muted); font-size: .95rem; line-height: 1.75; margin-bottom: 12px; }
+    .about-chips { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+    .about-chip {
+      padding: 6px 14px; border-radius: 8px;
+      background: var(--card); border: 1px solid var(--border);
+      font-size: .82rem; color: var(--muted);
+    }
+    @media (max-width: 760px) {
+      .about-wrap { grid-template-columns: 1fr; gap: 28px; }
+      .about-avatar { width: 140px; height: 140px; font-size: 3.5rem; margin: 0 auto; }
+    }
+
+    /* ═══════════════════════════════════════════════════
+       CONTACT FORM
+    ═══════════════════════════════════════════════════ */
+    .contact-form { margin-top: 28px; text-align: left; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: .82rem; color: var(--muted); margin-bottom: 6px; }
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      background: rgba(255,255,255,.05);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 16px;
+      color: var(--text);
+      font-size: .9rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color .2s, background .2s;
+    }
+    .form-group input:focus,
+    .form-group textarea:focus {
+      border-color: var(--accent);
+      background: rgba(124,108,255,.05);
+    }
+    .form-group textarea { resize: vertical; min-height: 90px; }
+    .form-success {
+      display: none;
+      padding: 20px;
+      background: rgba(0,200,100,.08);
+      border: 1px solid rgba(0,200,100,.25);
+      border-radius: 12px;
+      color: #4ade80;
+      font-size: .95rem;
+      text-align: center;
+      margin-top: 16px;
+    }
+    @media (max-width: 560px) {
+      .form-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─── NAV ─────────────────────────────────────────────────── -->
+<nav id="navbar">
+  <div class="container inner">
+    <a href="#hero" class="nav-logo">BA.</a>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="#about">Обо мне</a></li>
+      <li><a href="#services">Услуги</a></li>
+      <li><a href="#projects">Проекты</a></li>
+      <li><a href="#skills">Навыки</a></li>
+      <li><a href="#process">Процесс</a></li>
+      <li><a href="#cta" class="nav-cta">Написать</a></li>
+    </ul>
+    <div class="burger" id="burger" onclick="toggleMenu()">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+</nav>
+
+<!-- ─── HERO ─────────────────────────────────────────────────── -->
+<section id="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <div class="container">
+    <div class="hero-content fade-up">
+      <div class="hero-badge">Открыт для новых проектов</div>
+      <img src="img/my-foto.jpg" alt="Фото Александра Бадеева" style="width: 150px; height: 150px; border-radius: 20px; margin-bottom: 20px; border: 2px solid var(--accent);">
+      <h1>Цифровые решения для бизнеса, интернет‑торговли и сервисов</h1>
+      <p class="hero-sub">
+        Я — фриланс‑разработчик, который помогает интернет‑магазинам и сервисным компаниям: делаю сайты и лендинги, настраиваю CRM и автоматизацию процессов, создаю чат‑ботов, ИИ‑ассистентов и ИИ‑агентов, подключаю SEO и маркетинг, чтобы заявки приходили стабильно, а рутины становилось меньше.
+      </p>
+      <div class="hero-btns">
+        <a href="#projects" class="btn btn-primary">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 7h18M3 12h18M3 17h12"/></svg>
+          Смотреть проекты
+        </a>
+        <a href="#cta" class="btn btn-ghost">
+          Обсудить задачу
+        </a>
+      </div>
+      <div class="hero-stats">
+        <div>
+          <div class="stat-num">6+</div>
+          <div class="stat-label">Готовых проектов</div>
+        </div>
+        <div>
+          <div class="stat-num">5</div>
+          <div class="stat-label">Типов решений</div>
+        </div>
+        <div>
+          <div class="stat-num">100%</div>
+          <div class="stat-label">Под ваш бизнес</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── ABOUT ─────────────────────────────────────────────────── -->
+<section id="about">
+  <div class="container">
+    <div class="fade-up">
+      <div class="section-tag">Обо мне</div>
+      <h2 class="section-title">Александр Бадеев</h2>
+    </div>
+    <div class="about-wrap">
+      <div class="fade-up">
+        <div class="about-avatar">👨‍💻</div>
+      </div>
+      <div class="about-text fade-up">
+        <h3>Фриланс-разработчик цифровых решений</h3>
+        <p>Я работаю с бизнесом, интернет‑торговлей и различными онлайн‑сервисами. Помогаю выстроить цифровую часть: от сайта‑витрины или лендинга до CRM, автоматизации процессов, чат‑ботов и ИИ‑ассистентов.</p>
+        <p>Фокус на понятных результатах для владельца: меньше ручной работы, прозрачные воронки, удобная аналитика и приток целевых обращений за счёт SEO‑оптимизации и продуманного маркетинга.</p>
+        <div class="about-chips">
+          <span class="about-chip">Веб-разработка</span>
+          <span class="about-chip">CRM-системы</span>
+          <span class="about-chip">Нейросети / AI</span>
+          <span class="about-chip">Android</span>
+          <span class="about-chip">UI/UX дизайн</span>
+          <span class="about-chip">SEO-оптимизация</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── SERVICES ──────────────────────────────────────────────── -->
+<section id="services">
+  <div class="container">
+    <div class="fade-up">
+      <div class="section-tag">Что я делаю</div>
+      <h2 class="section-title">Услуги</h2>
+      <p class="section-sub">Создаю цифровые продукты, которые помогают бизнесу расти и автоматизировать рутину</p>
+    </div>
+    <div class="services-grid">
+      <div class="service-card fade-up">
+        <div class="service-icon" style="background:rgba(124,108,255,.12)">🌐</div>
+        <h3>Сайты и лендинги</h3>
+        <p>Сайты и лендинги для интернет‑магазинов и сервисов, которые работают на продажи и запросы.</p>
+      </div>
+      <div class="service-card fade-up">
+        <div class="service-icon" style="background:rgba(0,212,255,.1)">📊</div>
+        <h3>CRM и автоматизация</h3>
+        <p>Настройка CRM и автоматизация процессов: заявки, задачи, напоминания и прозрачный учёт.</p>
+      </div>
+      <div class="service-card fade-up">
+        <div class="service-icon" style="background:rgba(255,180,0,.1)">🤖</div>
+        <h3>Чат‑боты и ИИ</h3>
+        <p>Чат‑боты и ИИ‑ассистенты для поддержки, заявок и повторных продаж.</p>
+      </div>
+      <div class="service-card fade-up">
+        <div class="service-icon" style="background:rgba(0,200,100,.1)">🔎</div>
+        <h3>SEO и маркетинг</h3>
+        <p>SEO‑оптимизация и базовый маркетинг для привлечения целевого трафика.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── PROJECTS ──────────────────────────────────────────────── -->
+<section id="projects">
+  <div class="container">
+    <div class="section-header fade-up">
+      <div class="section-tag">Моя работа</div>
+      <h2 class="section-title">Проекты</h2>
+      <p class="section-sub">Реальные продукты, которые уже работают и решают бизнес-задачи</p>
+    </div>
+
+    <div class="projects-grid">
+
+      <!-- CRM Риелтора — featured -->
+      <div class="project-card featured fade-up">
+        <div class="project-preview" style="background:#0d1020">
+          <img src="img/CRM-rieltora.png" alt="CRM Риелтора" style="width:100%;height:100%;object-fit:cover;object-position:top">
+        </div>
+        <div class="project-body">
+          <div class="project-meta">
+            <span class="project-cat">CRM-система</span>
+          </div>
+          <h3>CRM Риелтора</h3>
+          <p>Полноценная система управления объектами недвижимости, клиентской базой, показами и сделками. Анимированный интерфейс с дашбордом, канбан-доской и карточками объектов.</p>
+          <div class="project-tags">
+            <span class="tag">HTML/CSS</span>
+            <span class="tag">JavaScript</span>
+            <span class="tag">Анимации</span>
+            <span class="tag">Адаптив</span>
+          </div>
+          <div class="project-footer">
+            <a href="../crm-rieltor/index.html" class="btn btn-primary" target="_blank">Открыть демо</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Мини-CRM -->
+      <div class="project-card fade-up">
+        <div class="project-preview" style="background:#0d1020">
+          <img src="img/uchet-clienta.png" alt="Мини-CRM" style="width:100%;height:100%;object-fit:cover;object-position:top">
+        </div>
+        <div class="project-body">
+          <div class="project-meta">
+            <span class="project-cat">CRM-система</span>
+          </div>
+          <h3>Мини-CRM — Учёт клиентов</h3>
+          <p>Система ведения клиентской базы с карточками, статусами сделок, заметками и поиском. Простой и быстрый инструмент для малого бизнеса.</p>
+          <div class="project-tags">
+            <span class="tag">HTML/CSS</span>
+            <span class="tag">JavaScript</span>
+            <span class="tag">LocalStorage</span>
+          </div>
+          <div class="project-footer">
+            <a href="../CRM/index.html" class="btn btn-primary" target="_blank">Открыть демо</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Лендинг SEO -->
+      <div class="project-card fade-up">
+        <div class="project-preview" style="background:#0d1020">
+          <img src="img/SEO.png" alt="Лендинг SEO" style="width:100%;height:100%;object-fit:cover;object-position:top">
+        </div>
+        <div class="project-body">
+          <div class="project-meta">
+            <span class="project-cat">Лендинг</span>
+          </div>
+          <h3>Лендинг «SEO-Оптимизация»</h3>
+          <p>Продающая страница для агентства SEO-продвижения. Блоки с преимуществами, кейсами, тарифами и формой захвата лидов.</p>
+          <div class="project-tags">
+            <span class="tag">HTML/CSS</span>
+            <span class="tag">Анимации</span>
+            <span class="tag">Конверсия</span>
+          </div>
+          <div class="project-footer">
+            <a href="../Lending/landing.html" class="btn btn-primary" target="_blank">Открыть демо</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Визитка -->
+      <div class="project-card fade-up">
+        <div class="project-preview" style="background:#0d1020">
+          <img src="img/vizitka.png" alt="Визитка" style="width:100%;height:100%;object-fit:cover;object-position:top">
+        </div>
+        <div class="project-body">
+          <div class="project-meta">
+            <span class="project-cat">Визитка / Landing</span>
+          </div>
+          <h3>Личная сайт-визитка</h3>
+          <p>Моя личная страница специалиста по нейросетям: услуги, кейсы, контакты. Современный дизайн с тёмной темой и анимациями.</p>
+          <div class="project-tags">
+            <span class="tag">HTML/CSS</span>
+            <span class="tag">Нейросети</span>
+            <span class="tag">SEO</span>
+          </div>
+          <div class="project-footer">
+            <a href="../Vizitka/index.html" class="btn btn-primary" target="_blank">Открыть демо</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Калькулятор -->
+      <div class="project-card fade-up">
+        <div class="project-preview" style="background:#1a1f35;position:relative">
+          <img src="img/calculator.png" alt="Калькулятор доставки" style="width:100%;height:100%;object-fit:cover;object-position:top;opacity:.85;mix-blend-mode:luminosity">
+          <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(26,31,53,.3),rgba(13,16,32,.5))"></div>
+        </div>
+        <div class="project-body">
+          <div class="project-meta">
+            <span class="project-cat">Веб-инструмент</span>
+          </div>
+          <h3>Калькулятор доставки</h3>
+          <p>Интерактивный инструмент для расчёта стоимости доставки с учётом веса, габаритов, расстояния и тарифов перевозчиков.</p>
+          <div class="project-tags">
+            <span class="tag">HTML/CSS</span>
+            <span class="tag">JavaScript</span>
+            <span class="tag">UX</span>
+          </div>
+          <div class="project-footer">
+            <a href="../kalkulyator/index.html" class="btn btn-primary" target="_blank">Открыть демо</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- ЭлектроМонтаж -->
+      <div class="project-card fade-up">
+        <div class="project-preview" style="background:#0d0d0d">
+          <img src="img/electromontag.png" alt="ЭлектроМонтаж" style="width:100%;height:100%;object-fit:cover;object-position:top">
+        </div>
+        <div class="project-body">
+          <div class="project-meta">
+            <span class="project-cat">Лендинг</span>
+          </div>
+          <h3>Лендинг «ЭлектроМонтаж»</h3>
+          <p>Продающий сайт для бригады электромонтажников. Выезд в день обращения, фиксированная смета, гарантия 1 год. Тёмный дизайн с жёлтыми акцентами и блоками доверия.</p>
+          <div class="project-tags">
+            <span class="tag">HTML/CSS</span>
+            <span class="tag">JavaScript</span>
+            <span class="tag">Лендинг</span>
+            <span class="tag">Конверсия</span>
+          </div>
+          <div class="project-footer">
+            <a href="../Elektra/index.html" class="btn btn-primary" target="_blank">Открыть демо</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Морской бой -->
+      <div class="project-card fade-up">
+        <div class="project-preview" style="background:linear-gradient(135deg,#0a2030,#102010)">
+          <span>⚓</span>
+        </div>
+        <div class="project-body">
+          <div class="project-meta">
+            <span class="project-cat">Android-приложение</span>
+          </div>
+          <h3>Игра «Морской бой»</h3>
+          <p>Классическая игра «Морской бой» для Android. Игра против AI с разными уровнями сложности, звуковыми эффектами и анимациями попаданий.</p>
+          <div class="project-tags">
+            <span class="tag">Android</span>
+            <span class="tag">Kotlin/Java</span>
+            <span class="tag">Game AI</span>
+          </div>
+          <div class="project-footer">
+            <a href="#cta" class="btn btn-ghost btn-sm-ghost">Запросить APK</a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ─── SKILLS ────────────────────────────────────────────────── -->
+<section id="skills">
+  <div class="container">
+    <div class="fade-up">
+      <div class="section-tag">Технологии</div>
+      <h2 class="section-title">Стек и навыки</h2>
+    </div>
+    <div class="skills-wrap">
+      <div class="skills-list fade-up">
+        <div class="skill-item">
+          <div class="skill-header"><span>HTML / CSS</span><span class="skill-pct">95%</span></div>
+          <div class="skill-bar"><div class="skill-fill" style="--w:95%"></div></div>
+        </div>
+        <div class="skill-item">
+          <div class="skill-header"><span>JavaScript</span><span class="skill-pct">85%</span></div>
+          <div class="skill-bar"><div class="skill-fill" style="--w:85%"></div></div>
+        </div>
+        <div class="skill-item">
+          <div class="skill-header"><span>UI/UX дизайн</span><span class="skill-pct">80%</span></div>
+          <div class="skill-bar"><div class="skill-fill" style="--w:80%"></div></div>
+        </div>
+        <div class="skill-item">
+          <div class="skill-header"><span>Android / Kotlin</span><span class="skill-pct">70%</span></div>
+          <div class="skill-bar"><div class="skill-fill" style="--w:70%"></div></div>
+        </div>
+        <div class="skill-item">
+          <div class="skill-header"><span>Нейросети / AI</span><span class="skill-pct">88%</span></div>
+          <div class="skill-bar"><div class="skill-fill" style="--w:88%"></div></div>
+        </div>
+      </div>
+      <div class="tech-cloud fade-up">
+        <div class="tech-pill"><span class="ico">🌐</span> HTML5</div>
+        <div class="tech-pill"><span class="ico">🎨</span> CSS3</div>
+        <div class="tech-pill"><span class="ico">⚡</span> JavaScript</div>
+        <div class="tech-pill"><span class="ico">📱</span> Android</div>
+        <div class="tech-pill"><span class="ico">🤖</span> ChatGPT API</div>
+        <div class="tech-pill"><span class="ico">🧠</span> Нейросети</div>
+        <div class="tech-pill"><span class="ico">🔍</span> SEO</div>
+        <div class="tech-pill"><span class="ico">📊</span> CRM</div>
+        <div class="tech-pill"><span class="ico">🎯</span> Figma</div>
+        <div class="tech-pill"><span class="ico">🗃️</span> LocalStorage</div>
+        <div class="tech-pill"><span class="ico">🚀</span> Оптимизация</div>
+        <div class="tech-pill"><span class="ico">📐</span> Адаптив</div>
+        <div class="tech-pill" style="background: linear-gradient(135deg, rgba(124,108,255,.15), rgba(0,212,255,.18)); border-color: rgba(124,108,255,.3); color: #e8eaf0; box-shadow: 0 18px 35px rgba(124,108,255,.12);">
+          <span class="ico">💻</span> Vibe coding
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── PROCESS ───────────────────────────────────────────────── -->
+<section id="process">
+  <div class="container">
+    <div class="fade-up">
+      <div class="section-tag">Как работаю</div>
+      <h2 class="section-title">Процесс работы</h2>
+      <p class="section-sub">Прозрачно и предсказуемо — от идеи до готового продукта</p>
+    </div>
+    <div class="steps">
+      <div class="step fade-up">
+        <div class="step-num gradient-text">01</div>
+        <h4>Бриф</h4>
+        <p>Обсуждаем задачу, цели, аудиторию и ожидаемый результат</p>
+      </div>
+      <div class="step fade-up">
+        <div class="step-num gradient-text">02</div>
+        <h4>Прототип</h4>
+        <p>Создаю структуру и прототип, согласовываем до начала разработки</p>
+      </div>
+      <div class="step fade-up">
+        <div class="step-num gradient-text">03</div>
+        <h4>Разработка</h4>
+        <p>Верстаю и программирую, показываю промежуточные результаты</p>
+      </div>
+      <div class="step fade-up">
+        <div class="step-num gradient-text">04</div>
+        <h4>Сдача</h4>
+        <p>Тестируем, вношу правки и передаю готовый продукт с документацией</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── CTA ───────────────────────────────────────────────────── -->
+<section id="cta">
+  <div class="container">
+    <div class="cta-box fade-up">
+      <div class="section-tag" style="text-align:center">Давайте работать</div>
+      <h2>Готов обсудить ваш проект</h2>
+      <p>Опишите задачу — отвечу в течение часа</p>
+
+      <form class="contact-form" id="contact-form" onsubmit="submitForm(event)">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="fname">Ваше имя</label>
+            <input type="text" id="fname" placeholder="Иван" required>
+          </div>
+          <div class="form-group">
+            <label for="fphone">Телефон / Telegram</label>
+            <input type="text" id="fphone" placeholder="+7 999 000-00-00">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="fmsg">Опишите задачу</label>
+          <textarea id="fmsg" placeholder="Нужен лендинг для магазина, CRM для риелтора..." required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center">
+          Отправить в Telegram
+        </button>
+      </form>
+      <div class="form-success" id="form-success">
+        ✓ Сообщение скопировано! Telegram открыт — вставьте текст и отправьте.
+      </div>
+
+      <div class="cta-contacts">
+        <a href="tel:+79164476591" class="contact-chip">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 10.8 19.79 19.79 0 01.22 2.18 2 2 0 012.22 0h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 14.92z"/></svg>
+          Макс (менеджер): +7 916 447-65-91
+        </a>
+        <a href="https://t.me/CowboyAleksandr" class="contact-chip" target="_blank">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12s5.37 12 12 12 12-5.37 12-12S18.63 0 12 0zm5.94 8.19l-2.03 9.57c-.15.68-.54.85-1.1.53l-3-2.21-1.45 1.4c-.16.16-.3.3-.61.3l.21-3.04 5.51-4.98c.24-.21-.05-.33-.37-.12L7.08 14.4l-2.96-.92c-.64-.2-.65-.64.14-.95l11.56-4.46c.53-.19 1 .13.82.95l-.7-.83z"/></svg>
+          Telegram
+        </a>
+        <a href="mailto:badeev777@gmail.com" class="contact-chip">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          Email
+        </a>
+        <a href="https://github.com/badeev777-svg" class="contact-chip" target="_blank">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58v-2.04c-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.74.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.83 2.8 1.3 3.49 1 .11-.78.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.12-.3-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 013-.4c1.02.005 2.04.14 3 .4 2.28-1.55 3.29-1.23 3.29-1.23.66 1.66.24 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.63-5.48 5.92.43.37.81 1.1.81 2.22v3.29c0 .32.22.7.83.58C20.57 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
+          GitHub
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── FOOTER ────────────────────────────────────────────────── -->
+<footer>
+  <div class="container">
+    <p>© 2026 Бадеев Александр &nbsp;·&nbsp; Разработка веб-приложений и AI-решений</p>
+  </div>
+</footer>
+
+<script>
+  /* Burger menu */
+  function toggleMenu() {
+    document.getElementById('navbar').classList.toggle('open');
+  }
+  /* Close on link click */
+  document.querySelectorAll('.nav-links a').forEach(a =>
+    a.addEventListener('click', () =>
+      document.getElementById('navbar').classList.remove('open')
+    )
+  );
+
+  /* Fade-up on scroll */
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        /* animate skill bars */
+        e.target.querySelectorAll('.skill-fill').forEach(b => b.classList.add('animated'));
+      }
+    });
+  }, { threshold: 0.12 });
+
+  document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+  /* Animate skill bars when skills section visible */
+  const skillsObserver = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.querySelectorAll('.skill-fill').forEach(b => b.classList.add('animated'));
+      }
+    });
+  }, { threshold: 0.3 });
+  document.querySelectorAll('.skills-list').forEach(el => skillsObserver.observe(el));
+
+  /* Contact form */
+  function submitForm(e) {
+    e.preventDefault();
+    const name = document.getElementById('fname').value.trim();
+    const phone = document.getElementById('fphone').value.trim();
+    const msg = document.getElementById('fmsg').value.trim();
+    const text = `Привет! Меня зовут ${name}.\n${phone ? 'Контакт: ' + phone + '\n' : ''}\n${msg}`;
+    navigator.clipboard.writeText(text).catch(() => {});
+    window.open('https://t.me/CowboyAleksandr', '_blank');
+    document.getElementById('contact-form').style.display = 'none';
+    document.getElementById('form-success').style.display = 'block';
+  }
+
+  /* Active nav link on scroll */
+  const sections = document.querySelectorAll('section[id]');
+  const parallaxHero = document.querySelector('.hero-bg');
+  const parallaxGrid = document.querySelector('.hero-grid');
+  window.addEventListener('scroll', () => {
+    const y = window.scrollY + 100;
+    sections.forEach(s => {
+      const a = document.querySelector(`.nav-links a[href="#${s.id}"]`);
+      if (a) {
+        if (s.offsetTop <= y && s.offsetTop + s.offsetHeight > y) {
+          a.style.color = 'var(--text)';
+        } else {
+          a.style.color = '';
+        }
+      }
+    });
+    if (parallaxHero && parallaxGrid) {
+      const scrollValue = window.scrollY * 0.22;
+      parallaxHero.style.transform = `translateY(${scrollValue}px)`;
+      parallaxGrid.style.transform = `translateY(${scrollValue * 0.6}px)`;
+    }
+  });
+</script>
+
+</body>
+</html>
