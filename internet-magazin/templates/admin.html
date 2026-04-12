@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Админ-панель: Управление товарами</h2>
+
+<div class="admin-actions">
+  <a class="button" href="{{ url_for('admin_add') }}">Добавить товар</a>
+  <a class="button" href="{{ url_for('admin_users') }}">Управление пользователями</a>
+</div>
+
+<table class="cart-table">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Название</th>
+      <th>Цена</th>
+      <th>Описание</th>
+      <th>Действия</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for product in products %}
+    <tr>
+      <td>{{ product.id }}</td>
+      <td>{{ product.name }}</td>
+      <td>{{ product.price }} ₽</td>
+      <td>{{ product.description }}</td>
+      <td>
+        <a class="button button-small" href="{{ url_for('admin_edit', product_id=product.id) }}">Редактировать</a>
+        <form action="{{ url_for('admin_delete', product_id=product.id) }}" method="post" style="display:inline;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="button button-small" onclick="return confirm('Удалить товар?')">Удалить</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<a class="button" href="{{ url_for('index') }}">Вернуться в магазин</a>
+{% endblock %}

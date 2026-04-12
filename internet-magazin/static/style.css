@@ -1,0 +1,146 @@
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  background: #f4f4f4;
+  color: #333;
+}
+
+.container {
+  width: min(1080px, 96%);
+  margin: 0 auto;
+  padding: 1rem 0;
+}
+
+.site-header {
+  background: #1f2937;
+  color: white;
+  padding: 1rem 0;
+}
+
+.site-header a {
+  color: white;
+  text-decoration: none;
+}
+
+.site-header nav {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+h1, h2, h3 {
+  margin: 0 0 0.75rem;
+}
+
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.product-card, .cart-table, .product-form, .success {
+  background: white;
+  border-radius: 10px;
+  padding: 1rem;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+}
+
+.product-card p {
+  margin: 0.5rem 0;
+}
+
+.price {
+  font-weight: 700;
+  margin: 0.5rem 0;
+}
+
+.button, .button-small {
+  display: inline-block;
+  background: #2563eb;
+  color: white;
+  padding: 0.7rem 1rem;
+  border-radius: 8px;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+}
+
+.button-small {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.9rem;
+}
+
+.cart-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.cart-table th, .cart-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #ddd;
+}
+
+.cart-total {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-top: 1rem;
+}
+
+footer {
+  margin-top: 2rem;
+  padding: 1rem 0;
+  text-align: center;
+  color: #666;
+}
+
+.product-form label {
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.auth-form {
+  display: grid;
+  gap: 1rem;
+  max-width: 360px;
+}
+
+.auth-form textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 1rem;
+  resize: vertical;
+}
+
+.admin-user-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.search-form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.search-form input {
+  padding: 0.7rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  min-width: 220px;
+}
+
+.error {
+  background: #fee2e2;
+  color: #991b1b;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.success {
+  border-left: 4px solid #10b981;
+}

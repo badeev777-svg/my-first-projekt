@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Вход</h2>
+{% if error %}
+<div class="error">{{ error }}</div>
+{% endif %}
+<form method="post" class="auth-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label>Имя пользователя:<input type="text" name="username"></label>
+  <label>Пароль:<input type="password" name="password"></label>
+  <button type="submit" class="button">Войти</button>
+</form>
+<p>Нет аккаунта? <a href="{{ url_for('register') }}">Зарегистрироваться</a></p>
+{% endblock %}

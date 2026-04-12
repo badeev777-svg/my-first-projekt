@@ -1,0 +1,6 @@
+secret_key.txt
+store.db
+__pycache__/
+*.pyc
+*.exe
+.vscode/

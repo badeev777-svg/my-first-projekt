@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Редактировать товар</h2>
+
+<form method="post" class="auth-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label>Название:<input type="text" name="name" value="{{ product.name }}" required></label>
+  <label>Цена:<input type="number" name="price" step="0.01" min="0" value="{{ product.price }}" required></label>
+  <label>Описание:<textarea name="description" rows="3">{{ product.description }}</textarea></label>
+  <button type="submit" class="button">Сохранить</button>
+</form>
+
+<a class="button" href="{{ url_for('admin') }}">Отмена</a>
+{% endblock %}

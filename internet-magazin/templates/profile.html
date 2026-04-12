@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Профиль</h2>
+<p>Вы вошли как <strong>{{ username }}</strong>.</p>
+
+{% if error %}
+<div class="error">{{ error }}</div>
+{% endif %}
+{% if success %}
+<div class="success">{{ success }}</div>
+{% endif %}
+
+<h3>Смена пароля</h3>
+<form method="post" class="auth-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label>Старый пароль:<input type="password" name="old_password" required></label>
+  <label>Новый пароль:<input type="password" name="new_password" required></label>
+  <label>Подтвердите новый пароль:<input type="password" name="confirm_password" required></label>
+  <button type="submit" class="button">Сменить пароль</button>
+</form>
+
+<h3>История заказов</h3>
+{% if orders %}
+<table class="cart-table">
+  <thead>
+    <tr>
+      <th>Дата</th>
+      <th>Товар</th>
+      <th>Количество</th>
+      <th>Цена</th>
+      <th>Сумма</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for order in orders %}
+    <tr>
+      <td>{{ order.created_at[:10] }}</td>
+      <td>{{ order.name }}</td>
+      <td>{{ order.quantity }}</td>
+      <td>{{ order.price }} ₽</td>
+      <td>{{ order.total }} ₽</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>У вас пока нет заказов.</p>
+{% endif %}
+
+<a class="button" href="{{ url_for('index') }}">Вернуться в каталог</a>
+{% endblock %}

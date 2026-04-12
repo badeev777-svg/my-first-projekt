@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ product.name }}</h2>
+<p>{{ product.description }}</p>
+<p class="price">{{ product.price }} ₽</p>
+<form action="{{ url_for('add_to_cart') }}" method="post" class="product-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="product_id" value="{{ product.id }}">
+  <label>Количество: <input type="number" name="quantity" value="1" min="1"></label>
+  <button type="submit" class="button">Добавить в корзину</button>
+</form>
+{% endblock %}
