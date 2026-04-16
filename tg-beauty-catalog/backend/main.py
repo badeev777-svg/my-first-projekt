@@ -6,9 +6,12 @@
 import asyncio
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+import httpx
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
+
+from aiogram.types import Update
 
 from config import settings
 from database import engine
@@ -18,32 +21,48 @@ from api.webhook import router as webhook_router
 from bot.platform_bot import bot as platform_bot, dp as platform_dp
 
 
-# Задача long-polling платформенного бота (работает в фоне вместе с сервером)
-_poll_task: asyncio.Task | None = None
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global _poll_task
-
-    # Запускаем платформенного бота (long polling)
-    # В продакшне он будет работать через вебхук, здесь — polling для удобства разработки
-    _poll_task = asyncio.create_task(
-        platform_dp.start_polling(platform_bot, skip_updates=True)
-    )
-
     print(f"BeautyCatalog API running [{settings.environment}]")
     print(f"Database: {settings.database_url.split('@')[-1]}")
-    print(f"Platform bot: polling started")
+
+    if settings.is_dev:
+        # Локально: long polling (не нужен публичный URL)
+        _poll_task = asyncio.create_task(
+            platform_dp.start_polling(platform_bot, skip_updates=True)
+        )
+        print("Platform bot: polling started")
+    else:
+        # Продакшн: устанавливаем вебхук для платформенного бота
+        platform_webhook_url = f"{settings.api_base_url}/v1/platform-webhook"
+        try:
+            async with httpx.AsyncClient(verify=False, timeout=10) as client:
+                r = await client.post(
+                    f"https://api.telegram.org/bot{settings.platform_bot_token}/setWebhook",
+                    json={"url": platform_webhook_url},
+                )
+                ok = r.json().get("ok", False)
+                print(f"Platform bot: webhook {'set' if ok else 'FAILED'} -> {platform_webhook_url}")
+        except Exception as e:
+            print(f"Platform bot: webhook error: {e}")
 
     yield
 
-    # Останавливаем бот и закрываем соединения при завершении
-    if _poll_task and not _poll_task.done():
-        _poll_task.cancel()
+    # Завершение — закрываем соединения
+    if settings.is_dev:
         try:
+            _poll_task.cancel()
             await _poll_task
-        except asyncio.CancelledError:
+        except Exception:
+            pass
+    else:
+        # Снимаем вебхук при остановке
+        try:
+            async with httpx.AsyncClient(verify=False, timeout=5) as client:
+                await client.post(
+                    f"https://api.telegram.org/bot{settings.platform_bot_token}/deleteWebhook"
+                )
+        except Exception:
             pass
 
     await platform_bot.session.close()
@@ -73,6 +92,15 @@ app.add_middleware(
 app.include_router(public_router,  prefix="/v1")
 app.include_router(client_router,  prefix="/v1")
 app.include_router(webhook_router, prefix="/v1")
+
+
+@app.post("/v1/platform-webhook", tags=["Webhook"])
+async def platform_webhook(request: Request):
+    """Вебхук для платформенного бота (используется в продакшне)."""
+    update_data = await request.json()
+    update = Update.model_validate(update_data)
+    await platform_dp.feed_update(platform_bot, update)
+    return {"ok": True}
 
 
 @app.get("/health", tags=["System"])
