@@ -103,7 +103,7 @@ async def platform_webhook(request: Request):
     return {"ok": True}
 
 
-@app.get("/health", tags=["System"])
+@app.api_route("/health", methods=["GET", "HEAD"], tags=["System"])
 async def health_check():
     """Проверка состояния сервера и БД."""
     try:
