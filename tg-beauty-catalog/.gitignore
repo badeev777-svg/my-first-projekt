@@ -1,0 +1,23 @@
+# Секреты — никогда не коммитить
+.env
+.env.local
+.env.*.local
+
+# Зависимости (если появятся)
+node_modules/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+
+# Логи сервера
+backend/server.log
+backend/server_startup.log
+
+# Системные файлы
+.DS_Store
+Thumbs.db
+.claude/
