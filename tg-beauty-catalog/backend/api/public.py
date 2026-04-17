@@ -4,12 +4,15 @@
 # Не требуют авторизации — доступны любому посетителю.
 # Все данные изолированы по master slug.
 
-from fastapi import APIRouter, Depends, HTTPException
+from datetime import date, timedelta
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from database import get_db
 from models import Master, Service, ServicePhoto, PortfolioItem, Review
+from services.slots import get_free_slots
 
 router = APIRouter(tags=["Public"])
 
@@ -38,6 +41,42 @@ async def get_master_profile(slug: str, db: AsyncSession = Depends(get_db)):
         "accent_color":     master.accent_color,
         "logo_url":         master.logo_url,
     }
+
+
+@router.get("/masters/{slug}/slots")
+async def get_master_slots(
+    slug: str,
+    start_date: date | None = Query(default=None, alias="date", description="Дата в формате YYYY-MM-DD, по умолчанию сегодня"),
+    days: int = Query(default=1, ge=1, le=30, description="Сколько дней вернуть (1-30)"),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Свободные слоты мастера.
+
+    - `date` — начальная дата (по умолчанию сегодня)
+    - `days` — сколько дней охватить (по умолчанию 1, максимум 30)
+
+    Пример ответа для days=1:
+    ```json
+    {"2025-04-17": ["10:00", "11:00", "12:00"]}
+    ```
+    """
+    result = await db.execute(
+        select(Master.id).where(Master.slug == slug, Master.is_active == True)
+    )
+    master_id = result.scalar_one_or_none()
+    if not master_id:
+        raise HTTPException(404, "Мастер не найден")
+
+    start = start_date or date.today()
+    response: dict[str, list[str]] = {}
+
+    for i in range(days):
+        target = start + timedelta(days=i)
+        slots = await get_free_slots(master_id, target)
+        response[target.isoformat()] = [t.strftime("%H:%M") for t in slots]
+
+    return response
 
 
 @router.get("/masters/{slug}/services")

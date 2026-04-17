@@ -19,12 +19,14 @@ from database import AsyncSessionLocal
 from models.booking import Booking
 from models.client import Client
 from models.master import Master
-from models.schedule import SlotOverride, WorkSchedule
 from models.service import Service
+from services.slots import get_free_slots
 
 router = Router()
 
 DAY_NAMES = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
+
+# get_free_slots импортирован из services.slots
 
 
 class BookFlow(StatesGroup):
@@ -42,54 +44,6 @@ def make_kb(rows: list[list[tuple[str, str]]]) -> InlineKeyboardMarkup:
             for row in rows
         ]
     )
-
-
-async def get_free_slots(master_id: int, target_date: date) -> list[time]:
-    """Возвращает список свободных слотов для мастера на указанную дату."""
-    async with AsyncSessionLocal() as db:
-        res = await db.execute(
-            select(WorkSchedule).where(
-                WorkSchedule.master_id == master_id,
-                WorkSchedule.day_of_week == target_date.weekday(),
-                WorkSchedule.is_working == True,
-            )
-        )
-        sched = res.scalar_one_or_none()
-        if not sched:
-            return []
-
-        res = await db.execute(
-            select(SlotOverride).where(
-                SlotOverride.master_id == master_id,
-                SlotOverride.date == target_date,
-                SlotOverride.is_blocked == True,
-                SlotOverride.time == None,
-            )
-        )
-        if res.scalar_one_or_none():
-            return []
-
-        res = await db.execute(
-            select(Booking.time).where(
-                Booking.master_id == master_id,
-                Booking.date == target_date,
-                Booking.status == "confirmed",
-            )
-        )
-        booked = {row[0] for row in res.all()}
-
-    slots = []
-    current = datetime.combine(target_date, sched.start_time)
-    end = datetime.combine(target_date, sched.end_time)
-    step = timedelta(minutes=sched.slot_duration_min)
-
-    while current + step <= end:
-        t = current.time()
-        if t not in booked:
-            slots.append(t)
-        current += step
-
-    return slots
 
 
 # ============================================================
