@@ -106,23 +106,26 @@ async def on_service_photo_received(message: Message, master: Master, state: FSM
     data = await state.get_data()
     await state.clear()
 
-    photo = message.photo[-1]
-    file = await message.bot.get_file(photo.file_id)
-    downloaded = await message.bot.download_file(file.file_path)
-    photo_bytes = downloaded.read()
+    try:
+        photo = message.photo[-1]
+        file = await message.bot.get_file(photo.file_id)
+        downloaded = await message.bot.download_file(file.file_path)
+        photo_bytes = downloaded.read()
 
-    key = storage.make_key(f"masters/{master.id}/services/{data['service_id']}")
-    url = storage.upload_bytes(photo_bytes, key)
+        key = storage.make_key(f"masters/{master.id}/services/{data['service_id']}")
+        url = storage.upload_bytes(photo_bytes, key)
 
-    async with AsyncSessionLocal() as db:
-        db.add(ServicePhoto(
-            service_id=data["service_id"],
-            master_id=master.id,
-            photo_url=url,
-        ))
-        await db.commit()
+        async with AsyncSessionLocal() as db:
+            db.add(ServicePhoto(
+                service_id=data["service_id"],
+                master_id=master.id,
+                photo_url=url,
+            ))
+            await db.commit()
 
-    await message.answer(f"Фото добавлено к услуге «{data['service_name']}».")
+        await message.answer(f"Фото добавлено к услуге «{data['service_name']}».")
+    except Exception as e:
+        await message.answer(f"Ошибка при загрузке фото: {e}")
 
 
 # ============================================================
