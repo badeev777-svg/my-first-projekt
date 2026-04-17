@@ -29,5 +29,5 @@ APScheduler==3.10.4
 # Загрузка переменных из .env файла
 python-dotenv==1.0.1
 
-# S3-совместимый клиент для Cloudflare R2
-boto3==1.34.69
+# Supabase Storage (фото услуг и портфолио)
+supabase==2.9.1

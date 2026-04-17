@@ -1,36 +1,24 @@
 # ============================================================
-# services/storage.py — загрузка файлов в Cloudflare R2
+# services/storage.py — загрузка файлов в Supabase Storage
 # ============================================================
-# R2 совместим с S3 API, используем boto3.
-# Ключ объекта = путь внутри бакета: masters/{id}/services/{svc_id}/{uuid}.jpg
-# Публичный URL = r2_public_url + "/" + ключ
+# Бакет: beauty-catalog (PUBLIC)
+# Публичный URL: {supabase_url}/storage/v1/object/public/beauty-catalog/{key}
 
 import uuid
 
-import boto3
-from botocore.client import Config
+from supabase import create_client
 
 from config import settings
 
+BUCKET = "beauty-catalog"
+
 
 def is_configured() -> bool:
-    return bool(
-        settings.r2_account_id
-        and settings.r2_access_key_id
-        and settings.r2_secret_access_key
-        and settings.r2_public_url
-    )
+    return bool(settings.supabase_url and settings.supabase_service_role_key)
 
 
 def _client():
-    return boto3.client(
-        "s3",
-        endpoint_url=f"https://{settings.r2_account_id}.r2.cloudflarestorage.com",
-        aws_access_key_id=settings.r2_access_key_id,
-        aws_secret_access_key=settings.r2_secret_access_key,
-        config=Config(signature_version="s3v4"),
-        region_name="auto",
-    )
+    return create_client(settings.supabase_url, settings.supabase_service_role_key)
 
 
 def make_key(folder: str, ext: str = "jpg") -> str:
@@ -38,22 +26,21 @@ def make_key(folder: str, ext: str = "jpg") -> str:
 
 
 def upload_bytes(data: bytes, key: str, content_type: str = "image/jpeg") -> str:
-    """Загружает байты в R2, возвращает публичный URL."""
-    _client().put_object(
-        Bucket=settings.r2_bucket_name,
-        Key=key,
-        Body=data,
-        ContentType=content_type,
+    """Загружает байты в Supabase Storage, возвращает публичный URL."""
+    _client().storage.from_(BUCKET).upload(
+        path=key,
+        file=data,
+        file_options={"content-type": content_type},
     )
-    return f"{settings.r2_public_url.rstrip('/')}/{key}"
+    return f"{settings.supabase_url}/storage/v1/object/public/{BUCKET}/{key}"
 
 
 def delete_object(key: str) -> None:
-    """Удаляет объект из R2. key = часть URL после домена."""
-    _client().delete_object(Bucket=settings.r2_bucket_name, Key=key)
+    """Удаляет объект из бакета."""
+    _client().storage.from_(BUCKET).remove([key])
 
 
 def url_to_key(url: str) -> str:
     """Извлекает ключ объекта из публичного URL."""
-    base = settings.r2_public_url.rstrip("/")
-    return url.removeprefix(base).lstrip("/")
+    prefix = f"{settings.supabase_url}/storage/v1/object/public/{BUCKET}/"
+    return url.removeprefix(prefix)
