@@ -44,6 +44,8 @@ dp = Dispatcher(storage=MemoryStorage())
 dp.include_router(router)
 
 from bot.client_bot import router as client_router
+from bot.master_photos import router as photos_router
+dp.include_router(photos_router)
 dp.include_router(client_router)
 
 DAY_NAMES = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
@@ -91,6 +93,9 @@ async def cmd_start(message: Message, master: Master):
             f"Мастер: {master.name}\n\n"
             f"/profile — профиль\n"
             f"/services — услуги\n"
+            f"/add_photo — фото к услуге\n"
+            f"/portfolio — портфолио\n"
+            f"/add_portfolio — добавить в портфолио\n"
             f"/schedule — расписание\n"
             f"/today — сегодняшние записи\n"
             f"/upcoming — записи на 7 дней"
