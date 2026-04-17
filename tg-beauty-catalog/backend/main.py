@@ -19,12 +19,17 @@ from api.public import router as public_router
 from api.client import router as client_router
 from api.webhook import router as webhook_router
 from bot.platform_bot import bot as platform_bot, dp as platform_dp
+from services.scheduler import setup_scheduler
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print(f"BeautyCatalog API running [{settings.environment}]")
     print(f"Database: {settings.database_url.split('@')[-1]}")
+
+    sched = setup_scheduler()
+    sched.start()
+    print("Scheduler started")
 
     if settings.is_dev:
         # Локально: long polling (не нужен публичный URL)
@@ -48,7 +53,11 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    # Завершение — закрываем соединения
+    # Завершение
+    sched.shutdown(wait=False)
+    print("Scheduler stopped")
+
+    # Закрываем соединения
     if settings.is_dev:
         try:
             _poll_task.cancel()
