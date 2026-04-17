@@ -43,6 +43,9 @@ router = Router()
 dp = Dispatcher(storage=MemoryStorage())
 dp.include_router(router)
 
+from bot.client_bot import router as client_router
+dp.include_router(client_router)
+
 DAY_NAMES = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
 
 
