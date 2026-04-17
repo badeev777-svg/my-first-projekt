@@ -47,30 +47,34 @@ class AddServicePhoto(StatesGroup):
 @router.message(Command("add_photo"))
 async def cmd_add_photo(message: Message, master: Master, state: FSMContext):
     if not _is_master(message, master):
+        await message.answer(f"Команда только для мастера. Твой ID: {message.from_user.id}, ID мастера: {master.telegram_user_id}")
         return
-    if not storage.is_configured():
-        await _no_r2(message)
-        return
+    try:
+        if not storage.is_configured():
+            await _no_r2(message)
+            return
 
-    async with AsyncSessionLocal() as db:
-        res = await db.execute(
-            select(Service)
-            .where(Service.master_id == master.id, Service.is_active == True)
-            .order_by(Service.sort_order, Service.id)
-        )
-        services = res.scalars().all()
+        async with AsyncSessionLocal() as db:
+            res = await db.execute(
+                select(Service)
+                .where(Service.master_id == master.id, Service.is_active == True)
+                .order_by(Service.sort_order, Service.id)
+            )
+            services = res.scalars().all()
 
-    if not services:
-        await message.answer("Сначала добавь услуги: /add_service")
-        return
+        if not services:
+            await message.answer("Сначала добавь услуги: /add_service")
+            return
 
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=f"{s.name} ({s.price}р)", callback_data=f"aphoto:{s.id}")]
-        for s in services
-    ] + [[InlineKeyboardButton(text="Отмена", callback_data="aphoto:cancel")]])
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text=f"{s.name} ({s.price}р)", callback_data=f"aphoto:{s.id}")]
+            for s in services
+        ] + [[InlineKeyboardButton(text="Отмена", callback_data="aphoto:cancel")]])
 
-    await state.set_state(AddServicePhoto.select_service)
-    await message.answer("К какой услуге добавить фото?", reply_markup=kb)
+        await state.set_state(AddServicePhoto.select_service)
+        await message.answer("К какой услуге добавить фото?", reply_markup=kb)
+    except Exception as e:
+        await message.answer(f"Ошибка /add_photo: {e}")
 
 
 @router.callback_query(AddServicePhoto.select_service)
