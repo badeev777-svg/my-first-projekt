@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SEO-Помощник</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-dark:    #0a0e1a;
+      --bg-card:    #111827;
+      --accent1:    #6c63ff;
+      --accent2:    #00d4aa;
+      --accent3:    #ff6b6b;
+      --text-main:  #e8eaf0;
+      --text-muted: #8892a4;
+      --border:     rgba(108,99,255,.25);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Background mesh (same as landing) ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 10%, rgba(108,99,255,.18) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 80%, rgba(0,212,170,.13) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 40% at 60% 30%, rgba(255,107,107,.08) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Layout ── */
+    .wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* ── Header ── */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(10,14,26,.85);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+    }
+    .header-inner {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      height: 66px;
+    }
+    .logo-icon {
+      width: 40px; height: 40px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent1), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .logo-title {
+      font-size: 1.05rem;
+      font-weight: 800;
+      line-height: 1.1;
+      background: linear-gradient(135deg, #a89cff 0%, #6c63ff 35%, #00d4aa 70%, #38f9d7 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .logo-sub { font-size: .73rem; color: var(--text-muted); margin-top: 1px; }
+    .back-link {
+      margin-left: auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: .88rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color .2s;
+    }
+    .back-link:hover { color: var(--text-main); }
+
+    /* ── Main ── */
+    main { padding: 48px 0 80px; }
+
+    /* ── Card ── */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 36px 32px;
+    }
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 6px;
+    }
+    .card-sub {
+      font-size: .88rem;
+      color: var(--text-muted);
+      margin-bottom: 28px;
+    }
+
+    /* ── Form ── */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .form-label {
+      display: block;
+      font-size: .82rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      letter-spacing: .01em;
+    }
+    .req { color: var(--accent3); margin-left: 2px; }
+    .form-input {
+      width: 100%;
+      padding: 12px 16px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.04);
+      color: var(--text-main);
+      font-size: .9rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color .2s, background .2s;
+    }
+    .form-input::placeholder { color: var(--text-muted); opacity: .6; }
+    .form-input:focus {
+      border-color: var(--accent1);
+      background: rgba(108,99,255,.07);
+    }
+    .form-input.err { border-color: var(--accent3); background: rgba(255,107,107,.06); }
+    .err-msg { margin-top: 5px; font-size: .76rem; color: var(--accent3); }
+    .comp-stack { display: flex; flex-direction: column; gap: 8px; }
+
+    /* ── Button ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      padding: 15px 40px;
+      border-radius: 100px;
+      border: none;
+      background: linear-gradient(135deg, #6c63ff, #00d4aa);
+      color: #fff;
+      font-size: .97rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: opacity .2s, transform .2s;
+      margin-top: 28px;
+    }
+    .btn:hover:not(:disabled) { opacity: .88; transform: scale(1.02); }
+    .btn:disabled { background: rgba(255,255,255,.1); color: var(--text-muted); cursor: default; }
+
+    /* ── Loading ── */
+    .loading {
+      text-align: center;
+      padding: 80px 24px;
+    }
+    .loading-ring {
+      width: 60px; height: 60px;
+      border: 3px solid rgba(108,99,255,.15);
+      border-top-color: var(--accent1);
+      border-radius: 50%;
+      margin: 0 auto 20px;
+      animation: spin .85s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-title { font-size: 1rem; font-weight: 600; color: var(--text-main); }
+    .loading-sub { font-size: .85rem; color: var(--text-muted); margin-top: 6px; }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 5px;
+      margin-bottom: 24px;
+      overflow-x: auto;
+    }
+    .tab {
+      flex-shrink: 0;
+      padding: 9px 20px;
+      border-radius: 11px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: .87rem;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background .2s, color .2s;
+    }
+    .tab:hover:not(.tab-active) { background: rgba(255,255,255,.05); color: var(--text-main); }
+    .tab.tab-active {
+      background: linear-gradient(135deg, #6c63ff, #00d4aa);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    /* ── Dashboard grid ── */
+    .dash-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    .dash-grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    /* ── Stat pill ── */
+    .stat-pill {
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 12px;
+      text-align: center;
+    }
+    .stat-val { font-size: 1.5rem; font-weight: 700; }
+    .stat-lbl { font-size: .72rem; color: var(--text-muted); margin-top: 3px; }
+
+    /* ── Score circle ── (SVG-based, no extra deps) */
+
+    /* ── Audit row ── */
+    .audit-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 14px 18px;
+      border-radius: 14px;
+      border: 1px solid transparent;
+      margin-bottom: 10px;
+    }
+    .audit-row:last-child { margin-bottom: 0; }
+    .audit-row.ok  { border-color: rgba(0,212,170,.25);  background: rgba(0,212,170,.06); }
+    .audit-row.bad { border-color: rgba(255,107,107,.25); background: rgba(255,107,107,.06); }
+    .audit-icon {
+      flex-shrink: 0;
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .audit-icon.ok  { background: rgba(0,212,170,.18); }
+    .audit-icon.bad { background: rgba(255,107,107,.18); }
+    .audit-label { font-size: .93rem; font-weight: 600; color: var(--text-main); }
+    .audit-val   { font-size: .88rem; font-weight: 600; }
+    .audit-val.ok  { color: var(--accent2); }
+    .audit-val.bad { color: var(--accent3); }
+    .audit-fix { margin-top: 4px; font-size: .8rem; color: var(--text-muted); line-height: 1.5; }
+
+    /* ── Meta block ── */
+    .meta-block {
+      padding: 16px 18px;
+      border-radius: 14px;
+      border: 1px solid transparent;
+      margin-bottom: 12px;
+    }
+    .meta-block:last-child { margin-bottom: 0; }
+    .meta-block.ok   { border-color: rgba(0,212,170,.25);  background: rgba(0,212,170,.06); }
+    .meta-block.warn { border-color: rgba(255,183,77,.25);  background: rgba(255,183,77,.05); }
+    .meta-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+    .meta-name { font-size: .88rem; font-weight: 700; color: var(--text-main); }
+    .meta-chars { font-size: .78rem; font-weight: 600; }
+    .meta-text { font-size: .88rem; color: var(--text-muted); line-height: 1.55; }
+
+    /* ── Badge / pill ── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 10px;
+      border-radius: 100px;
+      font-size: .72rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .badge-green  { background: rgba(0,212,170,.15);   color: #00d4aa; }
+    .badge-purple { background: rgba(108,99,255,.18);  color: #a89cff; }
+    .badge-red    { background: rgba(255,107,107,.15); color: #ff6b6b; }
+    .badge-amber  { background: rgba(255,183,77,.15);  color: #ffb74d; }
+    .badge-muted  { background: rgba(255,255,255,.08); color: var(--text-muted); }
+
+    /* ── Heading tag pill ── */
+    .htag {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-size: .71rem;
+      font-weight: 700;
+      font-family: monospace;
+      background: rgba(108,99,255,.18);
+      color: #a89cff;
+      margin-right: 8px;
+    }
+
+    /* ── Two-col inside dash ── */
+    .content-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 24px; }
+
+    /* ── Rec list ── */
+    .rec-list { display: flex; flex-direction: column; gap: 14px; }
+    .rec-item { display: flex; align-items: flex-start; gap: 12px; }
+    .rec-num {
+      flex-shrink: 0;
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: rgba(108,99,255,.18);
+      color: #a89cff;
+      font-size: .72rem;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      margin-top: 1px;
+    }
+    .rec-text { font-size: .88rem; color: var(--text-muted); line-height: 1.55; }
+
+    /* ── Keyword table ── */
+    .kw-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    .kw-table th {
+      text-align: left;
+      padding: 12px 20px;
+      font-size: .71rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--text-muted);
+      background: rgba(255,255,255,.03);
+      border-bottom: 1px solid var(--border);
+    }
+    .kw-table th.r { text-align: right; }
+    .kw-table th.c { text-align: center; }
+    .kw-table td {
+      padding: 12px 20px;
+      border-bottom: 1px solid rgba(255,255,255,.05);
+      color: var(--text-main);
+    }
+    .kw-table td.r { text-align: right; color: var(--text-muted); }
+    .kw-table td.c { text-align: center; }
+    .kw-table tr:last-child td { border-bottom: none; }
+    .kw-table tr:hover td { background: rgba(255,255,255,.02); }
+    .kw-pos { font-weight: 700; }
+    .kw-pos.top  { color: var(--accent2); }
+    .kw-pos.mid  { color: #ffb74d; }
+    .kw-pos.low  { color: var(--text-muted); }
+
+    /* ── Competition bar ── */
+    .cbar-wrap { display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .cbar-bg { width: 64px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.08); }
+    .cbar { height: 100%; border-radius: 2px; }
+
+    /* ── Plan row ── */
+    .plan-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 24px;
+      border-bottom: 1px solid rgba(255,255,255,.05);
+      transition: background .2s;
+    }
+    .plan-row:last-child { border-bottom: none; }
+    .plan-row:hover { background: rgba(255,255,255,.025); }
+    .plan-num {
+      flex-shrink: 0;
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: rgba(108,99,255,.15);
+      color: #a89cff;
+      font-size: .85rem;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .plan-action { font-size: .9rem; font-weight: 600; color: var(--text-main); }
+    .plan-cat    { font-size: .77rem; color: var(--text-muted); margin-top: 2px; }
+    .plan-badges { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+
+    /* ── Empty state ── */
+    .empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 24px;
+      color: var(--text-muted);
+      text-align: center;
+    }
+    .empty svg { opacity: .25; margin-bottom: 16px; }
+    .empty p { font-size: .9rem; line-height: 1.6; }
+
+    /* ── Gradient text ── */
+    .grad {
+      background: linear-gradient(135deg, #a89cff 0%, #6c63ff 35%, #00d4aa 70%, #38f9d7 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ── Table header area ── */
+    .table-head {
+      padding: 24px 24px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: var(--bg-dark); }
+    ::-webkit-scrollbar-thumb { background: rgba(108,99,255,.4); border-radius: 3px; }
+
+    /* ── Tabs: hide scrollbar but keep scroll ── */
+    .tabs { scrollbar-width: none; -ms-overflow-style: none; -webkit-overflow-scrolling: touch; }
+    .tabs::-webkit-scrollbar { display: none; }
+
+    /* ── Table wrapper touch scroll ── */
+    .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+    /* ── Responsive: tablet ── */
+    @media (max-width: 720px) {
+      main { padding: 28px 0 60px; }
+      .wrap { padding: 0 16px; }
+      .form-grid { grid-template-columns: 1fr; }
+      .dash-grid-2 { grid-template-columns: 1fr; }
+      .content-grid { grid-template-columns: 1fr; gap: 16px; margin-top: 16px; }
+      .card { padding: 24px 20px; border-radius: 16px; }
+      .btn { width: 100%; justify-content: center; }
+      .plan-row { padding: 14px 16px; }
+      .plan-badges { flex-wrap: wrap; gap: 4px; }
+    }
+
+    /* ── Responsive: phone ── */
+    @media (max-width: 480px) {
+      .header-inner { height: 56px; gap: 10px; }
+      .logo-icon { width: 34px; height: 34px; border-radius: 10px; }
+      .logo-title { font-size: .93rem; }
+      .logo-sub { display: none; }
+      .back-link span { display: none; }
+      .back-link { gap: 0; }
+
+      main { padding: 20px 0 48px; }
+      .wrap { padding: 0 12px; }
+
+      .card { padding: 18px 16px; border-radius: 14px; margin-bottom: 16px; }
+      .card-title { font-size: 1rem; }
+      .card-sub { font-size: .83rem; margin-bottom: 20px; }
+
+      .form-input { padding: 11px 14px; font-size: .86rem; }
+      .btn { padding: 14px 28px; font-size: .9rem; margin-top: 20px; }
+
+      .tabs { border-radius: 12px; padding: 4px; margin-bottom: 16px; }
+      .tab { padding: 8px 14px; font-size: .82rem; border-radius: 9px; }
+
+      .dash-grid-3 { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+      .stat-val { font-size: 1.25rem; }
+      .stat-lbl { font-size: .68rem; }
+
+      .audit-row { padding: 12px 14px; gap: 10px; border-radius: 12px; }
+      .audit-label { font-size: .85rem; }
+      .audit-fix { font-size: .76rem; }
+
+      .meta-block { padding: 12px 14px; border-radius: 12px; }
+      .meta-top { flex-wrap: wrap; gap: 6px; }
+      .meta-name { font-size: .83rem; }
+
+      .table-head { padding: 18px 16px 14px; }
+
+      .kw-table th,
+      .kw-table td { padding: 10px 12px; font-size: .8rem; }
+
+      .plan-row { padding: 12px 14px; gap: 12px; flex-wrap: wrap; }
+      .plan-action { font-size: .84rem; }
+      .plan-cat { font-size: .72rem; }
+      .plan-badges { width: 100%; margin-top: 4px; padding-left: 44px; }
+
+      .rec-text { font-size: .84rem; }
+
+      .loading { padding: 60px 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    /* ── seeded random ── */
+    function mkRand(seed) {
+      let s = seed;
+      return () => { s = (s * 1664525 + 1013904223) & 0xffffffff; return (s >>> 0) / 0xffffffff; };
+    }
+
+    /* ── data generation ── */
+    function buildData(url, niche, region, comps) {
+      const seed = [...url].reduce((a, c) => a + c.charCodeAt(0), 42);
+      const r    = mkRand(seed);
+
+      const score   = Math.floor(32 + r() * 58);
+      const loadRaw = (0.7 + r() * 4.3).toFixed(1);
+      const mobile  = r() > 0.3;
+      const ssl     = url.startsWith('https') || r() > 0.25;
+      const sitemap = r() > 0.4;
+      const robots  = r() > 0.35;
+
+      const statusOf = s => s >= 80 ? 'Отлично' : s >= 60 ? 'Хорошо' : s >= 40 ? 'Нужны улучшения' : 'Критично';
+
+      const competitors = comps.filter(c => c.trim()).map(c => ({
+        label: c.replace(/^https?:\/\//, '').replace(/\/$/, '').slice(0, 22),
+        score: Math.floor(28 + r() * 65),
+      }));
+
+      const keywords = [
+        '', ` ${region}`, ' онлайн', ' цена', ' стоимость',
+        ' заказать', ' купить', ' недорого', ' отзывы', ' рейтинг',
+        ` ${region} цена`, ' 2025', ' услуги', ' профессиональный',
+        ' рядом', ' лучший', ' топ', ' как выбрать', ' сравнение', ' контакты',
+      ].map((sfx, i) => ({
+        kw   : `${niche.toLowerCase()}${sfx}`.trim(),
+        freq : Math.floor(80 + r() * 12000),
+        comp : Math.floor(8  + r() * 85),
+        pos  : Math.floor(1  + r() * 99),
+        topic: ['Коммерческие', 'Гео-запросы', 'Информационные', 'Брендовые'][i % 4],
+      }));
+
+      const plan = [];
+      if (!ssl)                    plan.push({ p:1,  cat:'Технический',  action:'Установить SSL-сертификат (HTTPS)',              d:'simple', e:'high' });
+      if (parseFloat(loadRaw)>3)   plan.push({ p:2,  cat:'Технический',  action:'Ускорить загрузку (изображения, кэш, CDN)',      d:'medium', e:'high' });
+      if (!mobile)                 plan.push({ p:3,  cat:'Технический',  action:'Адаптировать сайт под мобильные устройства',    d:'hard',   e:'high' });
+      if (!sitemap)                plan.push({ p:4,  cat:'Технический',  action:'Создать и отправить sitemap.xml в GSC',         d:'simple', e:'medium' });
+      if (!robots)                 plan.push({ p:5,  cat:'Технический',  action:'Настроить robots.txt',                          d:'simple', e:'medium' });
+      plan.push({ p:6,  cat:'Контент',       action:`Добавить "${niche} ${region}" в Title и H1`,          d:'simple', e:'high' });
+      plan.push({ p:7,  cat:'Контент',       action:'Написать уникальные Description для всех страниц',    d:'simple', e:'medium' });
+      plan.push({ p:8,  cat:'Контент',       action:'Создать блог с информационными статьями по нише',     d:'hard',   e:'high' });
+      plan.push({ p:9,  cat:'Ссылки',        action:'Нарастить ссылочную массу (каталоги, гостевые посты)',d:'medium', e:'medium' });
+      plan.push({ p:10, cat:'Локальное SEO', action:'Зарегистрировать в Google My Business и Я.Бизнес',   d:'simple', e:'high' });
+
+      return {
+        score, status: statusOf(score), competitors,
+        tech: {
+          speed  : { ok: parseFloat(loadRaw)<2.5, val:`${loadRaw}s`, fix:"Сожмите изображения (WebP), включите Gzip и CDN" },
+          mobile : { ok: mobile,  fix:"Внедрите адаптивную вёрстку (CSS media-queries или Bootstrap/Tailwind)" },
+          ssl    : { ok: ssl,     fix:"Установите Let's Encrypt — бесплатный SSL от Certbot" },
+          sitemap: { ok: sitemap, fix:"Создайте sitemap.xml и добавьте в Google Search Console" },
+          robots : { ok: robots,  fix:"Создайте robots.txt: Allow — публичные страницы, Disallow — /admin" },
+        },
+        content: {
+          title: { val:`${niche} в ${region} — профессиональные услуги`, len:Math.floor(28+r()*32), ok:r()>.4 },
+          desc:  { val:`Профессиональные услуги ${niche.toLowerCase()} в ${region}. Опыт 10+ лет. Гарантия. Звоните!`, len:Math.floor(95+r()*70), ok:r()>.35 },
+          h1: [`${niche}: ваш надёжный партнёр в ${region}`],
+          h2: ['О нас', 'Наши услуги', 'Преимущества', 'Цены', 'Контакты'],
+          h3: ['Быстро', 'Качественно', 'Гарантия', 'FAQ', 'Отзывы'],
+          recs: [
+            `Включите "${niche} ${region}" в начало тега <title>`,
+            'Расширьте Description до 150–160 символов с призывом к действию',
+            'Добавьте alt-атрибуты ко всем изображениям на странице',
+            'Убедитесь, что на странице только один тег H1',
+            'Добавьте ключевые слова в первый абзац основного текста',
+            'Используйте LSI-слова для расширения семантики',
+          ],
+        },
+        keywords,
+        plan: plan.sort((a,b)=>a.p-b.p),
+      };
+    }
+
+    /* ── lookup maps ── */
+    const DIFF = { simple:['Простое','badge-green'], medium:['Среднее','badge-amber'], hard:['Сложное','badge-red'] };
+    const EFF  = { high:['Высокий','badge-green'],  medium:['Средний','badge-purple'],  low:['Низкий','badge-muted'] };
+    const TOPIC_CLASS = {
+      'Коммерческие' :'badge-green',
+      'Гео-запросы'  :'badge-purple',
+      'Информационные':'badge-amber',
+      'Брендовые'    :'badge-muted',
+    };
+
+    /* ── CircularScore ── */
+    function CircularScore({ score, status }) {
+      const R = 76, C = 2 * Math.PI * R;
+      const off   = C - (score / 100) * C;
+      const color = score>=80 ? '#00d4aa' : score>=60 ? '#a89cff' : score>=40 ? '#ffb74d' : '#ff6b6b';
+      const bg    = score>=80 ? 'badge-green' : score>=60 ? 'badge-purple' : score>=40 ? 'badge-amber' : 'badge-red';
+      return (
+        <div style={{display:'flex',flexDirection:'column',alignItems:'center'}}>
+          <div style={{position:'relative',width:192,height:192}}>
+            <svg width="192" height="192" style={{transform:'rotate(-90deg)'}}>
+              <circle cx="96" cy="96" r={R} fill="none" stroke="rgba(255,255,255,.06)" strokeWidth="14"/>
+              <circle cx="96" cy="96" r={R} fill="none" stroke={color} strokeWidth="14"
+                strokeDasharray={C} strokeDashoffset={off} strokeLinecap="round"
+                style={{transition:'stroke-dashoffset 1.1s cubic-bezier(.4,0,.2,1)'}}/>
+            </svg>
+            <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
+              <span style={{fontSize:'3rem',fontWeight:800,color,lineHeight:1}}>{score}</span>
+              <span style={{fontSize:'.75rem',color:'var(--text-muted)',marginTop:4}}>из 100</span>
+            </div>
+          </div>
+          <span className={`badge ${bg}`} style={{marginTop:14,fontSize:'.82rem',padding:'5px 14px'}}>{status}</span>
+        </div>
+      );
+    }
+
+    /* ── BarChart ── */
+    function BarChart({ score, comps }) {
+      const ref = useRef(null);
+      const ch  = useRef(null);
+      useEffect(() => {
+        if (!ref.current) return;
+        if (ch.current) ch.current.destroy();
+        const labels = ['Ваш сайт', ...comps.map(c=>c.label)];
+        const data   = [score, ...comps.map(c=>c.score)];
+        const colors = data.map((_,i) => i===0 ? '#6c63ff' : 'rgba(108,99,255,.35)');
+        ch.current = new Chart(ref.current, {
+          type:'bar',
+          data:{ labels, datasets:[{ data, backgroundColor:colors, borderRadius:8, borderSkipped:false }] },
+          options:{
+            responsive:true,
+            plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#111827', titleColor:'#e8eaf0', bodyColor:'#8892a4', borderColor:'rgba(108,99,255,.3)', borderWidth:1, callbacks:{ label: ctx => ` SEO-скор: ${ctx.parsed.y}` } } },
+            scales:{
+              y:{ min:0, max:100, grid:{ color:'rgba(255,255,255,.05)' }, ticks:{ color:'#8892a4', font:{size:11} } },
+              x:{ grid:{ display:false }, ticks:{ color:'#8892a4', font:{size:11} } },
+            },
+          },
+        });
+        return () => ch.current?.destroy();
+      }, [score, comps]);
+      return <canvas ref={ref}/>;
+    }
+
+    /* ── AuditRow ── */
+    function AuditRow({ label, ok, val, fix }) {
+      const cls = ok ? 'ok' : 'bad';
+      return (
+        <div className={`audit-row ${cls}`}>
+          <div className={`audit-icon ${cls}`}>
+            {ok
+              ? <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#00d4aa" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
+              : <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#ff6b6b" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            }
+          </div>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
+              <span className="audit-label">{label}</span>
+              {val && <span className={`audit-val ${cls}`}>{val}</span>}
+            </div>
+            {!ok && <p className="audit-fix">{fix}</p>}
+          </div>
+        </div>
+      );
+    }
+
+    /* ── App ── */
+    function App() {
+      const [form, setForm]       = useState({ url:'', niche:'', region:'', comps:['','','','',''] });
+      const [data, setData]       = useState(null);
+      const [loading, setLoading] = useState(false);
+      const [tab, setTab]         = useState(0);
+      const [err, setErr]         = useState({});
+
+      const validate = () => {
+        const e = {};
+        if (!form.url.trim())    e.url    = 'Введите URL сайта';
+        if (!form.niche.trim())  e.niche  = 'Введите нишу / тематику';
+        if (!form.region.trim()) e.region = 'Введите регион';
+        return e;
+      };
+
+      const analyze = () => {
+        const e = validate();
+        if (Object.keys(e).length) { setErr(e); return; }
+        setErr({});
+        setLoading(true);
+        setData(null);
+        setTimeout(() => {
+          setData(buildData(form.url, form.niche, form.region, form.comps));
+          setLoading(false);
+          setTab(0);
+        }, 1800);
+      };
+
+      const TABS = ['Обзор', 'Технический аудит', 'Контент', 'Ключевые слова', 'План действий'];
+
+      return (
+        <div>
+          {/* ── Header ── */}
+          <header className="header">
+            <div className="wrap header-inner">
+              <div className="logo-icon">
+                <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#fff" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+              </div>
+              <div>
+                <div className="logo-title">SEO-Помощник</div>
+                <div className="logo-sub">Профессиональный анализ сайта</div>
+              </div>
+              <a href="landing.html" className="back-link">
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                <span>На главную</span>
+              </a>
+            </div>
+          </header>
+
+          <main>
+            <div className="wrap">
+
+              {/* ── Form ── */}
+              <div className="card" style={{marginBottom:28}}>
+                <div className="card-title">Анализ сайта</div>
+                <div className="card-sub">Введите данные — получите подробный SEO-отчёт</div>
+
+                <div className="form-grid">
+                  <div>
+                    <label className="form-label">URL сайта<span className="req">*</span></label>
+                    <input className={`form-input${err.url?' err':''}`} type="url" placeholder="https://example.com"
+                      value={form.url} onChange={e=>setForm(f=>({...f,url:e.target.value}))}/>
+                    {err.url && <p className="err-msg">{err.url}</p>}
+                  </div>
+                  <div>
+                    <label className="form-label">Ниша / Тематика<span className="req">*</span></label>
+                    <input className={`form-input${err.niche?' err':''}`} type="text" placeholder="Юридические услуги"
+                      value={form.niche} onChange={e=>setForm(f=>({...f,niche:e.target.value}))}/>
+                    {err.niche && <p className="err-msg">{err.niche}</p>}
+                  </div>
+                  <div>
+                    <label className="form-label">Регион<span className="req">*</span></label>
+                    <input className={`form-input${err.region?' err':''}`} type="text" placeholder="Москва"
+                      value={form.region} onChange={e=>setForm(f=>({...f,region:e.target.value}))}/>
+                    {err.region && <p className="err-msg">{err.region}</p>}
+                  </div>
+                  <div>
+                    <label className="form-label">Конкуренты <span style={{color:'var(--text-muted)',fontWeight:400}}>(до 5 URL)</span></label>
+                    <div className="comp-stack">
+                      {form.comps.map((c,i)=>(
+                        <input key={i} className="form-input" type="url" placeholder={`Конкурент ${i+1}`} value={c}
+                          onChange={e=>{const n=[...form.comps];n[i]=e.target.value;setForm(f=>({...f,comps:n}));}}/>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <button className="btn" disabled={loading} onClick={analyze}>
+                  {loading
+                    ? <><svg style={{animation:'spin .85s linear infinite',flexShrink:0}} width="18" height="18" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" strokeOpacity=".25"/><path fill="currentColor" fillOpacity=".75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Анализирую…</>
+                    : <><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>Анализировать</>
+                  }
+                </button>
+              </div>
+
+              {/* ── Loading ── */}
+              {loading && (
+                <div className="card loading">
+                  <div className="loading-ring"/>
+                  <div className="loading-title">Анализируем сайт…</div>
+                  <div className="loading-sub">Проверяем технические параметры и собираем ключевые слова</div>
+                </div>
+              )}
+
+              {/* ── Dashboard ── */}
+              {data && (
+                <div>
+                  {/* tabs */}
+                  <div className="tabs">
+                    {TABS.map((t,i)=>(
+                      <button key={i} className={`tab${tab===i?' tab-active':''}`} onClick={()=>setTab(i)}>{t}</button>
+                    ))}
+                  </div>
+
+                  {/* ── Tab 0: Overview ── */}
+                  {tab===0 && (
+                    <div className="dash-grid-2">
+                      {/* score */}
+                      <div className="card">
+                        <div className="card-title">SEO-скор</div>
+                        <div style={{display:'flex',justifyContent:'center',marginTop:16}}>
+                          <CircularScore score={data.score} status={data.status}/>
+                        </div>
+                        <div className="dash-grid-3">
+                          <div className="stat-pill">
+                            <div className="stat-val" style={{color: parseFloat(data.tech.speed.val)<2.5?'#00d4aa':'#ff6b6b'}}>{data.tech.speed.val}</div>
+                            <div className="stat-lbl">Скорость</div>
+                          </div>
+                          <div className="stat-pill">
+                            <div className="stat-val">{Object.values(data.tech).filter(v=>v.ok).length}/5</div>
+                            <div className="stat-lbl">Тех. факторы</div>
+                          </div>
+                          <div className="stat-pill">
+                            <div className="stat-val" style={{color:'#a89cff'}}>{data.keywords.filter(k=>k.pos<=10).length}</div>
+                            <div className="stat-lbl">Топ-10</div>
+                          </div>
+                        </div>
+                      </div>
+                      {/* competitors */}
+                      {data.competitors.length > 0
+                        ? <div className="card">
+                            <div className="card-title">Сравнение с конкурентами</div>
+                            <div style={{marginTop:20}}><BarChart score={data.score} comps={data.competitors}/></div>
+                          </div>
+                        : <div className="card">
+                            <div className="empty">
+                              <svg width="52" height="52" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.3} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                              <p>Добавьте конкурентов<br/>для сравнения</p>
+                            </div>
+                          </div>
+                      }
+                    </div>
+                  )}
+
+                  {/* ── Tab 1: Technical ── */}
+                  {tab===1 && (
+                    <div className="card">
+                      <div className="card-title" style={{marginBottom:24}}>Технический аудит</div>
+                      <AuditRow label="Скорость загрузки"         ok={data.tech.speed.ok}   val={data.tech.speed.val} fix={data.tech.speed.fix}/>
+                      <AuditRow label="Мобильная версия"          ok={data.tech.mobile.ok}                            fix={data.tech.mobile.fix}/>
+                      <AuditRow label="SSL-сертификат (HTTPS)"    ok={data.tech.ssl.ok}                               fix={data.tech.ssl.fix}/>
+                      <AuditRow label="Карта сайта (sitemap.xml)" ok={data.tech.sitemap.ok}                           fix={data.tech.sitemap.fix}/>
+                      <AuditRow label="Файл robots.txt"           ok={data.tech.robots.ok}                            fix={data.tech.robots.fix}/>
+                    </div>
+                  )}
+
+                  {/* ── Tab 2: Content ── */}
+                  {tab===2 && (
+                    <div>
+                      {/* meta tags */}
+                      <div className="card" style={{marginBottom:24}}>
+                        <div className="card-title" style={{marginBottom:20}}>Мета-теги</div>
+                        {[
+                          { name:'Title',       d:data.content.title, max:60,  hint:'60' },
+                          { name:'Description', d:data.content.desc,  max:160, hint:'120–160' },
+                        ].map(({name,d,max,hint})=>(
+                          <div key={name} className={`meta-block ${d.ok?'ok':'warn'}`}>
+                            <div className="meta-top">
+                              <span className="meta-name">{name}</span>
+                              <div style={{display:'flex',alignItems:'center',gap:8}}>
+                                <span className="meta-chars" style={{color:d.len<=max?'#00d4aa':'#ffb74d'}}>{d.len} симв.</span>
+                                <span className={`badge ${d.ok?'badge-green':'badge-amber'}`}>{d.ok?'OK':`Рекомендуется ${hint} симв.`}</span>
+                              </div>
+                            </div>
+                            <p className="meta-text">{d.val}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="content-grid">
+                        {/* headings */}
+                        <div className="card">
+                          <div className="card-title" style={{marginBottom:20}}>Структура заголовков</div>
+                          {['h1','h2','h3'].map(h=>(
+                            <div key={h} style={{marginBottom:20}}>
+                              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
+                                <span className="htag">{`<${h.toUpperCase()}>`}</span>
+                                <span style={{fontSize:'.75rem',color:'var(--text-muted)'}}>{data.content[h].length} шт.</span>
+                              </div>
+                              {data.content[h].map((t,i)=>(
+                                <div key={i} style={{fontSize:'.88rem',color:'var(--text-muted)',padding:'7px 0',borderBottom:'1px solid rgba(255,255,255,.05)'}}>{t}</div>
+                              ))}
+                            </div>
+                          ))}
+                        </div>
+                        {/* recs */}
+                        <div className="card">
+                          <div className="card-title" style={{marginBottom:20}}>Рекомендации</div>
+                          <ul className="rec-list">
+                            {data.content.recs.map((r,i)=>(
+                              <li key={i} className="rec-item">
+                                <span className="rec-num">{i+1}</span>
+                                <span className="rec-text">{r}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── Tab 3: Keywords ── */}
+                  {tab===3 && (
+                    <div className="card" style={{padding:0,overflow:'hidden'}}>
+                      <div className="table-head">
+                        <div className="card-title" style={{marginBottom:4}}>Ключевые слова</div>
+                        <div style={{fontSize:'.85rem',color:'var(--text-muted)'}}>{data.keywords.length} рекомендованных запросов</div>
+                      </div>
+                      <div className="table-scroll">
+                        <table className="kw-table">
+                          <thead>
+                            <tr>
+                              <th>Ключевое слово</th>
+                              <th className="r">Частотность</th>
+                              <th className="c">Конкуренция</th>
+                              <th className="c">Позиция</th>
+                              <th className="c">Тема</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {data.keywords.map((kw,i)=>(
+                              <tr key={i}>
+                                <td style={{fontWeight:500}}>{kw.kw}</td>
+                                <td className="r">{kw.freq.toLocaleString('ru-RU')}</td>
+                                <td className="c">
+                                  <div className="cbar-wrap">
+                                    <div className="cbar-bg">
+                                      <div className="cbar" style={{width:`${kw.comp}%`,background:kw.comp>70?'#ff6b6b':kw.comp>40?'#ffb74d':'#00d4aa'}}/>
+                                    </div>
+                                    <span style={{fontSize:'.78rem',color:'var(--text-muted)',width:32,textAlign:'left'}}>{kw.comp}%</span>
+                                  </div>
+                                </td>
+                                <td className="c">
+                                  <span className={`kw-pos ${kw.pos<=10?'top':kw.pos<=30?'mid':'low'}`}>#{kw.pos}</span>
+                                </td>
+                                <td className="c">
+                                  <span className={`badge ${TOPIC_CLASS[kw.topic]||'badge-muted'}`}>{kw.topic}</span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── Tab 4: Action Plan ── */}
+                  {tab===4 && (
+                    <div className="card" style={{padding:0,overflow:'hidden'}}>
+                      <div className="table-head">
+                        <div className="card-title" style={{marginBottom:4}}>План действий</div>
+                        <div style={{fontSize:'.85rem',color:'var(--text-muted)'}}>Приоритизированный список — начните сверху</div>
+                      </div>
+                      {data.plan.map((item,i)=>{
+                        const [dLabel,dCls] = DIFF[item.d];
+                        const [eLabel,eCls] = EFF[item.e];
+                        return (
+                          <div key={i} className="plan-row">
+                            <div className="plan-num">{item.p}</div>
+                            <div style={{flex:1,minWidth:0}}>
+                              <div className="plan-action">{item.action}</div>
+                              <div className="plan-cat">{item.cat}</div>
+                            </div>
+                            <div className="plan-badges">
+                              <span className={`badge ${dCls}`}>{dLabel}</span>
+                              <span className={`badge ${eCls}`}>{eLabel}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                </div>
+              )}
+            </div>
+          </main>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
