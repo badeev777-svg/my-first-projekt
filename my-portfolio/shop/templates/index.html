@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block title %}Каталог — Магазин{% endblock %}
+{% block content %}
+  <section class="hero">
+    <div class="hero-info">
+      <p class="hero-tag">Интернет-магазин</p>
+      <h1>Простой магазин на Flask</h1>
+      <p>Каталог товаров, корзина и счётчик. Всё работает без внешних библиотек, только Python и чистый HTML/CSS.</p>
+    </div>
+  </section>
+
+  <section class="products-section">
+    <h2>Товары</h2>
+    <div class="products-grid">
+      {% for product in products %}
+        <article class="product-card">
+          <div class="product-badge">#{{ product.id }}</div>
+          <h3>{{ product.name }}</h3>
+          <p>{{ product.description }}</p>
+          <div class="product-meta">
+            <span class="price">{{ product.price }} ₽</span>
+            <a class="btn" href="{{ url_for('add_to_cart', product_id=product.id) }}">В корзину</a>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  </section>
+{% endblock %}

@@ -1,0 +1,1373 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CRM Риелтора</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #222638;
+      --border: #2e3250;
+      --accent: #6c63ff;
+      --accent2: #4ade80;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+      --info: #38bdf8;
+      --text: #e2e8f0;
+      --text2: #8892b0;
+      --radius: 12px;
+      --sidebar: 240px;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: var(--sidebar);
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+    .sidebar-logo {
+      padding: 24px 20px 16px;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: .5px;
+      border-bottom: 1px solid var(--border);
+    }
+    .sidebar-logo span { color: var(--text2); font-weight: 400; font-size: 12px; display: block; margin-top: 2px; }
+    nav { flex: 1; padding: 12px 0; }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 20px;
+      cursor: pointer;
+      color: var(--text2);
+      font-size: 14px;
+      border-left: 3px solid transparent;
+      transition: all .18s;
+    }
+    .nav-item:hover { color: var(--text); background: rgba(108,99,255,.08); }
+    .nav-item.active { color: var(--accent); background: rgba(108,99,255,.12); border-left-color: var(--accent); }
+    .nav-icon { font-size: 18px; width: 22px; text-align: center; }
+    .sidebar-footer { padding: 16px 20px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text2); }
+
+    /* ── MAIN ── */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .topbar h1 { font-size: 20px; font-weight: 600; }
+    .topbar-actions { display: flex; gap: 10px; align-items: center; }
+    .search-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 14px;
+      color: var(--text);
+      font-size: 14px;
+      width: 220px;
+      outline: none;
+    }
+    .search-box::placeholder { color: var(--text2); }
+    .search-box:focus { border-color: var(--accent); }
+
+    .btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: .18s;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: #5a52e0; }
+    .btn-ghost { background: transparent; color: var(--text2); border: 1px solid var(--border); }
+    .btn-ghost:hover { color: var(--text); border-color: var(--text2); }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-danger:hover { background: #c53030; }
+    .btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 6px; }
+
+    .content { flex: 1; overflow-y: auto; padding: 28px; }
+
+    /* ── DASHBOARD ── */
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+    .stat-label { font-size: 12px; color: var(--text2); margin-bottom: 6px; }
+    .stat-value { font-size: 28px; font-weight: 700; }
+    .stat-sub { font-size: 12px; color: var(--text2); margin-top: 4px; }
+    .stat-card.accent .stat-value { color: var(--accent); }
+    .stat-card.green  .stat-value { color: var(--accent2); }
+    .stat-card.warn   .stat-value { color: var(--warn); }
+    .stat-card.info   .stat-value { color: var(--info); }
+
+    .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .dash-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+    .block-title { font-size: 14px; font-weight: 600; margin-bottom: 14px; color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+
+    .mini-list { display: flex; flex-direction: column; gap: 8px; }
+    .mini-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      background: var(--surface2);
+      border-radius: 8px;
+      font-size: 13px;
+    }
+    .mini-item-title { font-weight: 500; }
+    .mini-item-sub { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+    /* ── TABLE ── */
+    .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead th {
+      background: var(--surface2);
+      padding: 11px 16px;
+      text-align: left;
+      font-size: 11px;
+      color: var(--text2);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    tbody tr { border-top: 1px solid var(--border); transition: background .15s; }
+    tbody tr:hover { background: rgba(108,99,255,.05); }
+    td { padding: 12px 16px; vertical-align: middle; }
+    .td-actions { display: flex; gap: 6px; }
+
+    /* ── BADGES ── */
+    .badge {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .badge-purple  { background: rgba(108,99,255,.2); color: #a5b4fc; }
+    .badge-green   { background: rgba(74,222,128,.2); color: #86efac; }
+    .badge-yellow  { background: rgba(245,158,11,.2); color: #fcd34d; }
+    .badge-red     { background: rgba(239,68,68,.2);  color: #fca5a5; }
+    .badge-blue    { background: rgba(56,189,248,.2); color: #7dd3fc; }
+    .badge-gray    { background: rgba(148,163,184,.15); color: #94a3b8; }
+    .badge-orange  { background: rgba(251,146,60,.2); color: #fdba74; }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.6);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1000;
+      opacity: 0; pointer-events: none;
+      transition: opacity .2s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      width: 520px;
+      max-width: 95vw;
+      max-height: 90vh;
+      overflow-y: auto;
+      transform: translateY(20px);
+      transition: transform .2s;
+    }
+    .modal-overlay.open .modal { transform: translateY(0); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; }
+    .modal-title { font-size: 17px; font-weight: 600; }
+    .modal-close { background: none; border: none; color: var(--text2); font-size: 22px; cursor: pointer; line-height: 1; }
+    .modal-close:hover { color: var(--text); }
+
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-full { grid-column: 1 / -1; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-label { font-size: 12px; color: var(--text2); font-weight: 500; }
+    .form-input, .form-select, .form-textarea {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      color: var(--text);
+      font-size: 13px;
+      outline: none;
+      font-family: inherit;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); }
+    .form-textarea { resize: vertical; min-height: 70px; }
+    .form-select option { background: var(--surface2); }
+    .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border); }
+
+    /* ── FILTERS ── */
+    .filter-bar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+    .filter-btn {
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text2);
+      font-size: 12px;
+      cursor: pointer;
+      transition: .15s;
+    }
+    .filter-btn.active, .filter-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .filter-spacer { flex: 1; }
+
+    /* ── KANBAN ── */
+    .kanban { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 8px; }
+    .kanban-col {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      width: 220px;
+      flex-shrink: 0;
+    }
+    .kanban-col-header {
+      padding: 14px 16px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .kanban-count {
+      background: var(--surface2);
+      border-radius: 10px;
+      padding: 2px 7px;
+      font-size: 11px;
+      color: var(--text2);
+    }
+    .kanban-cards { padding: 10px; display: flex; flex-direction: column; gap: 8px; min-height: 60px; }
+    .kanban-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: border-color .15s;
+    }
+    .kanban-card:hover { border-color: var(--accent); }
+    .kanban-card-title { font-weight: 600; margin-bottom: 4px; font-size: 13px; }
+    .kanban-card-sub { color: var(--text2); margin-bottom: 6px; }
+    .kanban-card-price { color: var(--accent2); font-weight: 600; font-size: 13px; }
+
+    /* ── SHOWINGS ── */
+    .showing-list { display: flex; flex-direction: column; gap: 10px; }
+    .showing-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+    .showing-date {
+      background: var(--surface2);
+      border-radius: 8px;
+      padding: 8px 12px;
+      text-align: center;
+      min-width: 60px;
+    }
+    .showing-day { font-size: 22px; font-weight: 700; line-height: 1; }
+    .showing-month { font-size: 11px; color: var(--text2); text-transform: uppercase; }
+    .showing-info { flex: 1; }
+    .showing-title { font-weight: 600; margin-bottom: 3px; }
+    .showing-meta { font-size: 12px; color: var(--text2); }
+    .showing-actions { display: flex; gap: 6px; align-items: center; }
+
+    /* ── EMPTY ── */
+    .empty { text-align: center; padding: 60px 20px; color: var(--text2); }
+    .empty-icon { font-size: 40px; margin-bottom: 12px; }
+    .empty-text { font-size: 14px; }
+
+    .page { display: none; }
+    .page.active { display: block; }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text2); }
+
+    /* ── TOAST ── */
+    .toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+    .toast {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent2);
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 13px;
+      min-width: 220px;
+      animation: slideIn .3s ease;
+    }
+    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp   { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes scaleIn  { from { opacity:0; transform:scale(.93); }       to { opacity:1; transform:scale(1); } }
+    @keyframes bounceY  { 0%,100%{transform:translateY(0)} 40%{transform:translateY(-5px)} 70%{transform:translateY(-2px)} }
+    @keyframes shimmer  { 0%{background-position:-200% center} 100%{background-position:200% center} }
+    @keyframes pulseGlow{ 0%,100%{box-shadow:0 0 0 0 rgba(108,99,255,0)} 50%{box-shadow:0 0 14px 4px rgba(108,99,255,.18)} }
+    @keyframes countUp  { from{opacity:0;transform:translateY(8px) scale(.88)} to{opacity:1;transform:translateY(0) scale(1)} }
+    @keyframes rowIn    { from{opacity:0;transform:translateX(-8px)} to{opacity:1;transform:translateX(0)} }
+    @keyframes spin     { to{transform:rotate(360deg)} }
+
+    /* Page enter */
+    .page.active { animation: fadeUp .28s ease both; }
+
+    /* Stat cards */
+    .stat-card { transition: transform .2s, box-shadow .2s; }
+    .stat-card:hover { transform: translateY(-4px); box-shadow: 0 10px 28px rgba(0,0,0,.35); }
+    .stat-value { animation: countUp .5s ease both; }
+
+    /* Btn effects */
+    .btn { transition: transform .15s, box-shadow .15s, background .2s; }
+    .btn:active { transform: scale(.93); }
+    .btn-primary {
+      background: linear-gradient(90deg, var(--accent) 0%, #8b5cf6 50%, var(--accent) 100%);
+      background-size: 200%;
+      background-position: left center;
+    }
+    .btn-primary:hover {
+      background-position: right center;
+      box-shadow: 0 4px 16px rgba(108,99,255,.45);
+    }
+
+    /* Nav icon bounce on activate */
+    .nav-item.active .nav-icon { animation: bounceY .4s ease; }
+
+    /* Sidebar logo pulse */
+    .sidebar-logo { animation: pulseGlow 3.5s ease-in-out infinite; }
+
+    /* Input glow on focus */
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(108,99,255,.18);
+      transition: box-shadow .2s, border-color .2s;
+    }
+
+    /* Modal spring */
+    .modal { transform: translateY(24px) scale(.96); transition: transform .28s cubic-bezier(.34,1.5,.64,1); }
+    .modal-overlay.open .modal { transform: translateY(0) scale(1); }
+
+    /* Kanban card lift */
+    .kanban-card { transition: border-color .15s, transform .2s, box-shadow .2s; }
+    .kanban-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,.3); }
+
+    /* Showing card slide */
+    .showing-card { transition: transform .2s, border-color .2s, box-shadow .2s; }
+    .showing-card:hover { transform: translateX(4px); border-color: var(--accent); box-shadow: 0 4px 16px rgba(0,0,0,.2); }
+
+    /* Mini item hover */
+    .mini-item { transition: background .15s, transform .15s; }
+    .mini-item:hover { background: rgba(108,99,255,.12); transform: translateX(3px); }
+
+    /* Filter btn */
+    .filter-btn { transition: all .2s; }
+
+    /* Table row stagger */
+    .anim-row  { animation: rowIn .25s ease both; }
+    .anim-card { animation: scaleIn .25s ease both; }
+    .anim-show { animation: fadeUp .25s ease both; }
+    .anim-mini { animation: fadeUp .22s ease both; }
+
+    /* ── HAMBURGER ── */
+    .hamburger {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--text);
+      font-size: 22px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+      flex-shrink: 0;
+    }
+    .hamburger:hover { background: var(--surface2); }
+
+    /* ── SIDEBAR OVERLAY ── */
+    .sidebar-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.55);
+      z-index: 199;
+    }
+    .sidebar-overlay.open { display: block; }
+
+    /* ── MOBILE ── */
+    @media (max-width: 700px) {
+      body { overflow: auto; height: auto; min-height: 100vh; }
+
+      /* Sidebar → выезжающий drawer */
+      .sidebar {
+        position: fixed;
+        top: 0; bottom: 0; left: 0;
+        z-index: 200;
+        transform: translateX(-100%);
+        transition: transform .25s cubic-bezier(.4,0,.2,1);
+        width: 220px;
+      }
+      .sidebar.open { transform: translateX(0); }
+      .sidebar-footer { display: none; }
+
+      .hamburger { display: flex; }
+
+      /* Topbar */
+      .main { width: 100%; }
+      .topbar { padding: 12px 14px; gap: 8px; }
+      .topbar h1 { font-size: 16px; flex: 1; }
+      .topbar-actions { gap: 6px; }
+      .search-box { width: 130px; font-size: 12px; padding: 6px 10px; }
+
+      /* Content */
+      .content { padding: 14px; }
+
+      /* Stats 2×2 */
+      .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+      .stat-card { padding: 14px 12px; }
+      .stat-value { font-size: 22px; }
+
+      /* Dash grid 1 колонка */
+      .dash-grid { grid-template-columns: 1fr; gap: 12px; }
+      .dash-block { padding: 14px; }
+
+      /* Таблицы — горизонтальный скролл */
+      .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      table { min-width: 560px; }
+      td, thead th { padding: 10px 10px; font-size: 12px; }
+
+      /* Форма — 1 колонка */
+      .form-grid { grid-template-columns: 1fr; }
+      .form-full { grid-column: 1; }
+
+      /* Модал — снизу экрана */
+      .modal-overlay { align-items: flex-end; }
+      .modal {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: 88vh !important;
+        border-radius: 20px 20px 0 0;
+        padding: 20px 16px;
+      }
+
+      /* Показы — кнопки под текстом */
+      .showing-card { flex-wrap: wrap; padding: 12px 14px; gap: 10px; }
+      .showing-actions { width: 100%; justify-content: flex-end; margin-top: 4px; }
+
+      /* Канбан — меньше ширина */
+      .kanban-col { width: 180px; }
+
+      /* Toast */
+      .toast-container { top: auto; bottom: 80px; right: 12px; left: 12px; }
+      .toast { min-width: unset; }
+
+      /* Filter bar */
+      .filter-bar { gap: 6px; }
+      .filter-btn { padding: 5px 10px; font-size: 11px; }
+    }
+
+    @media (max-width: 400px) {
+      .stats-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+      .stat-value { font-size: 20px; }
+      .search-box { display: none; }
+      .topbar { padding: 10px 12px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    🏠 CRM Риелтора
+    <span>Управление недвижимостью</span>
+  </div>
+  <nav>
+    <div class="nav-item active" data-page="dashboard"><span class="nav-icon">📊</span> Дашборд</div>
+    <div class="nav-item" data-page="properties"><span class="nav-icon">🏢</span> Объекты</div>
+    <div class="nav-item" data-page="clients"><span class="nav-icon">👥</span> Клиенты</div>
+    <div class="nav-item" data-page="showings"><span class="nav-icon">📅</span> Показы</div>
+    <div class="nav-item" data-page="deals"><span class="nav-icon">💼</span> Сделки</div>
+  </nav>
+  <div class="sidebar-footer">v1.0 · Данные хранятся локально</div>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <button class="hamburger" id="hamburger">☰</button>
+    <h1 id="page-title">Дашборд</h1>
+    <div class="topbar-actions">
+      <input class="search-box" id="global-search" type="text" placeholder="🔍 Поиск..." />
+      <button class="btn btn-primary" id="add-btn">+ Добавить</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="stats-grid">
+        <div class="stat-card accent">
+          <div class="stat-label">Объектов</div>
+          <div class="stat-value" id="stat-props">0</div>
+          <div class="stat-sub">всего в базе</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-label">Клиентов</div>
+          <div class="stat-value" id="stat-clients">0</div>
+          <div class="stat-sub">активных</div>
+        </div>
+        <div class="stat-card warn">
+          <div class="stat-label">Показов</div>
+          <div class="stat-value" id="stat-showings">0</div>
+          <div class="stat-sub">запланировано</div>
+        </div>
+        <div class="stat-card info">
+          <div class="stat-label">Сделок</div>
+          <div class="stat-value" id="stat-deals">0</div>
+          <div class="stat-sub">в работе</div>
+        </div>
+      </div>
+      <div class="dash-grid">
+        <div class="dash-block">
+          <div class="block-title">Последние объекты</div>
+          <div class="mini-list" id="dash-props"></div>
+        </div>
+        <div class="dash-block">
+          <div class="block-title">Ближайшие показы</div>
+          <div class="mini-list" id="dash-showings"></div>
+        </div>
+        <div class="dash-block">
+          <div class="block-title">Последние клиенты</div>
+          <div class="mini-list" id="dash-clients"></div>
+        </div>
+        <div class="dash-block">
+          <div class="block-title">Активные сделки</div>
+          <div class="mini-list" id="dash-deals"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROPERTIES -->
+    <div class="page" id="page-properties">
+      <div class="filter-bar">
+        <button class="filter-btn active" data-filter="all">Все</button>
+        <button class="filter-btn" data-filter="Свободен">Свободен</button>
+        <button class="filter-btn" data-filter="Показ">На показе</button>
+        <button class="filter-btn" data-filter="Сделка">В сделке</button>
+        <button class="filter-btn" data-filter="Продан">Продан</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Адрес</th><th>Тип</th><th>Площадь</th><th>Цена</th><th>Этаж</th><th>Статус</th><th>Действия</th>
+            </tr>
+          </thead>
+          <tbody id="props-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CLIENTS -->
+    <div class="page" id="page-clients">
+      <div class="filter-bar">
+        <button class="filter-btn active" data-filter="all">Все</button>
+        <button class="filter-btn" data-filter="Покупатель">Покупатели</button>
+        <button class="filter-btn" data-filter="Продавец">Продавцы</button>
+        <button class="filter-btn" data-filter="Арендатор">Арендаторы</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Имя</th><th>Телефон</th><th>Тип</th><th>Бюджет</th><th>Пожелания</th><th>Статус</th><th>Действия</th>
+            </tr>
+          </thead>
+          <tbody id="clients-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SHOWINGS -->
+    <div class="page" id="page-showings">
+      <div class="filter-bar">
+        <button class="filter-btn active" data-filter="all">Все</button>
+        <button class="filter-btn" data-filter="Запланирован">Запланированы</button>
+        <button class="filter-btn" data-filter="Проведён">Проведены</button>
+        <button class="filter-btn" data-filter="Отменён">Отменены</button>
+      </div>
+      <div class="showing-list" id="showings-list"></div>
+    </div>
+
+    <!-- DEALS -->
+    <div class="page" id="page-deals">
+      <div class="filter-bar" style="margin-bottom:20px;">
+        <button class="filter-btn active" data-filter="kanban">Канбан</button>
+        <button class="filter-btn" data-filter="table">Таблица</button>
+      </div>
+      <div id="deals-kanban" class="kanban"></div>
+      <div id="deals-table-wrap" class="table-wrap" style="display:none;">
+        <table>
+          <thead>
+            <tr>
+              <th>Объект</th><th>Клиент</th><th>Сумма</th><th>Стадия</th><th>Дата</th><th>Комментарий</th><th>Действия</th>
+            </tr>
+          </thead>
+          <tbody id="deals-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<!-- ======= MODAL: PROPERTY ======= -->
+<div class="modal-overlay" id="modal-property">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-property-title">Новый объект</div>
+      <button class="modal-close" onclick="closeModal('modal-property')">×</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group form-full">
+        <label class="form-label">Адрес *</label>
+        <input class="form-input" id="p-address" placeholder="ул. Ленина, 10, кв. 5" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Тип объекта</label>
+        <select class="form-select" id="p-type">
+          <option>Квартира</option><option>Комната</option><option>Дом</option>
+          <option>Коттедж</option><option>Таунхаус</option><option>Офис</option>
+          <option>Гараж</option><option>Земля</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Статус</label>
+        <select class="form-select" id="p-status">
+          <option>Свободен</option><option>Показ</option><option>Сделка</option>
+          <option>Продан</option><option>Снят с продажи</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Цена (₽)</label>
+        <input class="form-input" id="p-price" type="number" placeholder="3500000" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Площадь (м²)</label>
+        <input class="form-input" id="p-area" type="number" placeholder="54" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Этаж / Всего этажей</label>
+        <input class="form-input" id="p-floor" placeholder="5 / 9" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Кол-во комнат</label>
+        <select class="form-select" id="p-rooms">
+          <option>Студия</option><option>1</option><option>2</option>
+          <option>3</option><option>4+</option><option>—</option>
+        </select>
+      </div>
+      <div class="form-group form-full">
+        <label class="form-label">Описание</label>
+        <textarea class="form-textarea" id="p-desc" placeholder="Состояние ремонта, особенности..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-property')">Отмена</button>
+      <button class="btn btn-primary" onclick="saveProperty()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======= MODAL: CLIENT ======= -->
+<div class="modal-overlay" id="modal-client">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-client-title">Новый клиент</div>
+      <button class="modal-close" onclick="closeModal('modal-client')">×</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Имя *</label>
+        <input class="form-input" id="c-name" placeholder="Иван Петров" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Телефон</label>
+        <input class="form-input" id="c-phone" placeholder="+7 900 000-00-00" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Тип клиента</label>
+        <select class="form-select" id="c-type">
+          <option>Покупатель</option><option>Продавец</option>
+          <option>Арендатор</option><option>Арендодатель</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Статус</label>
+        <select class="form-select" id="c-status">
+          <option>Новый</option><option>В работе</option><option>Тёплый</option>
+          <option>Холодный</option><option>Завершён</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Бюджет (₽)</label>
+        <input class="form-input" id="c-budget" type="number" placeholder="5000000" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" id="c-email" placeholder="email@mail.ru" />
+      </div>
+      <div class="form-group form-full">
+        <label class="form-label">Пожелания</label>
+        <textarea class="form-textarea" id="c-wish" placeholder="3к, не выше 5 этажа, центр..."></textarea>
+      </div>
+      <div class="form-group form-full">
+        <label class="form-label">Заметки</label>
+        <textarea class="form-textarea" id="c-notes" placeholder="Дополнительная информация..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-client')">Отмена</button>
+      <button class="btn btn-primary" onclick="saveClient()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======= MODAL: SHOWING ======= -->
+<div class="modal-overlay" id="modal-showing">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-showing-title">Новый показ</div>
+      <button class="modal-close" onclick="closeModal('modal-showing')">×</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group form-full">
+        <label class="form-label">Объект *</label>
+        <select class="form-select" id="s-prop"></select>
+      </div>
+      <div class="form-group form-full">
+        <label class="form-label">Клиент *</label>
+        <select class="form-select" id="s-client"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Дата</label>
+        <input class="form-input" id="s-date" type="date" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Время</label>
+        <input class="form-input" id="s-time" type="time" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Статус</label>
+        <select class="form-select" id="s-status">
+          <option>Запланирован</option><option>Проведён</option><option>Отменён</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Результат</label>
+        <select class="form-select" id="s-result">
+          <option>—</option><option>Понравилось</option><option>Не понравилось</option>
+          <option>Думает</option><option>Готов к сделке</option>
+        </select>
+      </div>
+      <div class="form-group form-full">
+        <label class="form-label">Комментарий</label>
+        <textarea class="form-textarea" id="s-notes" placeholder="Заметки по показу..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-showing')">Отмена</button>
+      <button class="btn btn-primary" onclick="saveShowing()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======= MODAL: DEAL ======= -->
+<div class="modal-overlay" id="modal-deal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-deal-title">Новая сделка</div>
+      <button class="modal-close" onclick="closeModal('modal-deal')">×</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group form-full">
+        <label class="form-label">Объект *</label>
+        <select class="form-select" id="d-prop"></select>
+      </div>
+      <div class="form-group form-full">
+        <label class="form-label">Клиент *</label>
+        <select class="form-select" id="d-client"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Сумма сделки (₽)</label>
+        <input class="form-input" id="d-sum" type="number" placeholder="3500000" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Комиссия (%)</label>
+        <input class="form-input" id="d-commission" type="number" placeholder="3" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Стадия</label>
+        <select class="form-select" id="d-stage">
+          <option>Переговоры</option><option>Проверка документов</option>
+          <option>Задаток</option><option>Ипотека</option>
+          <option>Сделка</option><option>Завершена</option><option>Сорвалась</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Дата</label>
+        <input class="form-input" id="d-date" type="date" />
+      </div>
+      <div class="form-group form-full">
+        <label class="form-label">Комментарий</label>
+        <textarea class="form-textarea" id="d-notes" placeholder="Детали сделки..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-deal')">Отмена</button>
+      <button class="btn btn-primary" onclick="saveDeal()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORE = {
+  get: k => JSON.parse(localStorage.getItem('crm_' + k) || '[]'),
+  set: (k, v) => localStorage.setItem('crm_' + k, JSON.stringify(v)),
+};
+
+let editId = null;
+let currentPage = 'dashboard';
+let propFilter = 'all', clientFilter = 'all', showingFilter = 'all', dealView = 'kanban';
+
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+function animCount(el, target) {
+  const dur = 600, start = performance.now();
+  (function tick(now) {
+    const p = Math.min((now - start) / dur, 1);
+    el.textContent = Math.round(p * target);
+    if (p < 1) requestAnimationFrame(tick);
+  })(start);
+}
+const fmt = n => n ? Number(n).toLocaleString('ru-RU') + ' ₽' : '—';
+const fmtDate = d => d ? new Date(d + 'T00:00').toLocaleDateString('ru-RU', { day:'2-digit', month:'short' }) : '—';
+
+function toast(msg, color = '#4ade80') {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.style.borderLeftColor = color;
+  el.textContent = msg;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); editId = null; }
+
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) closeModal(el.id); });
+});
+
+// STATUS BADGE MAPS
+const PROP_STATUS   = { 'Свободен':'badge-green','Показ':'badge-blue','Сделка':'badge-yellow','Продан':'badge-gray','Снят с продажи':'badge-red' };
+const CLIENT_STATUS = { 'Новый':'badge-purple','В работе':'badge-blue','Тёплый':'badge-yellow','Холодный':'badge-gray','Завершён':'badge-green' };
+const SHOW_STATUS   = { 'Запланирован':'badge-blue','Проведён':'badge-green','Отменён':'badge-red' };
+const DEAL_COLOR    = { 'Переговоры':'#6c63ff','Проверка документов':'#38bdf8','Задаток':'#f59e0b','Ипотека':'#a78bfa','Сделка':'#4ade80','Завершена':'#86efac','Сорвалась':'#ef4444' };
+const DEAL_STAGES   = ['Переговоры','Проверка документов','Задаток','Ипотека','Сделка','Завершена','Сорвалась'];
+
+const badge = (cls, text) => `<span class="badge ${cls}">${text}</span>`;
+
+// NAV
+document.querySelectorAll('.nav-item').forEach(el => {
+  el.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
+    el.classList.add('active');
+    currentPage = el.dataset.page;
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + currentPage).classList.add('active');
+    document.getElementById('page-title').textContent = el.textContent.trim().replace(/^\S+\s*/, '');
+    document.getElementById('global-search').value = '';
+    renderPage();
+  });
+});
+
+document.getElementById('add-btn').addEventListener('click', () => {
+  editId = null;
+  if (currentPage === 'properties') openPropertyModal();
+  else if (currentPage === 'clients') openClientModal();
+  else if (currentPage === 'showings') openShowingModal();
+  else if (currentPage === 'deals') openDealModal();
+  else openPropertyModal();
+});
+
+document.getElementById('global-search').addEventListener('input', () => renderPage());
+
+// ===== PROPERTIES =====
+function openPropertyModal(item = null) {
+  editId = item?.id || null;
+  document.getElementById('modal-property-title').textContent = item ? 'Редактировать объект' : 'Новый объект';
+  ['address','type','status','price','area','floor','rooms','desc'].forEach(f => {
+    const el = document.getElementById('p-' + f);
+    el.value = item?.[f] ?? (f === 'type' ? 'Квартира' : f === 'status' ? 'Свободен' : f === 'rooms' ? 'Студия' : '');
+  });
+  openModal('modal-property');
+}
+
+function saveProperty() {
+  const address = document.getElementById('p-address').value.trim();
+  if (!address) { toast('Укажите адрес', '#ef4444'); return; }
+  const props = STORE.get('props');
+  const item = {
+    id: editId || uid(), address,
+    type: document.getElementById('p-type').value,
+    status: document.getElementById('p-status').value,
+    price: document.getElementById('p-price').value,
+    area: document.getElementById('p-area').value,
+    floor: document.getElementById('p-floor').value,
+    rooms: document.getElementById('p-rooms').value,
+    desc: document.getElementById('p-desc').value,
+    createdAt: editId ? props.find(x => x.id === editId)?.createdAt : Date.now(),
+  };
+  if (editId) { props[props.findIndex(x => x.id === editId)] = item; toast('Объект обновлён'); }
+  else { props.unshift(item); toast('Объект добавлен'); }
+  STORE.set('props', props);
+  closeModal('modal-property');
+  renderPage();
+}
+
+function renderProperties(search = '') {
+  const items = STORE.get('props').filter(p =>
+    (propFilter === 'all' || p.status === propFilter) &&
+    (!search || p.address.toLowerCase().includes(search.toLowerCase()) || p.type.toLowerCase().includes(search.toLowerCase()))
+  );
+  const tb = document.getElementById('props-tbody');
+  if (!items.length) { tb.innerHTML = `<tr><td colspan="7"><div class="empty"><div class="empty-icon">🏠</div><div class="empty-text">Объектов нет</div></div></td></tr>`; return; }
+  tb.innerHTML = items.map((p, i) => `<tr class="anim-row" style="animation-delay:${i * 0.04}s">
+    <td><b>${p.address}</b><br><span style="color:var(--text2);font-size:11px;">${p.rooms} комн. · ${p.area ? p.area + ' м²' : '—'}</span></td>
+    <td>${p.type}</td>
+    <td>${p.area ? p.area + ' м²' : '—'}</td>
+    <td style="color:var(--accent2);font-weight:600;">${fmt(p.price)}</td>
+    <td>${p.floor || '—'}</td>
+    <td>${badge(PROP_STATUS[p.status] || 'badge-gray', p.status)}</td>
+    <td><div class="td-actions">
+      <button class="btn btn-ghost btn-sm" onclick="openPropertyModal(STORE.get('props').find(x=>x.id==='${p.id}'))">✏️</button>
+      <button class="btn btn-danger btn-sm" onclick="del('props','${p.id}','Объект')">🗑</button>
+    </div></td>
+  </tr>`).join('');
+}
+
+document.querySelectorAll('#page-properties .filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#page-properties .filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    propFilter = btn.dataset.filter;
+    renderProperties(document.getElementById('global-search').value);
+  });
+});
+
+// ===== CLIENTS =====
+function openClientModal(item = null) {
+  editId = item?.id || null;
+  document.getElementById('modal-client-title').textContent = item ? 'Редактировать клиента' : 'Новый клиент';
+  document.getElementById('c-name').value   = item?.name   || '';
+  document.getElementById('c-phone').value  = item?.phone  || '';
+  document.getElementById('c-type').value   = item?.type   || 'Покупатель';
+  document.getElementById('c-status').value = item?.status || 'Новый';
+  document.getElementById('c-budget').value = item?.budget || '';
+  document.getElementById('c-email').value  = item?.email  || '';
+  document.getElementById('c-wish').value   = item?.wish   || '';
+  document.getElementById('c-notes').value  = item?.notes  || '';
+  openModal('modal-client');
+}
+
+function saveClient() {
+  const name = document.getElementById('c-name').value.trim();
+  if (!name) { toast('Укажите имя', '#ef4444'); return; }
+  const clients = STORE.get('clients');
+  const item = {
+    id: editId || uid(), name,
+    phone: document.getElementById('c-phone').value,
+    type: document.getElementById('c-type').value,
+    status: document.getElementById('c-status').value,
+    budget: document.getElementById('c-budget').value,
+    email: document.getElementById('c-email').value,
+    wish: document.getElementById('c-wish').value,
+    notes: document.getElementById('c-notes').value,
+    createdAt: editId ? clients.find(x => x.id === editId)?.createdAt : Date.now(),
+  };
+  if (editId) { clients[clients.findIndex(x => x.id === editId)] = item; toast('Клиент обновлён'); }
+  else { clients.unshift(item); toast('Клиент добавлен'); }
+  STORE.set('clients', clients);
+  closeModal('modal-client');
+  renderPage();
+}
+
+function renderClients(search = '') {
+  const items = STORE.get('clients').filter(c =>
+    (clientFilter === 'all' || c.type === clientFilter) &&
+    (!search || c.name.toLowerCase().includes(search.toLowerCase()) || (c.phone||'').includes(search))
+  );
+  const tb = document.getElementById('clients-tbody');
+  if (!items.length) { tb.innerHTML = `<tr><td colspan="7"><div class="empty"><div class="empty-icon">👥</div><div class="empty-text">Клиентов нет</div></div></td></tr>`; return; }
+  tb.innerHTML = items.map((c, i) => `<tr class="anim-row" style="animation-delay:${i * 0.04}s">
+    <td><b>${c.name}</b>${c.email ? `<br><span style="color:var(--text2);font-size:11px;">${c.email}</span>` : ''}</td>
+    <td>${c.phone || '—'}</td>
+    <td>${badge(c.type==='Покупатель'?'badge-purple':c.type==='Продавец'?'badge-blue':'badge-orange', c.type)}</td>
+    <td style="color:var(--accent2);">${fmt(c.budget)}</td>
+    <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.wish || '—'}</td>
+    <td>${badge(CLIENT_STATUS[c.status]||'badge-gray', c.status)}</td>
+    <td><div class="td-actions">
+      <button class="btn btn-ghost btn-sm" onclick="openClientModal(STORE.get('clients').find(x=>x.id==='${c.id}'))">✏️</button>
+      <button class="btn btn-danger btn-sm" onclick="del('clients','${c.id}','Клиент')">🗑</button>
+    </div></td>
+  </tr>`).join('');
+}
+
+document.querySelectorAll('#page-clients .filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#page-clients .filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    clientFilter = btn.dataset.filter;
+    renderClients(document.getElementById('global-search').value);
+  });
+});
+
+// ===== SHOWINGS =====
+function openShowingModal(item = null) {
+  editId = item?.id || null;
+  document.getElementById('modal-showing-title').textContent = item ? 'Редактировать показ' : 'Новый показ';
+  const props = STORE.get('props');
+  const clients = STORE.get('clients');
+  document.getElementById('s-prop').innerHTML   = props.length   ? props.map(p   => `<option value="${p.id}">${p.address}</option>`).join('') : '<option value="">— нет объектов —</option>';
+  document.getElementById('s-client').innerHTML = clients.length ? clients.map(c => `<option value="${c.id}">${c.name}</option>`).join('')   : '<option value="">— нет клиентов —</option>';
+  if (item) {
+    document.getElementById('s-prop').value   = item.propId;
+    document.getElementById('s-client').value = item.clientId;
+    document.getElementById('s-date').value   = item.date;
+    document.getElementById('s-time').value   = item.time;
+    document.getElementById('s-status').value = item.status;
+    document.getElementById('s-result').value = item.result || '—';
+    document.getElementById('s-notes').value  = item.notes || '';
+  } else {
+    document.getElementById('s-date').value   = new Date().toISOString().slice(0, 10);
+    document.getElementById('s-time').value   = '10:00';
+    document.getElementById('s-status').value = 'Запланирован';
+    document.getElementById('s-result').value = '—';
+    document.getElementById('s-notes').value  = '';
+  }
+  openModal('modal-showing');
+}
+
+function saveShowing() {
+  const propId   = document.getElementById('s-prop').value;
+  const clientId = document.getElementById('s-client').value;
+  if (!propId || !clientId) { toast('Выберите объект и клиента', '#ef4444'); return; }
+  const showings = STORE.get('showings');
+  const props    = STORE.get('props');
+  const clients  = STORE.get('clients');
+  const item = {
+    id: editId || uid(), propId, clientId,
+    propName:   props.find(x => x.id === propId)?.address || '?',
+    clientName: clients.find(x => x.id === clientId)?.name || '?',
+    date:   document.getElementById('s-date').value,
+    time:   document.getElementById('s-time').value,
+    status: document.getElementById('s-status').value,
+    result: document.getElementById('s-result').value,
+    notes:  document.getElementById('s-notes').value,
+  };
+  if (editId) { showings[showings.findIndex(x => x.id === editId)] = item; toast('Показ обновлён'); }
+  else { showings.unshift(item); toast('Показ добавлен'); }
+  STORE.set('showings', showings);
+  closeModal('modal-showing');
+  renderPage();
+}
+
+function renderShowings(search = '') {
+  const items = STORE.get('showings').filter(s =>
+    (showingFilter === 'all' || s.status === showingFilter) &&
+    (!search || s.propName.toLowerCase().includes(search.toLowerCase()) || s.clientName.toLowerCase().includes(search.toLowerCase()))
+  ).sort((a, b) => a.date > b.date ? 1 : -1);
+  const list = document.getElementById('showings-list');
+  if (!items.length) { list.innerHTML = `<div class="empty"><div class="empty-icon">📅</div><div class="empty-text">Показов нет</div></div>`; return; }
+  list.innerHTML = items.map((s, i) => {
+    const d = s.date ? new Date(s.date + 'T00:00') : null;
+    return `<div class="showing-card anim-show" style="animation-delay:${i * 0.06}s">
+      <div class="showing-date">
+        <div class="showing-day">${d ? d.getDate() : '—'}</div>
+        <div class="showing-month">${d ? d.toLocaleDateString('ru-RU',{month:'short'}) : ''}</div>
+      </div>
+      <div class="showing-info">
+        <div class="showing-title">${s.propName}</div>
+        <div class="showing-meta">👤 ${s.clientName} &nbsp;·&nbsp; ⏰ ${s.time||'—'}${s.result&&s.result!=='—'?' &nbsp;·&nbsp; '+s.result:''}
+          ${s.notes?`<br><span style="color:var(--text2)">${s.notes}</span>`:''}
+        </div>
+      </div>
+      <div class="showing-actions">
+        ${badge(SHOW_STATUS[s.status]||'badge-gray', s.status)}
+        <button class="btn btn-ghost btn-sm" onclick="openShowingModal(STORE.get('showings').find(x=>x.id==='${s.id}'))">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="del('showings','${s.id}','Показ')">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+document.querySelectorAll('#page-showings .filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#page-showings .filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    showingFilter = btn.dataset.filter;
+    renderShowings(document.getElementById('global-search').value);
+  });
+});
+
+// ===== DEALS =====
+function openDealModal(item = null) {
+  editId = item?.id || null;
+  document.getElementById('modal-deal-title').textContent = item ? 'Редактировать сделку' : 'Новая сделка';
+  const props   = STORE.get('props');
+  const clients = STORE.get('clients');
+  document.getElementById('d-prop').innerHTML   = props.map(p   => `<option value="${p.id}">${p.address}</option>`).join('') || '<option value="">—</option>';
+  document.getElementById('d-client').innerHTML = clients.map(c => `<option value="${c.id}">${c.name}</option>`).join('') || '<option value="">—</option>';
+  if (item) {
+    document.getElementById('d-prop').value       = item.propId;
+    document.getElementById('d-client').value     = item.clientId;
+    document.getElementById('d-sum').value        = item.sum;
+    document.getElementById('d-commission').value = item.commission;
+    document.getElementById('d-stage').value      = item.stage;
+    document.getElementById('d-date').value       = item.date;
+    document.getElementById('d-notes').value      = item.notes || '';
+  } else {
+    document.getElementById('d-sum').value        = '';
+    document.getElementById('d-commission').value = '3';
+    document.getElementById('d-stage').value      = 'Переговоры';
+    document.getElementById('d-date').value       = new Date().toISOString().slice(0, 10);
+    document.getElementById('d-notes').value      = '';
+  }
+  openModal('modal-deal');
+}
+
+function saveDeal() {
+  const propId   = document.getElementById('d-prop').value;
+  const clientId = document.getElementById('d-client').value;
+  if (!propId || !clientId) { toast('Выберите объект и клиента', '#ef4444'); return; }
+  const deals   = STORE.get('deals');
+  const props   = STORE.get('props');
+  const clients = STORE.get('clients');
+  const item = {
+    id: editId || uid(), propId, clientId,
+    propName:   props.find(x => x.id === propId)?.address || '?',
+    clientName: clients.find(x => x.id === clientId)?.name || '?',
+    sum:        document.getElementById('d-sum').value,
+    commission: document.getElementById('d-commission').value,
+    stage:      document.getElementById('d-stage').value,
+    date:       document.getElementById('d-date').value,
+    notes:      document.getElementById('d-notes').value,
+  };
+  if (editId) { deals[deals.findIndex(x => x.id === editId)] = item; toast('Сделка обновлена'); }
+  else { deals.unshift(item); toast('Сделка добавлена'); }
+  STORE.set('deals', deals);
+  closeModal('modal-deal');
+  renderPage();
+}
+
+function renderDeals(search = '') {
+  const items = STORE.get('deals').filter(d =>
+    !search || d.propName.toLowerCase().includes(search.toLowerCase()) || d.clientName.toLowerCase().includes(search.toLowerCase())
+  );
+  if (dealView === 'kanban') {
+    document.getElementById('deals-kanban').style.display = 'flex';
+    document.getElementById('deals-table-wrap').style.display = 'none';
+    const byStage = {};
+    DEAL_STAGES.forEach(s => byStage[s] = []);
+    items.forEach(d => { if (byStage[d.stage]) byStage[d.stage].push(d); });
+    document.getElementById('deals-kanban').innerHTML = DEAL_STAGES.map(stage => `
+      <div class="kanban-col">
+        <div class="kanban-col-header" style="border-top:3px solid ${DEAL_COLOR[stage]}">
+          <span>${stage}</span><span class="kanban-count">${byStage[stage].length}</span>
+        </div>
+        <div class="kanban-cards">
+          ${byStage[stage].length === 0
+            ? '<div style="color:var(--text2);font-size:12px;padding:4px;">Пусто</div>'
+            : byStage[stage].map((d, i) => `
+              <div class="kanban-card anim-card" style="animation-delay:${i * 0.07}s" onclick="openDealModal(STORE.get('deals').find(x=>x.id==='${d.id}'))">
+                <div class="kanban-card-title">${d.propName}</div>
+                <div class="kanban-card-sub">👤 ${d.clientName}</div>
+                <div class="kanban-card-price">${fmt(d.sum)}</div>
+                ${d.commission?`<div style="font-size:11px;color:var(--text2);margin-top:3px;">Комиссия: ${d.commission}%</div>`:''}
+                <div style="margin-top:8px;display:flex;justify-content:flex-end;">
+                  <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();del('deals','${d.id}','Сделка')">🗑</button>
+                </div>
+              </div>`).join('')
+          }
+        </div>
+      </div>`).join('');
+  } else {
+    document.getElementById('deals-kanban').style.display = 'none';
+    document.getElementById('deals-table-wrap').style.display = 'block';
+    const tb = document.getElementById('deals-tbody');
+    if (!items.length) { tb.innerHTML = `<tr><td colspan="7"><div class="empty"><div class="empty-icon">💼</div><div class="empty-text">Сделок нет</div></div></td></tr>`; return; }
+    tb.innerHTML = items.map((d, i) => `<tr class="anim-row" style="animation-delay:${i * 0.04}s">
+      <td><b>${d.propName}</b></td>
+      <td>${d.clientName}</td>
+      <td style="color:var(--accent2);font-weight:600;">${fmt(d.sum)}</td>
+      <td><span class="badge" style="background:${DEAL_COLOR[d.stage]}22;color:${DEAL_COLOR[d.stage]}">${d.stage}</span></td>
+      <td>${fmtDate(d.date)}</td>
+      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.notes||'—'}</td>
+      <td><div class="td-actions">
+        <button class="btn btn-ghost btn-sm" onclick="openDealModal(STORE.get('deals').find(x=>x.id==='${d.id}'))">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="del('deals','${d.id}','Сделка')">🗑</button>
+      </div></td>
+    </tr>`).join('');
+  }
+}
+
+document.querySelectorAll('#page-deals .filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#page-deals .filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    dealView = btn.dataset.filter;
+    renderDeals(document.getElementById('global-search').value);
+  });
+});
+
+// ===== UNIVERSAL DELETE =====
+function del(store, id, label) {
+  if (!confirm(`Удалить запись?`)) return;
+  STORE.set(store, STORE.get(store).filter(x => x.id !== id));
+  toast(label + ' удалён', '#ef4444');
+  renderPage();
+}
+
+// ===== DASHBOARD =====
+function renderDashboard() {
+  const props    = STORE.get('props');
+  const clients  = STORE.get('clients');
+  const showings = STORE.get('showings');
+  const deals    = STORE.get('deals');
+
+  ['stat-props','stat-clients','stat-showings','stat-deals'].forEach(id => {
+    const el = document.getElementById(id);
+    el.style.animation = 'none'; el.offsetHeight; el.style.animation = '';
+  });
+  animCount(document.getElementById('stat-props'),    props.length);
+  animCount(document.getElementById('stat-clients'),  clients.filter(c => c.status !== 'Завершён').length);
+  animCount(document.getElementById('stat-showings'), showings.filter(s => s.status === 'Запланирован').length);
+  animCount(document.getElementById('stat-deals'),    deals.filter(d => d.stage !== 'Завершена' && d.stage !== 'Сорвалась').length);
+
+  const mini = (items, title, sub, right) => items.length === 0
+    ? '<div style="color:var(--text2);font-size:13px;">Нет записей</div>'
+    : items.slice(0, 4).map((x, i) => `<div class="mini-item anim-mini" style="animation-delay:${i * 0.06}s"><div><div class="mini-item-title">${title(x)}</div><div class="mini-item-sub">${sub(x)}</div></div><div>${right(x)}</div></div>`).join('');
+
+  document.getElementById('dash-props').innerHTML    = mini(props,    p => p.address,  p => p.type + ' · ' + (p.area?p.area+' м²':'—'),  p => badge(PROP_STATUS[p.status]||'badge-gray', p.status));
+  document.getElementById('dash-clients').innerHTML  = mini(clients,  c => c.name,     c => c.phone||c.email||'—',                        c => badge(CLIENT_STATUS[c.status]||'badge-gray', c.status));
+  const upcoming = showings.filter(s => s.status === 'Запланирован').sort((a,b) => a.date > b.date ? 1 : -1);
+  document.getElementById('dash-showings').innerHTML = mini(upcoming, s => s.propName, s => '👤 ' + s.clientName,                         s => `<span style="font-size:12px;color:var(--info)">${fmtDate(s.date)} ${s.time||''}</span>`);
+  const active = deals.filter(d => d.stage !== 'Завершена' && d.stage !== 'Сорвалась');
+  document.getElementById('dash-deals').innerHTML    = mini(active,   d => d.propName, d => '👤 ' + d.clientName,                         d => `<span style="font-size:12px;color:${DEAL_COLOR[d.stage]||'var(--text2)'}">${d.stage}</span>`);
+}
+
+function renderPage() {
+  const q = document.getElementById('global-search').value;
+  if      (currentPage === 'dashboard')   renderDashboard();
+  else if (currentPage === 'properties')  renderProperties(q);
+  else if (currentPage === 'clients')     renderClients(q);
+  else if (currentPage === 'showings')    renderShowings(q);
+  else if (currentPage === 'deals')       renderDeals(q);
+}
+
+// ===== DEMO DATA =====
+function seedDemo() {
+  if (STORE.get('props').length) return;
+  const p1 = uid(), p2 = uid(), p3 = uid();
+  const c1 = uid(), c2 = uid(), c3 = uid();
+  const today = new Date().toISOString().slice(0, 10);
+  STORE.set('props', [
+    { id:p1, address:'ул. Советская, 15, кв. 22', type:'Квартира', status:'Свободен', price:'4200000', area:'62', floor:'4/9', rooms:'2', desc:'Хороший ремонт, светлая' },
+    { id:p2, address:'пр. Мира, 88, кв. 7',       type:'Квартира', status:'Показ',    price:'2900000', area:'45', floor:'2/5', rooms:'1', desc:'' },
+    { id:p3, address:'ул. Лесная, 3',              type:'Дом',      status:'Сделка',   price:'7500000', area:'120',floor:'2 эт.',rooms:'4+',desc:'С участком 6 соток' },
+  ]);
+  STORE.set('clients', [
+    { id:c1, name:'Иван Петров',     phone:'+7 901 234-56-78', type:'Покупатель', status:'В работе', budget:'5000000', email:'ivan@mail.ru', wish:'2-3к, центр, до 5 млн', notes:'' },
+    { id:c2, name:'Мария Козлова',   phone:'+7 912 345-67-89', type:'Продавец',   status:'Тёплый',   budget:'',        email:'',            wish:'',                      notes:'Продаёт после переезда' },
+    { id:c3, name:'Алексей Сидоров', phone:'+7 923 456-78-90', type:'Покупатель', status:'Новый',    budget:'3000000', email:'',            wish:'1к, тихий район',       notes:'' },
+  ]);
+  STORE.set('showings', [
+    { id:uid(), propId:p1, clientId:c1, propName:'ул. Советская, 15, кв. 22', clientName:'Иван Петров',     date:today, time:'14:00', status:'Запланирован', result:'—', notes:'' },
+    { id:uid(), propId:p2, clientId:c3, propName:'пр. Мира, 88, кв. 7',       clientName:'Алексей Сидоров', date:today, time:'16:30', status:'Запланирован', result:'—', notes:'' },
+  ]);
+  STORE.set('deals', [
+    { id:uid(), propId:p3, clientId:c1, propName:'ул. Лесная, 3',        clientName:'Иван Петров',     sum:'7200000', commission:'3',   stage:'Задаток',    date:today, notes:'Задаток передан, ждём банк' },
+    { id:uid(), propId:p2, clientId:c3, propName:'пр. Мира, 88, кв. 7', clientName:'Алексей Сидоров', sum:'2850000', commission:'2.5', stage:'Переговоры', date:today, notes:'' },
+  ]);
+}
+
+// ===== MOBILE SIDEBAR =====
+const sidebar = document.getElementById('sidebar');
+const overlay = document.getElementById('sidebar-overlay');
+const hamburger = document.getElementById('hamburger');
+
+function openSidebar()  { sidebar.classList.add('open');  overlay.classList.add('open'); }
+function closeSidebar() { sidebar.classList.remove('open'); overlay.classList.remove('open'); }
+
+hamburger.addEventListener('click', () => sidebar.classList.contains('open') ? closeSidebar() : openSidebar());
+overlay.addEventListener('click', closeSidebar);
+
+// Закрывать sidebar при выборе пункта меню на мобильном
+document.querySelectorAll('.nav-item').forEach(el => {
+  el.addEventListener('click', () => { if (window.innerWidth <= 700) closeSidebar(); });
+});
+
+seedDemo();
+renderPage();
+</script>
+</body>
+</html>

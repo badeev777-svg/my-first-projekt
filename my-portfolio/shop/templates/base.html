@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Магазин{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="logo" href="{{ url_for('index') }}">ShopPy</a>
+      <nav class="menu">
+        <a href="{{ url_for('index') }}">Каталог</a>
+        <a href="{{ url_for('cart') }}">Корзина <span class="badge">{{ cart_count }}</span></a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <p>Легкий магазин на Python + Flask. Быстро и без лишнего.</p>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SEO-Оптимизация и продвижение</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-dark:    #0a0e1a;
+      --bg-card:    #111827;
+      --accent1:    #6c63ff;
+      --accent2:    #00d4aa;
+      --accent3:    #ff6b6b;
+      --text-main:  #e8eaf0;
+      --text-muted: #8892a4;
+      --border:     rgba(108,99,255,.25);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Background mesh ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 10%, rgba(108,99,255,.18) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 80%, rgba(0,212,170,.13) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 40% at 60% 30%, rgba(255,107,107,.08) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Layout helpers ── */
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* ══════════════════════════════
+       HERO
+    ══════════════════════════════ */
+    .hero {
+      text-align: center;
+      padding: 100px 24px 72px;
+    }
+
+    .badge {
+      display: inline-block;
+      background: rgba(108,99,255,.15);
+      border: 1px solid rgba(108,99,255,.4);
+      color: #a89cff;
+      font-size: .78rem;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      padding: 6px 18px;
+      border-radius: 100px;
+      margin-bottom: 28px;
+      animation: fadeDown .6s ease both;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 5vw, 3.6rem);
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -.02em;
+      background: linear-gradient(135deg, #a89cff 0%, #6c63ff 35%, #00d4aa 70%, #38f9d7 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: fadeDown .7s .1s ease both;
+    }
+
+    .hero-sub {
+      margin-top: 22px;
+      font-size: clamp(1rem, 2vw, 1.25rem);
+      color: var(--text-muted);
+      max-width: 620px;
+      margin-inline: auto;
+      line-height: 1.65;
+      animation: fadeDown .7s .2s ease both;
+    }
+
+    /* ══════════════════════════════
+       ADVANTAGES
+    ══════════════════════════════ */
+    .section { padding: 64px 0; }
+
+    .section-title {
+      text-align: center;
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-bottom: 48px;
+      background: linear-gradient(90deg, #e8eaf0, #8892a4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+      gap: 24px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 36px 28px;
+      transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease;
+      cursor: default;
+    }
+
+    .card:hover {
+      transform: translateY(-6px);
+      border-color: rgba(108,99,255,.6);
+      box-shadow: 0 20px 50px rgba(108,99,255,.18);
+    }
+
+    .card-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .card:nth-child(1) .card-icon { background: rgba(108,99,255,.18); }
+    .card:nth-child(2) .card-icon { background: rgba(0,212,170,.15); }
+    .card:nth-child(3) .card-icon { background: rgba(255,107,107,.15); }
+
+    .card h3 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .card p {
+      font-size: .95rem;
+      color: var(--text-muted);
+      line-height: 1.65;
+    }
+
+    /* ══════════════════════════════
+       FOR WHOM
+    ══════════════════════════════ */
+    .audience {
+      background: linear-gradient(135deg, rgba(108,99,255,.08), rgba(0,212,170,.06));
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 52px 44px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      align-items: center;
+    }
+
+    .audience h2 {
+      font-size: 1.7rem;
+      font-weight: 700;
+      line-height: 1.3;
+      margin-bottom: 16px;
+    }
+
+    .audience h2 span {
+      background: linear-gradient(90deg, #6c63ff, #00d4aa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .audience p {
+      color: var(--text-muted);
+      line-height: 1.7;
+      font-size: .97rem;
+    }
+
+    .checklist {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .checklist li {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: .95rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .checklist li svg { flex-shrink: 0; margin-top: 2px; }
+
+    /* ══════════════════════════════
+       CTA
+    ══════════════════════════════ */
+    .cta-section {
+      text-align: center;
+      padding: 80px 24px 48px;
+    }
+
+    .cta-section h2 {
+      font-size: clamp(1.5rem, 3.5vw, 2.4rem);
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+
+    .cta-section p {
+      color: var(--text-muted);
+      margin-bottom: 40px;
+      font-size: 1rem;
+    }
+
+    .cta-btn {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: linear-gradient(135deg, #6c63ff, #00d4aa);
+      color: #fff;
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: .02em;
+      padding: 18px 44px;
+      border: none;
+      border-radius: 100px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity .2s, transform .2s;
+      animation: pulse 2.4s ease-in-out infinite;
+    }
+
+    .cta-btn:hover {
+      opacity: .9;
+      transform: scale(1.04);
+      animation: none;
+    }
+
+    /* Pulsing glow ring */
+    .cta-btn::before {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border-radius: 100px;
+      background: linear-gradient(135deg, #6c63ff, #00d4aa);
+      opacity: .35;
+      filter: blur(12px);
+      animation: pulseRing 2.4s ease-in-out infinite;
+      z-index: -1;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50%       { transform: scale(1.03); }
+    }
+
+    @keyframes pulseRing {
+      0%, 100% { opacity: .35; transform: scale(1); }
+      50%       { opacity: .6;  transform: scale(1.08); }
+    }
+
+    .contact-link {
+      display: block;
+      margin-top: 24px;
+      font-size: .92rem;
+      color: var(--text-muted);
+    }
+
+    .contact-link a {
+      color: #a89cff;
+      text-decoration: none;
+      border-bottom: 1px dashed rgba(168,156,255,.4);
+      transition: color .2s, border-color .2s;
+    }
+
+    .contact-link a:hover {
+      color: #fff;
+      border-color: #fff;
+    }
+
+    /* ══════════════════════════════
+       FOOTER
+    ══════════════════════════════ */
+    footer {
+      text-align: center;
+      padding: 32px 24px;
+      font-size: .82rem;
+      color: var(--text-muted);
+      border-top: 1px solid rgba(255,255,255,.06);
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ══════════════════════════════
+       ANIMATIONS
+    ══════════════════════════════ */
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Scroll-reveal via IntersectionObserver */
+    .reveal {
+      opacity: 0;
+      transform: translateY(32px);
+      transition: opacity .65s ease, transform .65s ease;
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: none;
+    }
+
+    /* ══════════════════════════════
+       RESPONSIVE
+    ══════════════════════════════ */
+    @media (max-width: 700px) {
+      .hero { padding: 72px 16px 48px; }
+
+      .audience {
+        grid-template-columns: 1fr;
+        gap: 28px;
+        padding: 36px 24px;
+      }
+
+      .cta-btn { padding: 16px 32px; font-size: .97rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════ HERO ══════════ -->
+<section class="hero">
+  <div class="container" style="display:flex;flex-direction:column;align-items:center">
+    <span class="badge">Цифровой маркетинг · SEO</span>
+    <h1>SEO-Оптимизация<br>и продвижение</h1>
+    <p class="hero-sub">
+      Профессиональный SEO-анализ, техническая оптимизация и комплексное
+      продвижение Вашего продукта — больше трафика, больше клиентов.
+    </p>
+  </div>
+</section>
+
+<!-- ══════════ ADVANTAGES ══════════ -->
+<section class="section">
+  <div class="container">
+    <h2 class="section-title reveal">Три ключевых преимущества</h2>
+    <div class="cards">
+
+      <!-- Card 1 -->
+      <div class="card reveal">
+        <div class="card-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+            <path d="M3 17l4-8 4 5 3-3 4 6" stroke="#a89cff" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="19" cy="5" r="2" fill="#6c63ff" opacity=".8"/>
+          </svg>
+        </div>
+        <h3>Рост органического трафика</h3>
+        <p>
+          Выводим сайт в топ поисковой выдачи Google и Яндекс по ключевым запросам.
+          Органический трафик — это постоянный поток целевых посетителей
+          без ежемесячных расходов на рекламу.
+        </p>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="card reveal">
+        <div class="card-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+            <rect x="3" y="3" width="7" height="7" rx="2" stroke="#00d4aa" stroke-width="2"/>
+            <rect x="14" y="3" width="7" height="7" rx="2" stroke="#00d4aa" stroke-width="2"/>
+            <rect x="3" y="14" width="7" height="7" rx="2" stroke="#00d4aa" stroke-width="2"/>
+            <path d="M14 17.5h7M17.5 14v7" stroke="#00d4aa" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h3>Техническая оптимизация</h3>
+        <p>
+          Устраняем технические ошибки: ускоряем загрузку страниц, исправляем
+          структуру кода, настраиваем мета-теги и микроразметку. Сайт становится
+          понятнее для поисковиков — и быстрее для пользователей.
+        </p>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="card reveal">
+        <div class="card-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+            <circle cx="11" cy="11" r="7" stroke="#ff6b6b" stroke-width="2"/>
+            <path d="M16.5 16.5L21 21" stroke="#ff6b6b" stroke-width="2.2" stroke-linecap="round"/>
+            <path d="M8 11h6M11 8v6" stroke="#ff6b6b" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h3>Конкурентный анализ и стратегия</h3>
+        <p>
+          Изучаем позиции конкурентов, находим их слабые места и строим
+          индивидуальную стратегию продвижения. Вы знаете точно, что делать
+          дальше, а не просто надеетесь на результат.
+        </p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ FOR WHOM ══════════ -->
+<section class="section">
+  <div class="container">
+    <div class="audience reveal">
+      <div>
+        <h2>Кому <span>подходит</span><br>этот продукт?</h2>
+        <p>
+          SEO-продвижение подходит любому бизнесу, у которого есть сайт и желание
+          привлекать клиентов из поиска — без постоянной зависимости от платной рекламы.
+        </p>
+      </div>
+      <ul class="checklist">
+        <li>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" fill="rgba(0,212,170,.15)"/>
+            <path d="M7 12.5l3.5 3.5 6-7" stroke="#00d4aa" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span><strong>Малый и средний бизнес</strong> — получить стабильный поток
+            клиентов без огромного рекламного бюджета</span>
+        </li>
+        <li>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" fill="rgba(0,212,170,.15)"/>
+            <path d="M7 12.5l3.5 3.5 6-7" stroke="#00d4aa" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span><strong>Интернет-магазины</strong> — увеличить видимость
+            товарных страниц и снизить стоимость привлечения покупателя</span>
+        </li>
+        <li>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" fill="rgba(0,212,170,.15)"/>
+            <path d="M7 12.5l3.5 3.5 6-7" stroke="#00d4aa" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span><strong>Стартапы и личные бренды</strong> — выстроить
+            долгосрочное присутствие в интернете с первых шагов</span>
+        </li>
+        <li>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" fill="rgba(0,212,170,.15)"/>
+            <path d="M7 12.5l3.5 3.5 6-7" stroke="#00d4aa" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span><strong>Сервисные компании</strong> — занять топ по локальным
+            запросам и обойти конкурентов в своём городе</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ CTA ══════════ -->
+<section class="cta-section">
+  <div class="container">
+    <h2 class="reveal">Готовы вывести сайт в топ?</h2>
+    <p class="reveal">Получите бесплатный SEO-аудит вашего сайта уже сегодня</p>
+    <a href="#contact" class="cta-btn reveal">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <path d="M13 5l7 7-7 7M5 12h15" stroke="#fff" stroke-width="2.2"
+          stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Начать продвижение
+    </a>
+    <p class="contact-link reveal" id="contact">
+      Есть вопросы? Свяжитесь со мной:
+      <a href="mailto:badeev777@gmail.com">badeev777@gmail.com</a>
+      &nbsp;·&nbsp;
+      <a href="https://t.me/CowboyAleksandr" target="_blank" rel="noopener">Telegram</a>
+    </p>
+  </div>
+</section>
+
+<!-- ══════════ FOOTER ══════════ -->
+<footer>
+  <p>© 2026 SEO-Оптимизация и продвижение. Все права защищены.</p>
+</footer>
+
+<!-- ══════════ SCROLL REVEAL ══════════ -->
+<script>
+  const io = new IntersectionObserver(
+    (entries) => entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); }),
+    { threshold: 0.12 }
+  );
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+</script>
+</body>
+</html>
