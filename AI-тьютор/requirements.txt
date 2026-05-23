@@ -1,0 +1,6 @@
+python-telegram-bot==21.1
+anthropic==0.28.0
+python-dotenv==1.0.0
+sqlalchemy==2.0.25
+aiosqlite==0.22.1
+requests==2.31.0
