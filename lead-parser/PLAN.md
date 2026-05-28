@@ -54,18 +54,35 @@
 
 ---
 
-#### 2.2 Lead Assignment & Conversion Tracking
+#### 2.2 Lead Assignment & Deal Tracking
 **Описание:** Назначение исполнителей и трекинг конверсии  
+**Статус:** ✅ ЗАВЕРШЕНО (2026-05-28)
+
+**Реализовано:**
+- [x] Поле `assigned_to` в Lead (никнейм исполнителя или null)
+- [x] Поле `deal_value` в Lead (сумма сделки, если заключена)
+- [x] Поле `deal_stage` в Lead (lead, negotiation, won, lost) — enum DealStage
+- [x] UI: deal modal с полями для назначения, стадии, суммы
+- [x] История действий: assigned, deal_stage_change, deal_value_change
+- [x] Кнопка 💼 для открытия modal
+
+**Код:**
+- DealStage enum + Lead fields: [app/database.py:23-30, 56-58](app/database.py)
+- API endpoints: [app/web/routes.py:411-490](app/web/routes.py)
+- UI + Modal + JS: [app/web/templates/index.html:93-115, 152-191, 233-289](app/web/templates/index.html)
+
+---
+
+#### 2.3 Conversion Metrics & Filters
+**Описание:** Метрики конверсии на аналитике и фильтры по исполнителям  
 **Приоритет:** 🟡 Средний  
-**Примерный объем:** 3-4 часа
+**Примерный объем:** 2-3 часа
 
 **Задачи:**
-- [ ] Поле `assigned_to` в Lead (никнейм исполнителя или null)
-- [ ] Поле `deal_value` в Lead (сумма сделки, если заключена)
-- [ ] Поле `deal_stage` в Lead (lead, negotiation, won, lost)
-- [ ] UI: assign modal + deal value input
+- [ ] Метрика конверсии на аналитике: % лидов со стадией won/lost
+- [ ] Среднее значение сделки (deal_value для won)
 - [ ] Фильтр по исполнителю на странице лидов
-- [ ] Метрика конверсии на аналитике (лиды → сделки %)
+- [ ] Таблица по исполнителям: кол-во, конверсия, avg deal value
 
 ---
 
