@@ -11,6 +11,7 @@ from app.notifier import notify_new_lead
 from app.scrapers.fl_rss import fetch_fl_leads
 from app.scrapers.habr import fetch_habr_leads
 from app.scrapers.kwork import fetch_kwork_leads
+from app.scrapers.profi import fetch_profi_leads
 
 log = logging.getLogger(__name__)
 
@@ -26,6 +27,9 @@ async def run_collection() -> int:
 
     kwork_leads = await fetch_kwork_leads()
     raw.extend(kwork_leads)
+
+    profi_leads = await fetch_profi_leads()
+    raw.extend(profi_leads)
 
     saved = 0
     async with SessionLocal() as session:
