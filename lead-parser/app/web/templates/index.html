@@ -89,6 +89,19 @@
         {% if lead.contact %}
         <p class="text-xs text-gray-500 mt-1">👤 {{ lead.contact }}</p>
         {% endif %}
+        <div class="flex flex-wrap gap-2 mt-2 text-xs">
+          <span class="text-gray-400">
+            👤 {% if lead.assigned_to %}<strong>{{ lead.assigned_to }}</strong>{% else %}<em>не назначен</em>{% endif %}
+          </span>
+          <span class="text-gray-400">
+            💼
+            {% set stage_names = {"lead": "Лид", "negotiation": "Переговоры", "won": "Выигранно", "lost": "Потеря"} %}
+            {{ stage_names.get(lead.deal_stage, lead.deal_stage) }}
+          </span>
+          {% if lead.deal_value %}
+          <span class="text-gray-400">💰 {{ '{:,}'.format(lead.deal_value).replace(',', ' ') }} ₽</span>
+          {% endif %}
+        </div>
       </div>
       <div class="text-right flex-shrink-0 flex items-center gap-2">
         <select class="bg-gray-800 border border-gray-600 rounded px-2 py-1 text-xs text-gray-300 hover:border-gray-400"
@@ -102,6 +115,10 @@
         <button onclick="event.stopPropagation(); showHistory({{ lead.id }})"
                 class="bg-gray-700 hover:bg-gray-600 text-gray-300 px-2 py-1 rounded text-xs font-medium">
           📋
+        </button>
+        <button onclick="event.stopPropagation(); openDealModal({{ lead.id }}, '{{ lead.assigned_to or '' }}', '{{ lead.deal_stage }}', {{ lead.deal_value or 0 }})"
+                class="bg-gray-700 hover:bg-gray-600 text-gray-300 px-2 py-1 rounded text-xs font-medium">
+          💼
         </button>
         <span class="text-xs text-gray-500 whitespace-nowrap">
           {{ lead.created_at.strftime('%d.%m %H:%M') }}
@@ -140,6 +157,45 @@
     </div>
     <div id="historyContent" class="p-6 space-y-3">
       <p class="text-gray-400 text-sm">Загрузка...</p>
+    </div>
+  </div>
+</div>
+
+<!-- Deal Modal -->
+<div id="dealModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+  <div class="bg-gray-800 rounded-lg max-w-md w-full border border-gray-700">
+    <div class="bg-gray-900 border-b border-gray-700 px-6 py-4 flex items-center justify-between">
+      <h3 class="text-lg font-semibold">Информация о сделке</h3>
+      <button onclick="closeDealModal()" class="text-gray-400 hover:text-white text-2xl leading-none">×</button>
+    </div>
+    <div class="p-6 space-y-4">
+      <div>
+        <label class="block text-sm text-gray-300 mb-2">Назначить на:</label>
+        <input id="dealAssignedTo" type="text" placeholder="имя исполнителя"
+               class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-gray-200 placeholder-gray-500">
+      </div>
+      <div>
+        <label class="block text-sm text-gray-300 mb-2">Стадия сделки:</label>
+        <select id="dealStage" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-gray-200">
+          <option value="lead">Лид</option>
+          <option value="negotiation">Переговоры</option>
+          <option value="won">Выигранно</option>
+          <option value="lost">Потеря</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm text-gray-300 mb-2">Сумма сделки (₽):</label>
+        <input id="dealValue" type="number" placeholder="0"
+               class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-sm text-gray-200 placeholder-gray-500">
+      </div>
+      <div class="flex gap-2 pt-4">
+        <button onclick="saveDeal()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded text-sm font-medium">
+          Сохранить
+        </button>
+        <button onclick="closeDealModal()" class="flex-1 bg-gray-700 hover:bg-gray-600 text-gray-300 px-4 py-2 rounded text-sm font-medium">
+          Отмена
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -227,11 +283,69 @@ function closeHistory() {
 
 // Закрытие модала при клике вне его
 document.addEventListener('click', (e) => {
-  const modal = document.getElementById('historyModal');
-  if (e.target === modal) {
+  const historyModal = document.getElementById('historyModal');
+  const dealModal = document.getElementById('dealModal');
+  if (e.target === historyModal) {
     closeHistory();
   }
+  if (e.target === dealModal) {
+    closeDealModal();
+  }
 });
+
+let currentDealLeadId = null;
+
+function openDealModal(leadId, assignedTo, dealStage, dealValue) {
+  currentDealLeadId = leadId;
+  document.getElementById('dealAssignedTo').value = assignedTo;
+  document.getElementById('dealStage').value = dealStage;
+  document.getElementById('dealValue').value = dealValue || '';
+  document.getElementById('dealModal').classList.remove('hidden');
+}
+
+function closeDealModal() {
+  document.getElementById('dealModal').classList.add('hidden');
+  currentDealLeadId = null;
+}
+
+async function saveDeal() {
+  if (!currentDealLeadId) return;
+
+  const assignedTo = document.getElementById('dealAssignedTo').value.trim();
+  const dealStage = document.getElementById('dealStage').value;
+  const dealValue = parseInt(document.getElementById('dealValue').value) || null;
+
+  try {
+    // Сохраняем назначение
+    if (assignedTo) {
+      await fetch(`/leads/${currentDealLeadId}/assign`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assigned_to: assignedTo })
+      });
+    }
+
+    // Сохраняем стадию сделки
+    await fetch(`/leads/${currentDealLeadId}/deal-stage`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ deal_stage: dealStage })
+    });
+
+    // Сохраняем сумму сделки
+    await fetch(`/leads/${currentDealLeadId}/deal-value`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ deal_value: dealValue })
+    });
+
+    closeDealModal();
+    location.reload();
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Ошибка при сохранении');
+  }
+}
 </script>
 
 {% endblock %}

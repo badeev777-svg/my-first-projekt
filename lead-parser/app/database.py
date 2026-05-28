@@ -26,6 +26,13 @@ class Status(str, Enum):
     archived = "archived"
 
 
+class DealStage(str, Enum):
+    lead = "lead"
+    negotiation = "negotiation"
+    won = "won"
+    lost = "lost"
+
+
 class Base(DeclarativeBase):
     pass
 
@@ -49,6 +56,10 @@ class Lead(Base):
     relevance_score: Mapped[int | None] = mapped_column(Integer)
     estimated_budget: Mapped[int | None] = mapped_column(Integer)
     processed: Mapped[bool] = mapped_column(default=False, nullable=False)
+
+    assigned_to: Mapped[str | None] = mapped_column(String(128))
+    deal_stage: Mapped[str] = mapped_column(SAEnum(DealStage), default=DealStage.lead, nullable=False)
+    deal_value: Mapped[int | None] = mapped_column(Integer)
 
 
 class LeadAction(Base):
@@ -99,6 +110,9 @@ async def _load_demo_data() -> None:
             "summary": "E-commerce разработка на WooCommerce с интеграциями и оптимизацией.",
             "estimated_budget": 140000,
             "processed": True,
+            "assigned_to": "admin",
+            "deal_stage": DealStage.negotiation,
+            "deal_value": 140000,
         },
         {
             "source": "fl",
@@ -114,6 +128,9 @@ async def _load_demo_data() -> None:
             "summary": "Лендинг с адаптивным дизайном и CRM интеграцией для стоматологии.",
             "estimated_budget": 75000,
             "processed": True,
+            "assigned_to": "ivan",
+            "deal_stage": DealStage.lead,
+            "deal_value": None,
         },
         {
             "source": "habr",
@@ -129,6 +146,9 @@ async def _load_demo_data() -> None:
             "summary": "SEO оптимизация и продвижение для e-commerce проекта.",
             "estimated_budget": 55000,
             "processed": True,
+            "assigned_to": None,
+            "deal_stage": DealStage.lead,
+            "deal_value": None,
         },
         {
             "source": "telegram",
@@ -144,6 +164,9 @@ async def _load_demo_data() -> None:
             "summary": "Верстка PSD макета в HTML/CSS с адаптивностью и кроссбраузерностью.",
             "estimated_budget": 22000,
             "processed": True,
+            "assigned_to": "maria",
+            "deal_stage": DealStage.won,
+            "deal_value": 20000,
         },
         {
             "source": "fl",
@@ -159,6 +182,9 @@ async def _load_demo_data() -> None:
             "summary": "Корпоративный сайт с блогом и системой управления контентом.",
             "estimated_budget": 115000,
             "processed": True,
+            "assigned_to": "admin",
+            "deal_stage": DealStage.lost,
+            "deal_value": None,
         },
     ]
 
@@ -179,6 +205,9 @@ async def _load_demo_data() -> None:
                 summary=data.get("summary"),
                 estimated_budget=data.get("estimated_budget"),
                 processed=data.get("processed", False),
+                assigned_to=data.get("assigned_to"),
+                deal_stage=data.get("deal_stage", DealStage.lead),
+                deal_value=data.get("deal_value"),
             )
             session.add(lead)
         await session.commit()

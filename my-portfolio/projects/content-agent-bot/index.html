@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Content Agent Bot — Telegram Bot с ИИ</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #08090e;
+      --bg2:       #0f1117;
+      --card:      #141620;
+      --accent:    #7c6cff;
+      --accent2:   #00d4ff;
+      --text:      #e8eaf0;
+      --muted:     #7a7f96;
+      --border:    rgba(124,108,255,.18);
+      --radius:    14px;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      line-height: 1.65;
+      overflow-x: hidden;
+    }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 3px; }
+
+    .container { max-width: 1000px; margin: 0 auto; padding: 0 24px; }
+    .gradient-text {
+      background: linear-gradient(135deg, #7c6cff, #00d4ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .tag {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: .75rem;
+      font-weight: 600;
+      letter-spacing: .03em;
+      background: rgba(124,108,255,.12);
+      color: #a49fff;
+      border: 1px solid rgba(124,108,255,.25);
+      margin-right: 8px;
+      margin-bottom: 8px;
+    }
+
+    /* HEADER */
+    header {
+      padding: 24px 0;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: rgba(8,9,14,.85);
+      backdrop-filter: blur(10px);
+      z-index: 100;
+    }
+    .header-inner { display: flex; align-items: center; justify-content: space-between; }
+    .back-link { color: var(--muted); text-decoration: none; font-size: .9rem; transition: color .25s; }
+    .back-link:hover { color: var(--text); }
+
+    /* HERO */
+    section { padding: 72px 0; }
+    .hero { min-height: 60vh; display: flex; align-items: center; }
+    .hero-content {}
+    .project-type { font-size: .85rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent2); margin-bottom: 12px; }
+    h1 { font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 800; line-height: 1.1; margin-bottom: 16px; }
+    .subtitle { font-size: 1.15rem; color: var(--muted); max-width: 600px; margin-bottom: 32px; }
+    .tags { display: flex; flex-wrap: wrap; margin-bottom: 40px; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 28px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: .95rem;
+      text-decoration: none;
+      cursor: pointer;
+      transition: transform .22s, box-shadow .22s, opacity .2s;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn-primary {
+      background: linear-gradient(135deg, #7c6cff, #00d4ff);
+      color: #fff;
+      box-shadow: 0 6px 32px rgba(124,108,255,.35);
+    }
+    .btn-primary:hover { box-shadow: 0 12px 38px rgba(124,108,255,.6); }
+    .btn-ghost {
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ABOUT SECTION */
+    #about { background: var(--bg2); }
+    .section-tag { font-size: .75rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+    .section-title { font-size: 2rem; font-weight: 800; margin-bottom: 14px; }
+    .section-sub { color: var(--muted); font-size: 1.05rem; max-width: 520px; }
+
+    /* FEATURES */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      margin-top: 40px;
+    }
+    .feature-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      transition: transform .25s, border-color .25s, box-shadow .25s;
+    }
+    .feature-card:hover {
+      transform: translateY(-5px);
+      border-color: rgba(124,108,255,.4);
+      box-shadow: 0 12px 40px rgba(124,108,255,.12);
+    }
+    .feature-icon { font-size: 2.5rem; margin-bottom: 16px; }
+    .feature-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 10px; }
+    .feature-card p { font-size: .9rem; color: var(--muted); }
+
+    /* TECH STACK */
+    #tech { background: var(--bg); }
+    .tech-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-top: 40px; }
+    .tech-item {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      text-align: center;
+      transition: transform .25s, border-color .25s;
+    }
+    .tech-item:hover { transform: translateY(-3px); border-color: var(--accent); }
+    .tech-item .icon { font-size: 2rem; margin-bottom: 12px; }
+    .tech-item h4 { font-weight: 700; margin-bottom: 6px; }
+    .tech-item p { font-size: .85rem; color: var(--muted); }
+
+    /* ARCHITECTURE */
+    .architecture-block {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px;
+      margin-top: 32px;
+    }
+    .arch-item { display: flex; gap: 20px; margin-bottom: 24px; }
+    .arch-item:last-child { margin-bottom: 0; }
+    .arch-label { font-weight: 700; color: var(--accent); min-width: 140px; }
+    .arch-desc { color: var(--muted); }
+
+    /* MONETIZATION */
+    .pricing-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 24px;
+      margin-top: 32px;
+    }
+    .price-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      text-align: center;
+    }
+    .price-card.featured { border-color: var(--accent); background: rgba(124,108,255,.08); }
+    .price-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 8px; }
+    .price-value { font-size: 2rem; font-weight: 800; color: var(--accent); margin: 12px 0; }
+    .price-desc { font-size: .9rem; color: var(--muted); margin-bottom: 16px; }
+    .price-list { text-align: left; display: flex; flex-direction: column; gap: 8px; font-size: .9rem; }
+    .price-list li { list-style: none; padding-left: 20px; position: relative; }
+    .price-list li::before { content: '✓'; position: absolute; left: 0; color: var(--accent2); font-weight: bold; }
+
+    /* CTA */
+    #cta { background: var(--bg2); text-align: center; }
+    .cta-box {
+      max-width: 640px;
+      margin: 0 auto;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 52px 40px;
+    }
+    .cta-box h2 { font-size: 1.9rem; font-weight: 800; margin-bottom: 14px; }
+    .cta-box p { color: var(--muted); margin-bottom: 30px; }
+    .cta-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+    /* FOOTER */
+    footer { padding: 28px 0; border-top: 1px solid var(--border); text-align: center; color: var(--muted); font-size: .82rem; }
+
+    /* RESPONSIVE */
+    @media (max-width: 760px) {
+      section { padding: 48px 0; }
+      h1 { font-size: 1.8rem; }
+      .cta-box { padding: 36px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="container header-inner">
+    <a href="../.." class="back-link">← Вернуться</a>
+    <div></div>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-content">
+      <div class="project-type">Telegram Bot / AI Tool</div>
+      <h1>Content Agent Bot</h1>
+      <p class="subtitle">Мультиагентный Telegram-бот для генерации контент-планов SMM-специалистов в личном стиле пользователя. Автоматизирует работу с контентом за счёт ИИ.</p>
+      <div class="tags">
+        <span class="tag">Python</span>
+        <span class="tag">Telegram API</span>
+        <span class="tag">OpenRouter API</span>
+        <span class="tag">PostgreSQL</span>
+        <span class="tag">Docker</span>
+        <span class="tag">AI / Agents</span>
+      </div>
+      <div class="cta-btns" style="justify-content: flex-start;">
+        <a href="https://t.me/your_bot" class="btn btn-primary" target="_blank">Попробовать бота</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="about">
+  <div class="container">
+    <div class="section-tag">Функции</div>
+    <h2 class="section-title">Что делает бот</h2>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🎯</div>
+        <h3>Анализ статей</h3>
+        <p>Бот извлекает тезисы из URL и преобразует их в контент-план на 7 дней с учётом психологии продаж.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🧠</div>
+        <h3>Персональный стиль</h3>
+        <p>Запоминает стиль пользователя и генерирует посты в одном тоне. Сохраняет примеры для обучения.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📱</div>
+        <h3>Мультиплатформенность</h3>
+        <p>Генерирует посты для Telegram, VK и Stories с учётом особенностей каждой платформы.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔄</div>
+        <h3>Переписи и правки</h3>
+        <p>Кнопки для переписи поста, сокращения и оценки — всё прямо в Telegram чате.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">💳</div>
+        <h3>Встроенная монетизация</h3>
+        <p>3 бесплатных генерации, затем подписка 2499 ₽/мес. Платежи прямо через BotFather.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>История генераций</h3>
+        <p>Сохраняет последние 5 генераций, показывает лайки и дизлайки для оптимизации алгоритма.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TECH STACK -->
+<section id="tech">
+  <div class="container">
+    <div class="section-tag">Технологический стек</div>
+    <h2 class="section-title">Используемые технологии</h2>
+    <div class="tech-grid">
+      <div class="tech-item">
+        <div class="icon">🐍</div>
+        <h4>Python 3.11+</h4>
+        <p>Backend с async/await для высокой производительности</p>
+      </div>
+      <div class="tech-item">
+        <div class="icon">🤖</div>
+        <h4>OpenRouter API</h4>
+        <p>Доступ к различным LLM моделям (GPT, Claude и др.)</p>
+      </div>
+      <div class="tech-item">
+        <div class="icon">💬</div>
+        <h4>python-telegram-bot</h4>
+        <p>Библиотека для работы с Telegram Bot API</p>
+      </div>
+      <div class="tech-item">
+        <div class="icon">🗄️</div>
+        <h4>PostgreSQL</h4>
+        <p>База данных для хранения профилей, истории и настроек</p>
+      </div>
+      <div class="tech-item">
+        <div class="icon">🔗</div>
+        <h4>SQLAlchemy + Alembic</h4>
+        <p>ORM и миграции для управления схемой БД</p>
+      </div>
+      <div class="tech-item">
+        <div class="icon">🐳</div>
+        <h4>Docker & systemd</h4>
+        <p>Контейнеризация и развёртывание на VPS</p>
+      </div>
+      <div class="tech-item">
+        <div class="icon">🌐</div>
+        <h4>httpx + BeautifulSoup4</h4>
+        <p>Скрейпинг и парсинг HTML для анализа статей</p>
+      </div>
+      <div class="tech-item">
+        <div class="icon">✅</div>
+        <h4>pytest + asyncio</h4>
+        <p>Тестирование async кода с полным покрытием</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ARCHITECTURE -->
+<section>
+  <div class="container">
+    <div class="section-tag">Архитектура</div>
+    <h2 class="section-title">Мультиагентная система</h2>
+    <p class="section-sub" style="margin-bottom: 32px;">Бот использует несколько специализированных агентов для решения разных задач</p>
+
+    <div class="architecture-block">
+      <div class="arch-item">
+        <div class="arch-label">📄 Scraper</div>
+        <div class="arch-desc">Извлекает тезисы из URL с помощью httpx + BeautifulSoup4. Результат передаётся дальше.</div>
+      </div>
+      <div class="arch-item">
+        <div class="arch-label">🎯 Strategist</div>
+        <div class="arch-desc">Строит 7-дневную воронку продаж: engagement → expertise → trust → sale. Планирует посты по психологии.</div>
+      </div>
+      <div class="arch-item">
+        <div class="arch-label">✍️ Copywriter</div>
+        <div class="arch-desc">Генерирует посты для Telegram, VK, Stories. Каждая платформа — отдельный промпт и стиль.</div>
+      </div>
+      <div class="arch-item">
+        <div class="arch-label">💰 Monetization</div>
+        <div class="arch-desc">3 бесплатных генерации + лимит на переписи (3/день для платных). Хранит метрики использования.</div>
+      </div>
+      <div class="arch-item">
+        <div class="arch-label">🔐 Telegram Payments</div>
+        <div class="arch-desc">Интегрированная оплата через BotFather. Автоматическая активация подписки.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MONETIZATION -->
+<section id="monetization" style="background: var(--bg2);">
+  <div class="container">
+    <div class="section-tag">Монетизация</div>
+    <h2 class="section-title">Тарифная сетка</h2>
+    <div class="pricing-cards">
+      <div class="price-card">
+        <div class="price-title">Бесплатно</div>
+        <div class="price-value">3</div>
+        <div class="price-desc">генерации в месяц</div>
+        <ul class="price-list">
+          <li>Личный профиль стиля</li>
+          <li>Анализ до 3 статей</li>
+          <li>Полные контент-планы</li>
+          <li>История последних 5 генераций</li>
+          <li>❌ Без переписей</li>
+        </ul>
+      </div>
+      <div class="price-card featured">
+        <div class="price-title">Premium</div>
+        <div class="price-value">2499 ₽</div>
+        <div class="price-desc">в месяц • безлимит</div>
+        <ul class="price-list">
+          <li>✓ Безлимитные генерации</li>
+          <li>✓ 3 переписи постов/день</li>
+          <li>✓ Все платформы</li>
+          <li>✓ Сохранение примеров</li>
+          <li>✓ Приоритет в очереди</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMMANDS -->
+<section style="background: var(--bg);">
+  <div class="container">
+    <div class="section-tag">Управление</div>
+    <h2 class="section-title">Команды бота</h2>
+    <div class="architecture-block">
+      <div class="arch-item">
+        <div class="arch-label">/start</div>
+        <div class="arch-desc">Онбординг новых пользователей. Настройка профиля стиля (тон, целевая аудитория, формат).</div>
+      </div>
+      <div class="arch-item">
+        <div class="arch-label">/style</div>
+        <div class="arch-desc">Показать текущий профиль стиля. <code>/style_edit</code> — изменить параметры.</div>
+      </div>
+      <div class="arch-item">
+        <div class="arch-label">[URL]</div>
+        <div class="arch-desc">Отправить ссылку на статью → бот анализирует и генерирует контент-план на 7 дней.</div>
+      </div>
+      <div class="arch-item">
+        <div class="arch-label">/examples</div>
+        <div class="arch-desc">Добавить примеры своих постов. Бот будет анализировать их для улучшения стиля.</div>
+      </div>
+      <div class="arch-item">
+        <div class="arch-label">/history</div>
+        <div class="arch-desc">Показать последние 5 генераций с возможностью воспроизведения.</div>
+      </div>
+      <div class="arch-item">
+        <div class="arch-label">/subscribe</div>
+        <div class="arch-desc">Перейти на оплату подписки (2499 ₽/мес). Безлимит генераций и 3 переписи/день.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section id="cta">
+  <div class="container">
+    <div class="cta-box">
+      <div class="section-tag" style="text-align: center;">Готов к использованию</div>
+      <h2>Content Agent Bot</h2>
+      <p>Экономьте время на контент-план. Пусть ИИ делает рутину, вы — тратьте время на стратегию и результаты</p>
+      <div class="cta-btns" style="justify-content: center;">
+        <a href="https://t.me/your_bot" class="btn btn-primary" target="_blank">Запустить бота</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <p>© 2026 Content Agent Bot — Генерация контента с ИИ для SMM-специалистов</p>
+  </div>
+</footer>
+
+</body>
+</html>
