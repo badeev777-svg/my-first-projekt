@@ -75,14 +75,20 @@
 
 #### 2.3 Conversion Metrics & Filters
 **Описание:** Метрики конверсии на аналитике и фильтры по исполнителям  
-**Приоритет:** 🟡 Средний  
-**Примерный объем:** 2-3 часа
+**Статус:** ✅ ЗАВЕРШЕНО (2026-05-28)
 
-**Задачи:**
-- [ ] Метрика конверсии на аналитике: % лидов со стадией won/lost
-- [ ] Среднее значение сделки (deal_value для won)
-- [ ] Фильтр по исполнителю на странице лидов
-- [ ] Таблица по исполнителям: кол-во, конверсия, avg deal value
+**Реализовано:**
+- [x] Метрика конверсии на аналитике: % лидов со стадией won
+- [x] Среднее значение сделки (deal_value для won)
+- [x] Фильтр по исполнителю на странице лидов
+- [x] Таблица по исполнителям: кол-во, конверсия %, avg deal value
+- [x] KPI карточки: conversion_rate, won_count, avg_deal_value
+
+**Код:**
+- Analytics metrics + assignees query: [app/web/routes.py:300-350](app/web/routes.py)
+- Analytics UI: [app/web/templates/analytics.html:62-130](app/web/templates/analytics.html)
+- Index filter: [app/web/routes.py:100-145](app/web/routes.py)
+- Index dropdown: [app/web/templates/index.html:29-34](app/web/templates/index.html)
 
 ---
 
@@ -120,9 +126,14 @@
 2026-05-30: ✅ Phase 1 завершена
           └─ 3 источника, Telegram Bot, Web UI, Production
 
-2026-06-??: ⏳ Phase 2 — Analytics & CRM
-          ├─ Analytics Dashboard (2-3 дня)
-          └─ CRM Module (4-6 дней)
+2026-05-28: ✅ Phase 2 завершена
+          ├─ Analytics Dashboard ✅
+          │  ├─ KPI (4), Charts (3), Platform Comparison
+          │  └─ CSV Export
+          └─ CRM Integration ✅
+             ├─ Lead Action History
+             ├─ Deal Assignment & Tracking
+             └─ Conversion Metrics & Filters
 
 2026-06-??: 🔄 Phase 3 — Расширение (опционально)
           ├─ Профи.ру парсер (если нужно)
