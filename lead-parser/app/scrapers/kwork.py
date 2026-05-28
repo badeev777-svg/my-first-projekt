@@ -1,16 +1,17 @@
 """Kwork.ru RSS parser — парсит заказы с русской биржи."""
+import logging
 import feedparser
 import httpx
 from datetime import datetime, timezone
 
 from app.filter import matches_keywords, extract_budget, passes_budget
 
-# Kwork RSS URLs по категориям (веб-разработка, SMM, дизайн, маркетинг)
+log = logging.getLogger(__name__)
+
+# Kwork RSS URL (глобальный RSS со всеми услугами, фильтруем по ключевым словам)
+# Примечание: старые endpoints /feed/services/* были заменены на один глобальный RSS
 KWORK_RSS_URLS = [
-    "https://kwork.ru/feed/services/programming",
-    "https://kwork.ru/feed/services/web",
-    "https://kwork.ru/feed/services/design",
-    "https://kwork.ru/feed/services/seo",
+    "https://kwork.ru/rss",
 ]
 
 
@@ -22,7 +23,8 @@ async def fetch_kwork_leads() -> list[dict]:
             try:
                 resp = await client.get(url, headers={"User-Agent": "Mozilla/5.0"})
                 resp.raise_for_status()
-            except Exception:
+            except Exception as e:
+                log.warning(f"Kwork {url} failed: {type(e).__name__}: {e}")
                 continue
 
             feed = feedparser.parse(resp.text)
@@ -54,4 +56,5 @@ async def fetch_kwork_leads() -> list[dict]:
                         "created_at": created_at,
                     }
                 )
+    log.info(f"Kwork: {len(leads)} leads fetched")
     return leads
