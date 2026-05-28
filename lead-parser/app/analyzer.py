@@ -88,12 +88,14 @@ async def analyze_lead(
                 log.error(f"Failed to parse Claude response: {content}")
                 return {}
 
-            return {
+            analysis = {
                 "relevance_score": result.get("relevance_score"),
                 "tags": ",".join(result.get("tags", [])) if result.get("tags") else None,
                 "summary": result.get("summary"),
                 "estimated_budget": result.get("estimated_budget"),
             }
+            log.debug(f"Analysis complete: score={analysis['relevance_score']}, tags={analysis['tags']}")
+            return analysis
 
     except httpx.HTTPError as e:
         log.error(f"OpenRouter API error: {e}")
