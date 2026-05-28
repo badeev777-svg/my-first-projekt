@@ -60,6 +60,72 @@
     <canvas id="trendChart"></canvas>
   </div>
 
+  <!-- Conversion Metrics -->
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <!-- Conversion Rate -->
+    <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+      <p class="text-gray-400 text-sm font-medium">Конверсия в сделки</p>
+      <p class="text-3xl font-bold text-purple-400 mt-2">{{ conversion_rate }}%</p>
+    </div>
+
+    <!-- Won Deals -->
+    <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+      <p class="text-gray-400 text-sm font-medium">Выигранных сделок</p>
+      <p class="text-3xl font-bold text-green-400 mt-2">{{ won_count }}</p>
+    </div>
+
+    <!-- Avg Deal Value -->
+    <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+      <p class="text-gray-400 text-sm font-medium">Средняя сумма сделки</p>
+      <p class="text-3xl font-bold text-yellow-400 mt-2">
+        {% if avg_deal_value >= 1000 %}
+          {{ (avg_deal_value / 1000)|int }}k₽
+        {% else %}
+          {{ avg_deal_value|int }}₽
+        {% endif %}
+      </p>
+    </div>
+  </div>
+
+  <!-- Assignees Table -->
+  {% if assignees %}
+  <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+    <h3 class="text-lg font-semibold mb-4">Исполнители</h3>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-gray-700">
+            <th class="text-left py-3 px-4 font-semibold">Исполнитель</th>
+            <th class="text-right py-3 px-4">Лидов</th>
+            <th class="text-right py-3 px-4">Выигранных</th>
+            <th class="text-right py-3 px-4">Конверсия %</th>
+            <th class="text-right py-3 px-4">Средняя сумма</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for assignee in assignees %}
+          <tr class="border-b border-gray-700 hover:bg-gray-700/50">
+            <td class="py-3 px-4 font-medium">{{ assignee.name }}</td>
+            <td class="text-right py-3 px-4">{{ assignee.leads }}</td>
+            <td class="text-right py-3 px-4">{{ assignee.won }}</td>
+            <td class="text-right py-3 px-4">
+              <span class="bg-purple-900/30 text-purple-400 px-2 py-1 rounded">{{ assignee.conversion }}%</span>
+            </td>
+            <td class="text-right py-3 px-4">
+              {% if assignee.avg_deal_value >= 1000 %}
+                {{ (assignee.avg_deal_value / 1000)|int }}k₽
+              {% else %}
+                {{ assignee.avg_deal_value }}₽
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
   <!-- Platform Comparison Table -->
   <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
     <div class="flex items-center justify-between mb-4">

@@ -28,6 +28,12 @@
       <option value="viewed" {% if status=='viewed' %}selected{% endif %}>Просмотренные</option>
       <option value="archived" {% if status=='archived' %}selected{% endif %}>Архив</option>
     </select>
+    <select name="assigned_to" class="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm">
+      <option value="">Все исполнители</option>
+      {% for assignee in unique_assignees %}
+      <option value="{{ assignee }}" {% if assigned_to==assignee %}selected{% endif %}>{{ assignee }}</option>
+      {% endfor %}
+    </select>
     <select name="min_relevance" class="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm">
       <option value="0">Любая релевантность</option>
       <option value="50" {% if min_relevance==50 %}selected{% endif %}>50%+</option>

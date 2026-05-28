@@ -102,6 +102,7 @@ async def index(
     status: str = Query(""),
     search: str = Query(""),
     min_relevance: int = Query(0, ge=0, le=100),
+    assigned_to: str = Query(""),
     session: AsyncSession = Depends(get_session),
     auth: bool = Depends(require_auth),
 ):
@@ -120,6 +121,8 @@ async def index(
         )
     if min_relevance > 0:
         filters.append(Lead.relevance_score >= min_relevance)
+    if assigned_to:
+        filters.append(Lead.assigned_to == assigned_to)
 
     if filters:
         query = query.where(and_(*filters))
@@ -134,6 +137,13 @@ async def index(
     new_count = await session.scalar(
         select(func.count()).select_from(Lead).where(Lead.status == Status.new)
     ) or 0
+
+    # Получить список уникальных исполнителей
+    assignees_result = await session.execute(
+        select(Lead.assigned_to).where(Lead.assigned_to.isnot(None)).distinct()
+    )
+    unique_assignees = [a[0] for a in assignees_result.all()]
+    unique_assignees.sort()
 
     # Mark viewed
     for lead in leads:
@@ -153,6 +163,8 @@ async def index(
             "status": status,
             "search": search,
             "min_relevance": min_relevance,
+            "assigned_to": assigned_to,
+            "unique_assignees": unique_assignees,
             "source_labels": SOURCE_LABELS,
             "counts": {"new": new_count, "total": total},
             "is_authenticated": bool(request.cookies.get("session_token")),
@@ -298,6 +310,46 @@ async def analytics(
                 "high_relevance_percent": int(high_rel_percent),
             })
 
+    # Метрики конверсии
+    won_count = await session.scalar(
+        select(func.count()).select_from(Lead).where(Lead.deal_stage == DealStage.won)
+    ) or 0
+    conversion_rate = round((won_count / total * 100), 1) if total > 0 else 0
+
+    avg_deal_value = await session.scalar(
+        select(func.avg(Lead.deal_value)).select_from(Lead)
+        .where(and_(Lead.deal_value.isnot(None), Lead.deal_stage == DealStage.won))
+    ) or 0
+
+    # Таблица по исполнителям
+    assignees_query = await session.execute(
+        select(
+            Lead.assigned_to,
+            func.count(Lead.id).label("lead_count"),
+            func.count().filter(Lead.deal_stage == DealStage.won).label("won_count"),
+            func.avg(Lead.deal_value).filter(Lead.deal_stage == DealStage.won).label("avg_value"),
+        )
+        .where(Lead.assigned_to.isnot(None))
+        .group_by(Lead.assigned_to)
+        .order_by(func.count(Lead.id).desc())
+    )
+
+    assignees = []
+    for row in assignees_query.all():
+        assignee = row[0]
+        count = row[1]
+        won = row[2] or 0
+        conv = round((won / count * 100), 1) if count > 0 else 0
+        avg_val = round(row[3] or 0, 0)
+
+        assignees.append({
+            "name": assignee,
+            "leads": count,
+            "won": won,
+            "conversion": conv,
+            "avg_deal_value": int(avg_val),
+        })
+
     return templates.TemplateResponse(
         request,
         "analytics.html",
@@ -313,6 +365,10 @@ async def analytics(
             "platforms_comparison": platforms_comparison,
             "source_labels": SOURCE_LABELS,
             "is_authenticated": bool(request.cookies.get("session_token")),
+            "conversion_rate": conversion_rate,
+            "avg_deal_value": int(avg_deal_value),
+            "won_count": won_count,
+            "assignees": assignees,
         },
     )
 
