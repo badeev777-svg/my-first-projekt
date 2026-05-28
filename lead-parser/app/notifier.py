@@ -16,6 +16,7 @@ SOURCE_LABELS = {
 
 async def notify_new_lead(lead: dict, relevance_score: int = None) -> None:
     if not BOT_TOKEN or not BOT_CHAT_ID:
+        log.warning("BOT_TOKEN or BOT_CHAT_ID not configured")
         return
 
     if relevance_score is not None and relevance_score < NOTIFICATION_MIN_RELEVANCE:
@@ -44,7 +45,7 @@ async def notify_new_lead(lead: dict, relevance_score: int = None) -> None:
 
     async with httpx.AsyncClient(timeout=10) as client:
         try:
-            await client.post(
+            resp = await client.post(
                 f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
                 json={
                     "chat_id": BOT_CHAT_ID,
@@ -53,5 +54,9 @@ async def notify_new_lead(lead: dict, relevance_score: int = None) -> None:
                     "disable_web_page_preview": True,
                 },
             )
-        except Exception:
-            pass
+            if resp.status_code == 200:
+                log.info(f"Telegram notification sent for lead: {title[:50]}")
+            else:
+                log.error(f"Telegram API error {resp.status_code}: {resp.text[:100]}")
+        except Exception as e:
+            log.error(f"Failed to send Telegram notification: {type(e).__name__}: {e}")

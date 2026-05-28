@@ -1,9 +1,12 @@
 """FL.ru RSS parser — no auth required."""
+import logging
 import feedparser
 import httpx
 from datetime import datetime, timezone
 
 from app.filter import matches_keywords, extract_budget, passes_budget
+
+log = logging.getLogger(__name__)
 
 FL_RSS_URLS = [
     "https://www.fl.ru/rss/all.xml?category=saity",
@@ -20,7 +23,8 @@ async def fetch_fl_leads() -> list[dict]:
             try:
                 resp = await client.get(url, headers={"User-Agent": "Mozilla/5.0"})
                 resp.raise_for_status()
-            except Exception:
+            except Exception as e:
+                log.warning(f"FL.ru {url} failed: {type(e).__name__}: {e}")
                 continue
 
             feed = feedparser.parse(resp.text)
@@ -52,4 +56,5 @@ async def fetch_fl_leads() -> list[dict]:
                         "created_at": created_at,
                     }
                 )
+    log.info(f"FL.ru: {len(leads)} leads fetched")
     return leads

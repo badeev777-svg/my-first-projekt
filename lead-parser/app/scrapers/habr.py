@@ -1,10 +1,12 @@
 """Habr Freelance RSS parser."""
+import logging
 import feedparser
 import httpx
 from datetime import datetime, timezone
 
 from app.filter import matches_keywords, extract_budget, passes_budget
 
+log = logging.getLogger(__name__)
 HABR_RSS_URL = "https://freelance.habr.com/tasks.rss"
 
 
@@ -16,7 +18,8 @@ async def fetch_habr_leads() -> list[dict]:
                 HABR_RSS_URL, headers={"User-Agent": "Mozilla/5.0"}
             )
             resp.raise_for_status()
-        except Exception:
+        except Exception as e:
+            log.error(f"Habr fetch failed: {type(e).__name__}: {e}")
             return leads
 
         feed = feedparser.parse(resp.text)
@@ -48,4 +51,5 @@ async def fetch_habr_leads() -> list[dict]:
                     "created_at": created_at,
                 }
             )
+    log.info(f"Habr: {len(leads)} leads fetched")
     return leads
