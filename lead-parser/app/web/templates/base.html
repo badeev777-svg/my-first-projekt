@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lead Parser</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen">
+  <header class="bg-gray-900 border-b border-gray-800 px-6 py-4">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div>
+        <h1 class="text-lg font-semibold tracking-tight">🎯 Lead Parser</h1>
+        <p class="text-sm text-gray-400">Заявки на разработку и продвижение сайтов</p>
+      </div>
+      <nav class="flex flex-wrap items-center gap-3 text-sm">
+        <a href="/leads/" class="text-gray-300 hover:text-white">Лиды</a>
+        <a href="/leads/analytics" class="text-gray-300 hover:text-white">Аналитика</a>
+        <a href="/leads/portfolio" class="text-gray-300 hover:text-white">Портфолио</a>
+        <a href="/leads/demo" class="text-purple-400 hover:text-purple-300 font-medium">Demo</a>
+        {% if is_authenticated %}
+        <a href="/leads/logout" class="text-gray-400 hover:text-white text-xs">Выход</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+  <main class="max-w-5xl mx-auto px-4 py-6">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>
