@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx vercel *)",
+      "Bash(git -C \"c:/Users/User/OneDrive/Документы/Projekt/my-first-projekt/my-portfolio\" log --oneline -5)",
+      "Bash(git -C \"c:/Users/User/OneDrive/Документы/Projekt/my-first-projekt/my-portfolio\" show 2aee6bd --stat)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
+    ]
+  }
+}

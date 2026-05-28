@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lead Parser — Сбор заявок на разработку</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #08090e;
+      color: #e8eaf0;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      line-height: 1.6;
+      padding: 20px;
+    }
+    .container { max-width: 1000px; margin: 0 auto; }
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+      padding: 40px 20px;
+      border-bottom: 1px solid rgba(124,108,255,.18);
+    }
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+      background: linear-gradient(135deg, #7c6cff, #00d4ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .subtitle { color: #7a7f96; font-size: 1.1rem; margin-bottom: 20px; }
+
+    .demo-section {
+      background: #141620;
+      border: 1px solid rgba(124,108,255,.18);
+      border-radius: 14px;
+      padding: 30px;
+      margin-bottom: 30px;
+    }
+
+    .demo-section h2 {
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+      color: #00d4ff;
+    }
+
+    .leads-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+    }
+
+    .lead-card {
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(124,108,255,.25);
+      border-radius: 10px;
+      padding: 20px;
+      transition: border-color .2s, background .2s;
+    }
+
+    .lead-card:hover {
+      border-color: #00d4ff;
+      background: rgba(0,212,255,.08);
+    }
+
+    .lead-card .source {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 4px;
+      font-size: .75rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .source.telegram { background: rgba(0,136,204,.2); color: #0088cc; }
+    .source.flru { background: rgba(255,102,0,.2); color: #ff6600; }
+    .source.habr { background: rgba(76,175,80,.2); color: #4caf50; }
+
+    .lead-card h3 {
+      font-size: 1rem;
+      margin: 10px 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .lead-card .description {
+      font-size: .9rem;
+      color: #7a7f96;
+      margin-bottom: 10px;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .lead-card .meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid rgba(255,255,255,.1);
+      padding-top: 10px;
+      margin-top: 10px;
+      font-size: .85rem;
+    }
+
+    .budget { color: #4caf50; font-weight: 600; }
+    .date { color: #7a7f96; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .stat-box {
+      background: rgba(124,108,255,.1);
+      border: 1px solid rgba(124,108,255,.25);
+      border-radius: 10px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .stat-num {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #00d4ff;
+      margin-bottom: 5px;
+    }
+
+    .stat-label {
+      font-size: .9rem;
+      color: #7a7f96;
+    }
+
+    .features {
+      background: rgba(0,212,255,.08);
+      border: 1px solid rgba(0,212,255,.25);
+      border-radius: 10px;
+      padding: 30px;
+      margin-top: 30px;
+    }
+
+    .features h3 {
+      font-size: 1.3rem;
+      margin-bottom: 20px;
+      color: #00d4ff;
+    }
+
+    .feature-list {
+      list-style: none;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 15px;
+    }
+
+    .feature-list li {
+      padding-left: 30px;
+      position: relative;
+    }
+
+    .feature-list li::before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      color: #4caf50;
+      font-weight: bold;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-bottom: 30px;
+      padding: 10px 20px;
+      background: linear-gradient(135deg, #7c6cff, #00d4ff);
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      transition: opacity .2s;
+    }
+
+    .header-cta {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+
+    .demo-btn {
+      display: inline-block;
+      padding: 12px 30px;
+      background: linear-gradient(135deg, #7c6cff, #00d4ff);
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 600;
+      transition: opacity .2s, transform .2s;
+    }
+
+    .demo-btn:hover {
+      opacity: 0.9;
+      transform: translateY(-2px);
+    }
+
+    .back-link:hover { opacity: .8; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <a href="../../index.html" class="back-link">← Вернуться в портфолио</a>
+
+  <header>
+    <h1>🔍 Lead Parser</h1>
+    <p class="subtitle">Автоматический сбор заявок из Telegram, FL.ru и Habr Freelance</p>
+    <div class="header-cta">
+      <a href="/leads/" class="demo-btn">🚀 Открыть живое демо</a>
+    </div>
+  </header>
+
+  <div class="demo-section">
+    <h2>📊 Статистика</h2>
+    <div class="stats">
+      <div class="stat-box">
+        <div class="stat-num">847</div>
+        <div class="stat-label">Собрано заявок</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num">3</div>
+        <div class="stat-label">Источников</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num">156</div>
+        <div class="stat-label">Отправлено в TG</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num">↑ 24/7</div>
+        <div class="stat-label">Мониторинг</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="demo-section">
+    <h2>📋 Недавние заявки (пример)</h2>
+    <div class="leads-grid">
+      <div class="lead-card">
+        <span class="source telegram">Telegram</span>
+        <h3>Разработка сайта для кафе</h3>
+        <p class="description">Нужен сайт-меню для кафе с оформлением онлайн заказов, интеграция с Яндекс.Карты</p>
+        <div class="meta">
+          <span class="budget">50k–100k ₽</span>
+          <span class="date">сейчас</span>
+        </div>
+      </div>
+
+      <div class="lead-card">
+        <span class="source flru">FL.ru</span>
+        <h3>Мобильное приложение для доставки</h3>
+        <p class="description">iOS/Android приложение для агрегатора доставки еды. Нужна интеграция с платежами и GPS</p>
+        <div class="meta">
+          <span class="budget">250k–500k ₽</span>
+          <span class="date">5 мин назад</span>
+        </div>
+      </div>
+
+      <div class="lead-card">
+        <span class="source habr">Habr</span>
+        <h3>CRM система для салона красоты</h3>
+        <p class="description">Веб-приложение для управления клиентами, бронирования и учёта услуг в салоне</p>
+        <div class="meta">
+          <span class="budget">80k–120k ₽</span>
+          <span class="date">12 мин назад</span>
+        </div>
+      </div>
+
+      <div class="lead-card">
+        <span class="source telegram">Telegram</span>
+        <h3>SEO оптимизация сайта</h3>
+        <p class="description">Продвижение сайта интернет-магазина в поисковых системах. Требуется аналитика и планы</p>
+        <div class="meta">
+          <span class="budget">15k–30k ₽</span>
+          <span class="date">23 мин назад</span>
+        </div>
+      </div>
+
+      <div class="lead-card">
+        <span class="source flru">FL.ru</span>
+        <h3>Telegram бот для интернет-магазина</h3>
+        <p class="description">Бот для продажи товаров через Telegram с интеграцией платежей и управлением каталогом</p>
+        <div class="meta">
+          <span class="budget">40k–80k ₽</span>
+          <span class="date">1 час назад</span>
+        </div>
+      </div>
+
+      <div class="lead-card">
+        <span class="source habr">Habr</span>
+        <h3>Интеграция платёжных систем</h3>
+        <p class="description">Подключение YooKassa, Stripe и других ПС к существующему сайту</p>
+        <div class="meta">
+          <span class="budget">20k–50k ₽</span>
+          <span class="date">2 часа назад</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="features">
+    <h3>Основные возможности</h3>
+    <ul class="feature-list">
+      <li>🔍 Автоматический мониторинг 3 источников</li>
+      <li>🎯 Фильтрация по ключевым словам и бюджету</li>
+      <li>📱 Уведомления в личный Telegram</li>
+      <li>💾 Сохранение всех заявок в БД</li>
+      <li>🕐 История обновления в реальном времени</li>
+      <li>📊 Веб-интерфейс с аналитикой</li>
+      <li>⏰ Планировщик задач APScheduler</li>
+      <li>🚀 Docker для простого деплоя</li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>

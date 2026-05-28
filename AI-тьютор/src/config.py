@@ -11,7 +11,7 @@ class Config:
     TELEGRAM_TOKEN: str = os.getenv("TELEGRAM_TOKEN", "")
 
     WEBHOOK_URL: str = os.getenv("WEBHOOK_URL", "")
-    ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
+    OPENROUTER_API_KEY: str = os.getenv("OPENROUTER_API_KEY", "")
     DATABASE_URL: str = os.getenv(
         "DATABASE_URL",
         "sqlite+aiosqlite:///./speakbuddy.db"
@@ -19,8 +19,8 @@ class Config:
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
     DEBUG: bool = os.getenv("DEBUG", "True").lower() == "true"
 
-    CLAUDE_MODEL: str = "claude-sonnet-4-6"
-    CLAUDE_MAX_TOKENS: int = 200
+    LLM_MODEL: str = "anthropic/claude-3-5-sonnet"
+    LLM_MAX_TOKENS: int = 200
 
     YUKASSA_API_KEY: str = os.getenv("YUKASSA_API_KEY", "")
     YUKASSA_SHOP_ID: str = os.getenv("YUKASSA_SHOP_ID", "")
@@ -36,8 +36,8 @@ class Config:
                 "TELEGRAM_TOKEN must be set in .env, or use AUDIENCE=students/adults with "
                 "TELEGRAM_TOKEN_STUDENTS and TELEGRAM_TOKEN_ADULTS"
             )
-        if not self.ANTHROPIC_API_KEY:
-            raise ValueError("ANTHROPIC_API_KEY must be set in .env")
+        if not self.OPENROUTER_API_KEY:
+            raise ValueError("OPENROUTER_API_KEY must be set in .env")
 
     def _get_telegram_token(self) -> str:
         if self.AUDIENCE == "students":

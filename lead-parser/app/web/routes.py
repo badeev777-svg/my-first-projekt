@@ -11,7 +11,7 @@ import io
 import json
 import uuid
 
-from app.database import Lead, Status, DemoUser, LeadAction, get_session
+from app.database import Lead, Status, DemoUser, LeadAction, DealStage, get_session
 from app.analyzer import analyze_lead
 from app.auth import is_password_set, verify_password, get_password_hash, ADMIN_PASSWORD
 
@@ -469,6 +469,102 @@ async def update_lead_status(
     await session.commit()
 
     return JSONResponse({"status": new_status, "id": lead_id})
+
+
+@router.patch("/{lead_id}/assign")
+async def assign_lead(
+    lead_id: int,
+    request: Request,
+    session: AsyncSession = Depends(get_session),
+    auth=Depends(require_auth),
+):
+    body = await request.json()
+    assigned_to = body.get("assigned_to")
+
+    lead = await session.get(Lead, lead_id)
+    if not lead:
+        return JSONResponse({"error": "Lead not found"}, status_code=404)
+
+    old_assigned = lead.assigned_to
+    lead.assigned_to = assigned_to if assigned_to else None
+
+    action = LeadAction(
+        lead_id=lead_id,
+        action_type="assigned",
+        old_value=old_assigned,
+        new_value=assigned_to or "unassigned",
+        changed_by="admin",
+    )
+    session.add(action)
+    await session.commit()
+
+    return JSONResponse({"assigned_to": lead.assigned_to, "id": lead_id})
+
+
+@router.patch("/{lead_id}/deal-stage")
+async def update_deal_stage(
+    lead_id: int,
+    request: Request,
+    session: AsyncSession = Depends(get_session),
+    auth=Depends(require_auth),
+):
+    body = await request.json()
+    new_stage = body.get("deal_stage")
+
+    if not new_stage or new_stage not in DealStage.__members__:
+        return JSONResponse({"error": "Invalid deal stage"}, status_code=400)
+
+    lead = await session.get(Lead, lead_id)
+    if not lead:
+        return JSONResponse({"error": "Lead not found"}, status_code=404)
+
+    old_stage = lead.deal_stage
+    lead.deal_stage = new_stage
+
+    action = LeadAction(
+        lead_id=lead_id,
+        action_type="deal_stage_change",
+        old_value=old_stage,
+        new_value=new_stage,
+        changed_by="admin",
+    )
+    session.add(action)
+    await session.commit()
+
+    return JSONResponse({"deal_stage": new_stage, "id": lead_id})
+
+
+@router.patch("/{lead_id}/deal-value")
+async def update_deal_value(
+    lead_id: int,
+    request: Request,
+    session: AsyncSession = Depends(get_session),
+    auth=Depends(require_auth),
+):
+    body = await request.json()
+    deal_value = body.get("deal_value")
+
+    if deal_value is not None and not isinstance(deal_value, int):
+        return JSONResponse({"error": "Deal value must be integer"}, status_code=400)
+
+    lead = await session.get(Lead, lead_id)
+    if not lead:
+        return JSONResponse({"error": "Lead not found"}, status_code=404)
+
+    old_value = lead.deal_value
+    lead.deal_value = deal_value
+
+    action = LeadAction(
+        lead_id=lead_id,
+        action_type="deal_value_change",
+        old_value=str(old_value) if old_value else None,
+        new_value=str(deal_value) if deal_value else "cleared",
+        changed_by="admin",
+    )
+    session.add(action)
+    await session.commit()
+
+    return JSONResponse({"deal_value": lead.deal_value, "id": lead_id})
 
 
 @router.post("/lead/{lead_id}/status")

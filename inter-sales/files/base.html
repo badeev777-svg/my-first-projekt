@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Интернет-магазин</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <h1><a href="{{ url_for('index') }}">Интернет-магазин</a></h1>
+      <nav>
+        <a href="{{ url_for('index') }}">Каталог</a>
+        <a href="{{ url_for('cart') }}">Корзина</a>
+        {% if session.get('user') %}
+          <a href="{{ url_for('profile') }}">{{ session.get('user') }}</a>
+          {% if session.get('role') == 'admin' %}
+            <a href="{{ url_for('admin') }}">Админ</a>
+          {% endif %}
+          <a href="{{ url_for('logout') }}">Выход</a>
+        {% else %}
+          <a href="{{ url_for('login') }}">Вход</a>
+          <a href="{{ url_for('register') }}">Регистрация</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>Простой магазин на Flask. &copy; 2026</p>
+    </div>
+  </footer>
+</body>
+</html>

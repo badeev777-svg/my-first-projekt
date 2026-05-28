@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(start \"c:\\\\Users\\\\User\\\\OneDrive\\\\Документы\\\\Projekt\\\\my-first-projekt\\\\Vizitka\\\\vizitka.html\")"
+    ]
+  }
+}

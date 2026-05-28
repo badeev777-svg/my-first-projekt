@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Примерка одежды</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: sans-serif; background: #f5f5f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    .container { background: #fff; padding: 32px; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,.1); width: 480px; }
+    h1 { font-size: 22px; margin-bottom: 24px; text-align: center; }
+    label { display: block; font-size: 13px; color: #555; margin-bottom: 4px; margin-top: 16px; }
+    input[type="text"] { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
+    select { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
+    button { width: 100%; margin-top: 24px; padding: 12px; background: #111; color: #fff; border: none; border-radius: 8px; font-size: 15px; cursor: pointer; }
+    button:disabled { background: #999; cursor: not-allowed; }
+    #status { margin-top: 16px; text-align: center; font-size: 14px; color: #555; }
+    #result img { margin-top: 20px; width: 100%; border-radius: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Виртуальная примерка</h1>
+
+    <label>URL фото человека</label>
+    <input type="text" id="userImage" placeholder="https://..." />
+
+    <label>URL фото одежды</label>
+    <input type="text" id="clothImage" placeholder="https://..." />
+
+    <label>Тип одежды</label>
+    <select id="clothType">
+      <option value="upperbody">Верх (футболка, рубашка)</option>
+      <option value="lowerbody">Низ (брюки, юбка)</option>
+      <option value="dress">Платье</option>
+    </select>
+
+    <button id="btn" onclick="startTryOn()">Примерить</button>
+    <div id="status"></div>
+    <div id="result"></div>
+  </div>
+
+  <script>
+    const API = "http://localhost:8000";
+
+    async function startTryOn() {
+      const userImage = document.getElementById("userImage").value.trim();
+      const clothImage = document.getElementById("clothImage").value.trim();
+      const clothType = document.getElementById("clothType").value;
+      const btn = document.getElementById("btn");
+      const status = document.getElementById("status");
+      const result = document.getElementById("result");
+
+      if (!userImage || !clothImage) {
+        alert("Вставь оба URL");
+        return;
+      }
+
+      btn.disabled = true;
+      result.innerHTML = "";
+      status.textContent = "Отправляю запрос...";
+
+      const res = await fetch(`${API}/tryon`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_image: userImage, cloth_image: clothImage, cloth_type: clothType }),
+      });
+
+      if (!res.ok) {
+        status.textContent = "Ошибка: " + (await res.text());
+        btn.disabled = false;
+        return;
+      }
+
+      const { prediction_id } = await res.json();
+      status.textContent = "Генерирую... (~30 сек)";
+
+      pollResult(prediction_id);
+    }
+
+    async function pollResult(id) {
+      const status = document.getElementById("status");
+      const result = document.getElementById("result");
+      const btn = document.getElementById("btn");
+
+      const res = await fetch(`${API}/result/${id}`);
+      const data = await res.json();
+
+      if (data.status === "done") {
+        status.textContent = "Готово!";
+        result.innerHTML = `<img src="${data.image}" alt="Результат примерки" />`;
+        btn.disabled = false;
+      } else if (data.status === "processing") {
+        status.textContent = "Ещё обрабатывается...";
+        setTimeout(() => pollResult(id), 3000);
+      } else {
+        status.textContent = "Ошибка генерации";
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>
