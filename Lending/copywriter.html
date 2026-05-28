@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Копирайтер</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-dark:    #0a0e1a;
+      --bg-card:    #111827;
+      --accent1:    #6c63ff;
+      --accent2:    #00d4aa;
+      --accent3:    #ff6b6b;
+      --text-main:  #e8eaf0;
+      --text-muted: #8892a4;
+      --border:     rgba(108,99,255,.25);
+    }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+    }
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 10%, rgba(108,99,255,.18) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 80%, rgba(0,212,170,.13) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 40% at 60% 30%, rgba(255,107,107,.08) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Header */
+    .header {
+      position: relative; z-index: 10; flex-shrink: 0;
+      background: rgba(10,14,26,.85);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+    }
+    .header-inner {
+      max-width: 900px; margin: 0 auto; padding: 0 24px;
+      display: flex; align-items: center; gap: 14px; height: 66px;
+    }
+    .logo-icon {
+      width: 38px; height: 38px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent1), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.15rem; flex-shrink: 0;
+    }
+    .logo-title {
+      font-size: 1rem; font-weight: 800;
+      background: linear-gradient(135deg, #a89cff 0%, #6c63ff 35%, #00d4aa 70%, #38f9d7 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .logo-sub { font-size: .72rem; color: var(--text-muted); margin-top: 1px; }
+    .header-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+    .btn-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.04);
+      color: var(--text-muted);
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      font-size: .95rem; transition: all .2s;
+    }
+    .btn-icon:hover { border-color: var(--accent1); color: var(--text-main); background: rgba(108,99,255,.1); }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: .85rem; font-weight: 600;
+      color: var(--text-muted); text-decoration: none; transition: color .2s;
+    }
+    .back-link:hover { color: var(--text-main); }
+
+    /* Type chips */
+    .type-bar {
+      position: relative; z-index: 1; flex-shrink: 0;
+      max-width: 900px; width: 100%; margin: 0 auto;
+      padding: 12px 24px;
+      display: flex; gap: 8px; flex-wrap: wrap;
+    }
+    .chip {
+      padding: 5px 14px; border-radius: 100px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.04);
+      color: var(--text-muted);
+      font-size: .81rem; font-weight: 500;
+      cursor: pointer; transition: all .2s;
+    }
+    .chip:hover { border-color: var(--accent1); color: var(--text-main); }
+    .chip.active { background: rgba(108,99,255,.18); border-color: var(--accent1); color: #a89cff; }
+
+    /* Messages */
+    .messages-wrap {
+      flex: 1; overflow-y: auto; position: relative; z-index: 1;
+    }
+    .messages-wrap::-webkit-scrollbar { width: 4px; }
+    .messages-wrap::-webkit-scrollbar-track { background: transparent; }
+    .messages-wrap::-webkit-scrollbar-thumb { background: rgba(108,99,255,.3); border-radius: 2px; }
+    .messages {
+      max-width: 900px; margin: 0 auto;
+      padding: 8px 24px 24px;
+      display: flex; flex-direction: column; gap: 16px;
+    }
+
+    /* Empty state */
+    .empty {
+      text-align: center; padding: 56px 24px 32px;
+      color: var(--text-muted);
+    }
+    .empty-icon { font-size: 2.8rem; margin-bottom: 14px; }
+    .empty h2 { font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin-bottom: 8px; }
+    .empty p { font-size: .88rem; line-height: 1.65; }
+    .suggestions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 20px; }
+    .sugg {
+      padding: 8px 16px; border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.03);
+      color: var(--text-muted); font-size: .82rem;
+      cursor: pointer; transition: all .2s; text-align: left;
+    }
+    .sugg:hover { border-color: var(--accent1); color: var(--text-main); background: rgba(108,99,255,.1); }
+
+    /* Message bubbles */
+    .msg { display: flex; gap: 10px; animation: fadeIn .25s ease; }
+    .msg.user { flex-direction: row-reverse; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    .avatar {
+      width: 32px; height: 32px; border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .8rem; flex-shrink: 0; margin-top: 2px;
+    }
+    .msg.user .avatar { background: linear-gradient(135deg, var(--accent1), var(--accent2)); }
+    .msg.ai .avatar { background: var(--bg-card); border: 1px solid var(--border); }
+    .bubble {
+      max-width: 76%; padding: 12px 16px;
+      border-radius: 16px; font-size: .9rem; line-height: 1.7;
+      position: relative; white-space: pre-wrap; word-break: break-word;
+    }
+    .msg.user .bubble {
+      background: rgba(108,99,255,.22); border: 1px solid rgba(108,99,255,.38);
+      border-top-right-radius: 4px;
+    }
+    .msg.ai .bubble {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-top-left-radius: 4px;
+    }
+    .bubble-copy {
+      position: absolute; top: 7px; right: 7px;
+      width: 24px; height: 24px; border-radius: 6px;
+      border: 1px solid var(--border); background: rgba(255,255,255,.05);
+      color: var(--text-muted); cursor: pointer; font-size: .68rem;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: all .2s;
+    }
+    .msg.ai .bubble:hover .bubble-copy { opacity: 1; }
+    .bubble-copy:hover { background: rgba(108,99,255,.2); color: var(--accent1); border-color: var(--accent1); }
+    .typing-dot {
+      display: inline-block; width: 5px; height: 5px;
+      border-radius: 50%; background: var(--text-muted);
+      animation: blink 1.2s infinite; margin-right: 3px;
+    }
+    .typing-dot:nth-child(2) { animation-delay: .2s; }
+    .typing-dot:nth-child(3) { animation-delay: .4s; margin-right: 0; }
+    @keyframes blink { 0%,80%,100%{opacity:.2} 40%{opacity:1} }
+
+    /* Input area */
+    .input-bar {
+      position: relative; z-index: 1; flex-shrink: 0;
+      border-top: 1px solid var(--border);
+      background: rgba(10,14,26,.92);
+      backdrop-filter: blur(14px);
+      padding: 14px 24px 16px;
+    }
+    .input-inner {
+      max-width: 900px; margin: 0 auto;
+      display: flex; gap: 10px; align-items: flex-end;
+    }
+    .input-textarea {
+      flex: 1; min-height: 44px; max-height: 180px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--border); border-radius: 14px;
+      padding: 11px 16px; color: var(--text-main);
+      font-family: inherit; font-size: .9rem; line-height: 1.5;
+      resize: none; outline: none; overflow-y: auto;
+      transition: border-color .2s, background .2s;
+    }
+    .input-textarea::placeholder { color: var(--text-muted); opacity: .6; }
+    .input-textarea:focus { border-color: var(--accent1); background: rgba(108,99,255,.05); }
+    .send-btn {
+      width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--accent1), #4f46e5);
+      border: none; color: white; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; transition: opacity .2s, transform .1s;
+    }
+    .send-btn:hover:not(:disabled) { opacity: .85; }
+    .send-btn:active:not(:disabled) { transform: scale(.95); }
+    .send-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(0,0,0,.72);
+      backdrop-filter: blur(6px);
+      display: flex; align-items: center; justify-content: center; padding: 24px;
+    }
+    .modal {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 20px; padding: 36px 32px;
+      width: 100%; max-width: 460px;
+    }
+    .modal h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; }
+    .modal p { font-size: .87rem; color: var(--text-muted); line-height: 1.65; margin-bottom: 22px; }
+    .modal-input {
+      width: 100%; padding: 11px 15px; border-radius: 12px;
+      border: 1px solid var(--border); background: rgba(255,255,255,.04);
+      color: var(--text-main); font-size: .9rem; font-family: inherit;
+      outline: none; margin-bottom: 14px; transition: border-color .2s;
+    }
+    .modal-input:focus { border-color: var(--accent1); }
+    .modal-save {
+      width: 100%; padding: 12px; border-radius: 12px; border: none;
+      background: linear-gradient(135deg, var(--accent1), #4f46e5);
+      color: white; font-size: .92rem; font-weight: 600; cursor: pointer;
+      transition: opacity .2s;
+    }
+    .modal-save:hover { opacity: .85; }
+
+    @media (max-width: 600px) {
+      .bubble { max-width: 90%; }
+      .type-bar, .messages, .input-bar { padding-left: 14px; padding-right: 14px; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-inner">
+    <div class="logo-icon">✍️</div>
+    <div>
+      <div class="logo-title">AI Копирайтер</div>
+      <div class="logo-sub">Ассистент по созданию текстов</div>
+    </div>
+    <div class="header-actions">
+      <button class="btn-icon" id="clearBtn" title="Очистить чат">🗑️</button>
+      <button class="btn-icon" id="keyBtn" title="API ключ">🔑</button>
+      <a href="landing.html" class="back-link">← На главную</a>
+    </div>
+  </div>
+</header>
+
+<div class="type-bar">
+  <button class="chip active" data-type="free">Свободно</button>
+  <button class="chip" data-type="post">📱 Пост</button>
+  <button class="chip" data-type="article">📄 Статья</button>
+  <button class="chip" data-type="ad">📢 Реклама</button>
+  <button class="chip" data-type="desc">🏷️ Описание</button>
+  <button class="chip" data-type="email">📧 Email</button>
+</div>
+
+<div class="messages-wrap" id="messagesWrap">
+  <div class="messages" id="messages">
+    <div class="empty" id="emptyState">
+      <div class="empty-icon">✍️</div>
+      <h2>AI Ассистент готов помочь</h2>
+      <p>Выбери тип текста вверху и опиши задачу —<br>я создам пост, статью, рекламу или любой другой контент</p>
+      <div class="suggestions">
+        <button class="sugg" onclick="useSuggestion('Напиши пост для Instagram о преимуществах SEO-продвижения')">Пост про SEO</button>
+        <button class="sugg" onclick="useSuggestion('Напиши продающий текст для лендинга веб-студии')">Текст для лендинга</button>
+        <button class="sugg" onclick="useSuggestion('Придумай 5 цепляющих заголовков для статьи о контент-маркетинге')">Заголовки для статьи</button>
+        <button class="sugg" onclick="useSuggestion('Напиши email с коммерческим предложением по разработке сайта')">Email с КП</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="input-bar">
+  <div class="input-inner">
+    <textarea class="input-textarea" id="input" rows="1" placeholder="Опишите что нужно написать... (Enter — отправить, Shift+Enter — перенос)"></textarea>
+    <button class="send-btn" id="sendBtn">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    </button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="keyModal" style="display:none">
+  <div class="modal">
+    <h2>🔑 Anthropic API ключ</h2>
+    <p>Введи API ключ от Anthropic. Он хранится только в браузере (localStorage) и отправляется исключительно на api.anthropic.com.</p>
+    <input type="password" class="modal-input" id="keyInput" placeholder="sk-ant-...">
+    <button class="modal-save" id="keySave">Сохранить и продолжить</button>
+  </div>
+</div>
+
+<script>
+const TYPES = {
+  free:    { sys: '' },
+  post:    { sys: 'Ты — копирайтер, пишущий в стиле Джозефа Шугермана. Каждый пост строится по его принципам: первое предложение — крючок, который заставляет прочитать второе. Второе тянет к третьему. Текст скользкий, как горка — читатель не может остановиться. Используй storytelling, сей любопытство, говори о выгодах а не характеристиках, пиши разговорно и честно. Постепенно нагнетай интерес, не раскрывай всё сразу. Призыв к действию — в конце, естественно и ненавязчиво. Пишешь для Instagram, Telegram, VK. Длина 150–300 слов.' },
+  article: { sys: 'Ты — опытный автор статей и блогов. Пишешь структурированные, информативные тексты с чёткими заголовками, примерами и выводами. SEO-дружественные и читаемые.' },
+  ad:      { sys: 'Ты — копирайтер рекламных текстов. Пишешь по формулам AIDA и PAS. Акцент на болях клиента, конкретных выгодах, сильном призыве к действию. Без воды.' },
+  desc:    { sys: 'Ты — специалист по продающим описаниям. Выделяешь ключевые преимущества товара или услуги, используешь буллеты, закрываешь типичные возражения.' },
+  email:   { sys: 'Ты — специалист по email-маркетингу. Пишешь письма с высоким open rate и CTR: цепляющая тема, персонализация, чёткий призыв к действию.' },
+};
+
+const BASE_SYS = 'Ты — профессиональный AI-ассистент копирайтера. Пишешь только на русском языке. Отвечаешь готовым текстом или конкретными советами. Без лишних вводных фраз вроде "конечно" или "разумеется".';
+
+let history = [];
+let currentType = 'free';
+let busy = false;
+
+const inputEl   = document.getElementById('input');
+const sendBtn   = document.getElementById('sendBtn');
+const messagesEl = document.getElementById('messages');
+const emptyEl   = document.getElementById('emptyState');
+const wrapEl    = document.getElementById('messagesWrap');
+
+// Chips
+document.querySelectorAll('.chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    currentType = chip.dataset.type;
+  });
+});
+
+// API key
+const getKey  = () => localStorage.getItem('anthropic_key') || '';
+const showKey = () => {
+  document.getElementById('keyInput').value = getKey();
+  document.getElementById('keyModal').style.display = 'flex';
+};
+document.getElementById('keyBtn').addEventListener('click', showKey);
+document.getElementById('keySave').addEventListener('click', () => {
+  const k = document.getElementById('keyInput').value.trim();
+  if (k) { localStorage.setItem('anthropic_key', k); document.getElementById('keyModal').style.display = 'none'; }
+});
+document.getElementById('keyModal').addEventListener('click', e => {
+  if (e.target.id === 'keyModal') document.getElementById('keyModal').style.display = 'none';
+});
+
+// Clear
+document.getElementById('clearBtn').addEventListener('click', () => {
+  history = [];
+  messagesEl.innerHTML = '';
+  messagesEl.appendChild(emptyEl);
+  emptyEl.style.display = '';
+});
+
+// Textarea auto-resize
+inputEl.addEventListener('input', () => {
+  inputEl.style.height = 'auto';
+  inputEl.style.height = Math.min(inputEl.scrollHeight, 180) + 'px';
+});
+inputEl.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+});
+sendBtn.addEventListener('click', send);
+
+function useSuggestion(text) {
+  inputEl.value = text;
+  inputEl.dispatchEvent(new Event('input'));
+  inputEl.focus();
+}
+
+function addBubble(role) {
+  emptyEl.style.display = 'none';
+  const row = document.createElement('div');
+  row.className = `msg ${role}`;
+  row.innerHTML = `
+    <div class="avatar">${role === 'user' ? '👤' : '🤖'}</div>
+    <div class="bubble">
+      ${role === 'ai' ? '<button class="bubble-copy" title="Копировать">📋</button>' : ''}
+      <span class="bubble-text"></span>
+    </div>`;
+  if (role === 'ai') {
+    row.querySelector('.bubble-copy').addEventListener('click', function() {
+      const txt = row.querySelector('.bubble-text').innerText;
+      navigator.clipboard.writeText(txt).then(() => {
+        this.textContent = '✅';
+        setTimeout(() => this.textContent = '📋', 1500);
+      });
+    });
+  }
+  messagesEl.appendChild(row);
+  scrollDown();
+  return row.querySelector('.bubble-text');
+}
+
+function scrollDown() { wrapEl.scrollTop = wrapEl.scrollHeight; }
+
+async function send() {
+  const text = inputEl.value.trim();
+  if (!text || busy) return;
+  const key = getKey();
+  if (!key) { showKey(); return; }
+
+  busy = true;
+  sendBtn.disabled = true;
+  inputEl.value = '';
+  inputEl.style.height = 'auto';
+
+  addBubble('user').textContent = text;
+  history.push({ role: 'user', content: text });
+
+  const aiSpan = addBubble('ai');
+  aiSpan.innerHTML = '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>';
+
+  const typeSys = TYPES[currentType]?.sys || '';
+  const system  = typeSys ? `${BASE_SYS}\n\n${typeSys}` : BASE_SYS;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 2048,
+        stream: true,
+        system,
+        messages: history,
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err?.error?.message || `HTTP ${res.status}`);
+    }
+
+    aiSpan.textContent = '';
+    let full = '';
+    const reader  = res.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      for (const line of decoder.decode(value).split('\n')) {
+        if (!line.startsWith('data: ')) continue;
+        const raw = line.slice(6).trim();
+        if (raw === '[DONE]') continue;
+        try {
+          const j = JSON.parse(raw);
+          if (j.type === 'content_block_delta' && j.delta?.type === 'text_delta') {
+            full += j.delta.text;
+            aiSpan.textContent = full;
+            scrollDown();
+          }
+        } catch {}
+      }
+    }
+
+    history.push({ role: 'assistant', content: full });
+  } catch (e) {
+    aiSpan.innerHTML = `<span style="color:var(--accent3)">Ошибка: ${e.message}</span>`;
+  }
+
+  busy = false;
+  sendBtn.disabled = false;
+  inputEl.focus();
+}
+
+if (!getKey()) showKey();
+</script>
+</body>
+</html>
