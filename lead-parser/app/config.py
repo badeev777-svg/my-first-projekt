@@ -1,0 +1,30 @@
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
+def _list(key: str, default: str = "") -> list[str]:
+    val = os.getenv(key, default)
+    return [v.strip() for v in val.split(",") if v.strip()]
+
+
+TG_API_ID = int(os.getenv("TG_API_ID") or "0")
+TG_API_HASH = os.getenv("TG_API_HASH", "")
+TG_PHONE = os.getenv("TG_PHONE", "")
+
+BOT_TOKEN = os.getenv("BOT_TOKEN", "")
+BOT_CHAT_ID = os.getenv("BOT_CHAT_ID", "")
+
+TG_CHANNELS: list[str] = _list("TG_CHANNELS")
+KEYWORDS: list[str] = _list(
+    "KEYWORDS",
+    "нужен сайт,сделайте сайт,разработка сайта,создание сайта,лендинг,"
+    "интернет-магазин,продвижение сайта,seo,контекстная реклама,верстка",
+)
+KEYWORDS = [k.lower() for k in KEYWORDS]
+
+MIN_BUDGET: int = int(os.getenv("MIN_BUDGET") or "0")
+POLL_INTERVAL_MINUTES: int = int(os.getenv("POLL_INTERVAL_MINUTES") or "10")
+
+DEMO_MODE: bool = os.getenv("DEMO_MODE", "false").lower() == "true"

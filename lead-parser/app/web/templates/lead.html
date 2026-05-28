@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="mb-4">
+  <a href="/leads/" class="text-sm text-gray-400 hover:text-gray-200">← Назад к списку</a>
+</div>
+
+<div class="bg-gray-900 border border-gray-800 rounded-xl p-6">
+  <div class="flex items-center gap-3 mb-4 flex-wrap">
+    <span class="text-sm bg-gray-800 px-3 py-1 rounded-full">{{ source_labels[lead.source] }}</span>
+    {% if lead.budget %}
+    <span class="text-sm bg-green-900/50 text-green-400 px-3 py-1 rounded-full">
+      {{ '{:,}'.format(lead.budget).replace(',', ' ') }} ₽
+    </span>
+    {% endif %}
+    <span class="text-xs text-gray-500 ml-auto">{{ lead.created_at.strftime('%d.%m.%Y %H:%M') }}</span>
+  </div>
+
+  {% if lead.title %}
+  <h2 class="text-lg font-semibold text-white mb-3">{{ lead.title }}</h2>
+  {% endif %}
+
+  <!-- AI Analysis -->
+  {% if lead.processed %}
+  <div class="bg-gray-800/50 border border-gray-700 rounded-lg p-4 mb-6">
+    <div class="flex items-center gap-2 mb-3">
+      <span class="text-sm font-medium text-blue-400">🤖 Анализ</span>
+      {% if lead.relevance_score %}
+      <span class="text-xs bg-blue-900/50 px-2 py-1 rounded">
+        Релевантность: <b>{{ lead.relevance_score }}%</b>
+      </span>
+      {% endif %}
+    </div>
+
+    {% if lead.summary %}
+    <p class="text-sm text-gray-300 mb-3">{{ lead.summary }}</p>
+    {% endif %}
+
+    {% if lead.tags %}
+    <div class="flex flex-wrap gap-2">
+      {% for tag in lead.tags.split(',') %}
+      <span class="text-xs bg-purple-900/50 text-purple-300 px-2 py-1 rounded">{{ tag.strip() }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if lead.estimated_budget %}
+    <p class="text-xs text-gray-400 mt-3">
+      Оценка бюджета: <b class="text-green-400">{{ '{:,}'.format(lead.estimated_budget).replace(',', ' ') }} ₽</b>
+    </p>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <p class="text-gray-300 leading-relaxed whitespace-pre-wrap mb-6">{{ lead.text }}</p>
+
+  <div class="border-t border-gray-800 pt-4 flex items-center gap-4 flex-wrap">
+    {% if lead.contact %}
+    <span class="text-sm text-gray-400">👤 Контакт: <b class="text-white">{{ lead.contact }}</b></span>
+    {% endif %}
+    <a href="{{ lead.source_url }}" target="_blank"
+       class="text-sm bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded font-medium transition-colors ml-auto">
+      Открыть оригинал →
+    </a>
+  </div>
+</div>
+
+<!-- Status actions -->
+<div class="flex gap-3 mt-4">
+  {% if lead.status != 'archived' %}
+  <form method="post" action="/lead/{{ lead.id }}/status">
+    <input type="hidden" name="status" value="archived">
+    <button class="text-sm bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded transition-colors">
+      В архив
+    </button>
+  </form>
+  {% endif %}
+  {% if lead.status == 'archived' %}
+  <form method="post" action="/lead/{{ lead.id }}/status">
+    <input type="hidden" name="status" value="new">
+    <button class="text-sm bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded transition-colors">
+      Восстановить
+    </button>
+  </form>
+  {% endif %}
+</div>
+
+{% endblock %}

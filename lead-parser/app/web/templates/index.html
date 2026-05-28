@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- Stats bar -->
+<div class="flex gap-4 mb-6 text-sm">
+  <span class="bg-blue-900/50 text-blue-300 px-3 py-1 rounded-full">
+    🆕 Новых: <b>{{ counts.new }}</b>
+  </span>
+  <span class="bg-gray-800 text-gray-400 px-3 py-1 rounded-full">
+    Всего: <b>{{ counts.total }}</b>
+  </span>
+</div>
+
+<!-- Filters & Search -->
+<form method="get" class="mb-6">
+  <div class="flex gap-3 mb-3 flex-wrap">
+    <input type="text" name="search" placeholder="Поиск по названию..." value="{{ search }}"
+           class="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm flex-1 min-w-64">
+    <select name="source" class="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm">
+      <option value="">Все источники</option>
+      <option value="telegram" {% if source=='telegram' %}selected{% endif %}>Telegram</option>
+      <option value="fl" {% if source=='fl' %}selected{% endif %}>FL.ru</option>
+      <option value="habr" {% if source=='habr' %}selected{% endif %}>Habr Freelance</option>
+    </select>
+    <select name="status" class="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm">
+      <option value="">Все статусы</option>
+      <option value="new" {% if status=='new' %}selected{% endif %}>Новые</option>
+      <option value="viewed" {% if status=='viewed' %}selected{% endif %}>Просмотренные</option>
+      <option value="archived" {% if status=='archived' %}selected{% endif %}>Архив</option>
+    </select>
+    <select name="min_relevance" class="bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm">
+      <option value="0">Любая релевантность</option>
+      <option value="50" {% if min_relevance==50 %}selected{% endif %}>50%+</option>
+      <option value="70" {% if min_relevance==70 %}selected{% endif %}>70%+</option>
+      <option value="80" {% if min_relevance==80 %}selected{% endif %}>80%+</option>
+    </select>
+    <button type="submit" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded text-sm font-medium whitespace-nowrap">
+      Применить
+    </button>
+    <a href="/leads/" class="text-gray-400 hover:text-gray-200 px-4 py-2 text-sm whitespace-nowrap">Сбросить</a>
+  </div>
+
+  <!-- Export buttons -->
+  <div class="flex gap-2 text-xs">
+    <a href="/leads/export/csv?search={{ search }}&source={{ source }}&status={{ status }}&min_relevance={{ min_relevance }}"
+       class="bg-green-900/50 text-green-400 hover:bg-green-900/70 px-3 py-1 rounded">
+      📥 CSV
+    </a>
+    <a href="/leads/export/json?search={{ search }}&source={{ source }}&status={{ status }}&min_relevance={{ min_relevance }}"
+       class="bg-green-900/50 text-green-400 hover:bg-green-900/70 px-3 py-1 rounded">
+      📥 JSON
+    </a>
+  </div>
+</form>
+
+<!-- Leads list -->
+{% if leads %}
+<div class="space-y-3">
+  {% for lead in leads %}
+  <a href="/leads/lead/{{ lead.id }}" class="block bg-gray-900 border border-gray-800 hover:border-gray-600 rounded-xl p-4 transition-colors">
+    <div class="flex items-start justify-between gap-3">
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2 mb-1 flex-wrap">
+          {% if lead.status == 'new' %}
+          <span class="w-2 h-2 rounded-full bg-blue-400 flex-shrink-0"></span>
+          {% endif %}
+          <span class="text-xs text-gray-500 uppercase tracking-wide">{{ source_labels[lead.source] }}</span>
+          {% if lead.relevance_score %}
+          <span class="text-xs {% if lead.relevance_score >= 80 %}bg-green-900/50 text-green-400{% elif lead.relevance_score >= 50 %}bg-yellow-900/50 text-yellow-400{% else %}bg-red-900/50 text-red-400{% endif %} px-2 py-0.5 rounded">
+            {{ lead.relevance_score }}%
+          </span>
+          {% endif %}
+          {% if lead.budget %}
+          <span class="text-xs bg-gray-800 text-gray-300 px-2 py-0.5 rounded">
+            {{ '{:,}'.format(lead.budget).replace(',', ' ') }} ₽
+          </span>
+          {% endif %}
+        </div>
+        <p class="text-sm text-gray-200 line-clamp-2 leading-relaxed">
+          {{ lead.title or lead.text[:120] }}
+        </p>
+        {% if lead.tags %}
+        <div class="flex flex-wrap gap-1 mt-2">
+          {% for tag in lead.tags.split(',')[:2] %}
+          <span class="text-xs bg-purple-900/40 text-purple-300 px-1.5 py-0.5 rounded">{{ tag.strip() }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% if lead.contact %}
+        <p class="text-xs text-gray-500 mt-1">👤 {{ lead.contact }}</p>
+        {% endif %}
+      </div>
+      <div class="text-right flex-shrink-0 flex items-center gap-2">
+        <select class="bg-gray-800 border border-gray-600 rounded px-2 py-1 text-xs text-gray-300 hover:border-gray-400"
+                onclick="event.stopPropagation()"
+                onchange="changeStatus({{ lead.id }}, this.value); this.value='{{ lead.status }}'">
+          <option value="">Статус...</option>
+          <option value="new" {% if lead.status=='new' %}selected{% endif %}>Новый</option>
+          <option value="viewed" {% if lead.status=='viewed' %}selected{% endif %}>Просмотрен</option>
+          <option value="archived" {% if lead.status=='archived' %}selected{% endif %}>Архив</option>
+        </select>
+        <button onclick="event.stopPropagation(); showHistory({{ lead.id }})"
+                class="bg-gray-700 hover:bg-gray-600 text-gray-300 px-2 py-1 rounded text-xs font-medium">
+          📋
+        </button>
+        <span class="text-xs text-gray-500 whitespace-nowrap">
+          {{ lead.created_at.strftime('%d.%m %H:%M') }}
+        </span>
+      </div>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if total_pages > 1 %}
+<div class="flex gap-2 mt-6 justify-center">
+  {% for p in range(1, total_pages + 1) %}
+  <a href="?page={{ p }}&source={{ source }}&status={{ status }}&search={{ search }}&min_relevance={{ min_relevance }}"
+     class="px-3 py-1 rounded text-sm {% if p == page %}bg-blue-600{% else %}bg-gray-800 hover:bg-gray-700{% endif %}">
+    {{ p }}
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="text-center py-20 text-gray-500">
+  <p class="text-4xl mb-4">📭</p>
+  <p>Заявок пока нет. Парсер запустится автоматически.</p>
+</div>
+{% endif %}
+
+<!-- History Modal -->
+<div id="historyModal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+  <div class="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[80vh] overflow-auto border border-gray-700">
+    <div class="sticky top-0 bg-gray-900 border-b border-gray-700 px-6 py-4 flex items-center justify-between">
+      <h3 class="text-lg font-semibold">История действий</h3>
+      <button onclick="closeHistory()" class="text-gray-400 hover:text-white text-2xl leading-none">×</button>
+    </div>
+    <div id="historyContent" class="p-6 space-y-3">
+      <p class="text-gray-400 text-sm">Загрузка...</p>
+    </div>
+  </div>
+</div>
+
+<script>
+async function changeStatus(leadId, newStatus) {
+  if (!newStatus) return;
+
+  try {
+    const response = await fetch(`/leads/${leadId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus })
+    });
+
+    if (response.ok) {
+      location.reload();
+    } else {
+      alert('Ошибка при изменении статуса');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Ошибка сети');
+  }
+}
+
+async function showHistory(leadId) {
+  const modal = document.getElementById('historyModal');
+  const content = document.getElementById('historyContent');
+
+  modal.classList.remove('hidden');
+  content.innerHTML = '<p class="text-gray-400 text-sm">Загрузка...</p>';
+
+  try {
+    const response = await fetch(`/leads/${leadId}/actions`);
+
+    if (response.ok) {
+      const data = await response.json();
+
+      if (data.actions.length === 0) {
+        content.innerHTML = '<p class="text-gray-500 text-sm">История пуста</p>';
+        return;
+      }
+
+      const html = data.actions.map(action => {
+        const date = new Date(action.changed_at).toLocaleString('ru-RU', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+
+        let actionText = '';
+        if (action.action_type === 'status_change') {
+          const statusMap = { 'new': 'Новый', 'viewed': 'Просмотрен', 'archived': 'Архив' };
+          actionText = `Статус изменился с "${statusMap[action.old_value] || action.old_value}" на "${statusMap[action.new_value] || action.new_value}"`;
+        } else if (action.action_type === 'created') {
+          actionText = 'Лид создан';
+        } else {
+          actionText = action.description || action.action_type;
+        }
+
+        return `
+          <div class="border-l-2 border-gray-700 pl-4">
+            <p class="text-sm text-gray-300">${actionText}</p>
+            <p class="text-xs text-gray-500 mt-1">${action.changed_by} — ${date}</p>
+          </div>
+        `;
+      }).join('');
+
+      content.innerHTML = html;
+    } else {
+      content.innerHTML = '<p class="text-red-400 text-sm">Ошибка при загрузке истории</p>';
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    content.innerHTML = '<p class="text-red-400 text-sm">Ошибка сети</p>';
+  }
+}
+
+function closeHistory() {
+  document.getElementById('historyModal').classList.add('hidden');
+}
+
+// Закрытие модала при клике вне его
+document.addEventListener('click', (e) => {
+  const modal = document.getElementById('historyModal');
+  if (e.target === modal) {
+    closeHistory();
+  }
+});
+</script>
+
+{% endblock %}

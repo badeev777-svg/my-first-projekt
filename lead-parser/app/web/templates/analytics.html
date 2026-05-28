@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <h2 class="text-2xl font-bold">📊 Аналитика</h2>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <!-- Total Leads -->
+    <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+      <p class="text-gray-400 text-sm font-medium">Всего лидов</p>
+      <p class="text-3xl font-bold text-white mt-2">{{ total }}</p>
+    </div>
+
+    <!-- Today -->
+    <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+      <p class="text-gray-400 text-sm font-medium">Сегодня</p>
+      <p class="text-3xl font-bold text-blue-400 mt-2">{{ today_count }}</p>
+    </div>
+
+    <!-- Avg Relevance -->
+    <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+      <p class="text-gray-400 text-sm font-medium">Средняя релевантность</p>
+      <p class="text-3xl font-bold text-green-400 mt-2">{{ avg_relevance }}%</p>
+    </div>
+
+    <!-- Avg Budget -->
+    <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+      <p class="text-gray-400 text-sm font-medium">Средний бюджет</p>
+      <p class="text-3xl font-bold text-yellow-400 mt-2">
+        {% if avg_budget >= 1000 %}
+          {{ (avg_budget / 1000)|int }}k₽
+        {% else %}
+          {{ avg_budget|int }}₽
+        {% endif %}
+      </p>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Sources Doughnut Chart -->
+    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+      <h3 class="text-lg font-semibold mb-4">Лиды по источникам</h3>
+      <canvas id="sourcesChart"></canvas>
+    </div>
+
+    <!-- Relevance Bar Chart -->
+    <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+      <h3 class="text-lg font-semibold mb-4">Средняя релевантность по источникам</h3>
+      <canvas id="relevanceChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Trend Line Chart -->
+  <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+    <h3 class="text-lg font-semibold mb-4">Тренд за 14 дней</h3>
+    <canvas id="trendChart"></canvas>
+  </div>
+
+  <!-- Platform Comparison Table -->
+  <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-lg font-semibold">Сравнение платформ</h3>
+      <a href="/leads/analytics/export/csv" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded text-sm font-medium">
+        📥 Скачать отчёт CSV
+      </a>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-gray-700">
+            <th class="text-left py-3 px-4 font-semibold">Источник</th>
+            <th class="text-right py-3 px-4">Лидов</th>
+            <th class="text-right py-3 px-4">Релевантность %</th>
+            <th class="text-right py-3 px-4">Средний бюджет ₽</th>
+            <th class="text-right py-3 px-4">Лидов/день</th>
+            <th class="text-right py-3 px-4">Высокое качество %</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for platform in platforms_comparison %}
+          <tr class="border-b border-gray-700 hover:bg-gray-700/50">
+            <td class="py-3 px-4">{{ source_labels[platform.source] }}</td>
+            <td class="text-right py-3 px-4">{{ platform.count }}</td>
+            <td class="text-right py-3 px-4">
+              <span class="bg-green-900/30 text-green-400 px-2 py-1 rounded">{{ platform.avg_relevance }}%</span>
+            </td>
+            <td class="text-right py-3 px-4">
+              {% if platform.avg_budget >= 1000 %}
+                {{ (platform.avg_budget / 1000)|int }}k
+              {% else %}
+                {{ platform.avg_budget|int }}
+              {% endif %}
+            </td>
+            <td class="text-right py-3 px-4">{{ platform.leads_per_day }}</td>
+            <td class="text-right py-3 px-4">
+              <span class="bg-blue-900/30 text-blue-400 px-2 py-1 rounded">{{ platform.high_relevance_percent }}%</span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Status Progress -->
+  <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+    <h3 class="text-lg font-semibold mb-4">Статусы лидов</h3>
+    <div class="space-y-3">
+      {% set status_names = {"new": "Новые", "viewed": "Просмотренные", "archived": "Архивированные"} %}
+      {% set status_colors = {"new": "bg-blue-500", "viewed": "bg-green-500", "archived": "bg-gray-600"} %}
+
+      {% for status, label in status_names.items() %}
+        {% set count = leads_by_status.get(status, 0) %}
+        {% set percent = ((count / total) * 100)|int if total > 0 else 0 %}
+        <div>
+          <div class="flex justify-between text-sm mb-1">
+            <span class="text-gray-300">{{ label }}</span>
+            <span class="text-gray-400">{{ count }} ({{ percent }}%)</span>
+          </div>
+          <div class="w-full bg-gray-700 rounded-full h-2">
+            <div class="{{ status_colors[status] }} h-2 rounded-full" style="width: {{ percent }}%"></div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  // Chart.js configuration
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: {
+      legend: {
+        labels: {
+          color: '#d1d5db',
+          font: { size: 12 }
+        }
+      }
+    },
+    scales: {
+      x: {
+        ticks: { color: '#9ca3af' },
+        grid: { color: '#374151' }
+      },
+      y: {
+        ticks: { color: '#9ca3af' },
+        grid: { color: '#374151' }
+      }
+    }
+  };
+
+  // Sources Doughnut Chart
+  const sourcesCtx = document.getElementById('sourcesChart').getContext('2d');
+  const sourceLabels = {
+    'telegram': 'Telegram',
+    'fl': 'FL.ru',
+    'habr': 'Habr Freelance',
+    'kwork': 'Kwork'
+  };
+  const sourceData = {{ leads_by_source|tojson }};
+  const sourceLabelsArray = Object.keys(sourceData).map(s => sourceLabels[s] || s);
+  const sourceCountsArray = Object.values(sourceData);
+
+  new Chart(sourcesCtx, {
+    type: 'doughnut',
+    data: {
+      labels: sourceLabelsArray,
+      datasets: [{
+        data: sourceCountsArray,
+        backgroundColor: ['#8b5cf6', '#ef4444', '#3b82f6', '#10b981'],
+        borderColor: '#1f2937',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      ...chartOptions,
+      plugins: {
+        ...chartOptions.plugins,
+        legend: { ...chartOptions.plugins.legend, position: 'bottom' }
+      }
+    }
+  });
+
+  // Relevance Bar Chart
+  const relevanceCtx = document.getElementById('relevanceChart').getContext('2d');
+  const relevanceData = {{ relevance_by_source|tojson }};
+  const relevanceLabelsArray = Object.keys(relevanceData).map(s => sourceLabels[s] || s);
+  const relevanceScoresArray = Object.values(relevanceData);
+
+  new Chart(relevanceCtx, {
+    type: 'bar',
+    data: {
+      labels: relevanceLabelsArray,
+      datasets: [{
+        label: 'Средняя релевантность (%)',
+        data: relevanceScoresArray,
+        backgroundColor: '#06b6d4',
+        borderColor: '#0891b2',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      ...chartOptions,
+      indexAxis: 'y',
+      scales: {
+        x: {
+          ...chartOptions.scales.x,
+          max: 100,
+          ticks: { ...chartOptions.scales.x.ticks, callback: function(value) { return value + '%'; } }
+        }
+      }
+    }
+  });
+
+  // Trend Line Chart
+  const trendCtx = document.getElementById('trendChart').getContext('2d');
+  const trendData = {{ trend_data|tojson }};
+  const trendDates = trendData.map(t => t[0]);
+  const trendCounts = trendData.map(t => t[1]);
+
+  new Chart(trendCtx, {
+    type: 'line',
+    data: {
+      labels: trendDates,
+      datasets: [{
+        label: 'Лидов в день',
+        data: trendCounts,
+        borderColor: '#f59e0b',
+        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+        tension: 0.3,
+        fill: true,
+        pointBackgroundColor: '#f59e0b',
+        pointBorderColor: '#d97706',
+        pointRadius: 4,
+        pointHoverRadius: 6
+      }]
+    },
+    options: {
+      ...chartOptions,
+      scales: {
+        y: { ...chartOptions.scales.y, beginAtZero: true }
+      }
+    }
+  });
+</script>
+{% endblock %}
