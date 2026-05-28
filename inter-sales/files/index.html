@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Каталог товаров</h2>
+<div class="products-grid">
+  {% for product in products %}
+  <article class="product-card">
+    <h3>{{ product.name }}</h3>
+    <p>{{ product.description }}</p>
+    <p class="price">{{ product.price }} ₽</p>
+    <a class="button" href="{{ url_for('product_detail', product_id=product.id) }}">Подробнее</a>
+  </article>
+  {% endfor %}
+</div>
+{% endblock %}

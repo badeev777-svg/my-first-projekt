@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Бадеев Александр — IT-презентация</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:      #07080d;
+    --card:    #0f1118;
+    --card2:   #161824;
+    --accent:  #7c6cff;
+    --cyan:    #00d4ff;
+    --green:   #00ffb3;
+    --text:    #e8eaf0;
+    --muted:   #6b718f;
+    --border:  rgba(124,108,255,.2);
+    --grad:    linear-gradient(135deg, #7c6cff, #00d4ff);
+    --grad2:   linear-gradient(135deg, #00d4ff, #00ffb3);
+  }
+
+  html, body { height: 100%; overflow: hidden; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+  }
+
+  /* ── SLIDES ── */
+  .deck { width: 100vw; height: 100vh; position: relative; overflow: hidden; }
+
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    padding: 40px 60px;
+    opacity: 0; pointer-events: none;
+    transition: opacity .5s ease, transform .5s ease;
+    transform: translateX(60px);
+  }
+  .slide.active {
+    opacity: 1; pointer-events: all;
+    transform: translateX(0);
+  }
+  .slide.out {
+    opacity: 0;
+    transform: translateX(-60px);
+  }
+
+  /* ── NAV ── */
+  .nav {
+    position: fixed; bottom: 36px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 16px;
+    background: rgba(15,17,24,.85);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+    border-radius: 50px;
+    padding: 10px 24px;
+    z-index: 100;
+  }
+  .nav button {
+    background: none; border: none; cursor: pointer;
+    color: var(--muted); font-size: 18px; transition: color .2s;
+    display: flex; align-items: center;
+  }
+  .nav button:hover { color: var(--accent); }
+  .nav-dots { display: flex; gap: 8px; }
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--muted); cursor: pointer;
+    transition: background .2s, transform .2s;
+  }
+  .dot.active { background: var(--accent); transform: scale(1.4); }
+  .slide-count {
+    color: var(--muted); font-size: .78rem;
+    min-width: 36px; text-align: center;
+  }
+
+  /* ── PROGRESS ── */
+  .progress {
+    position: fixed; top: 0; left: 0; height: 3px;
+    background: var(--grad);
+    transition: width .4s ease;
+    z-index: 200;
+  }
+
+  /* ── GRADIENT TEXT ── */
+  .gt  { background: var(--grad);  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .gt2 { background: var(--grad2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+  /* ── TAG ── */
+  .tag {
+    display: inline-block; padding: 4px 14px;
+    border-radius: 20px; font-size: .72rem; font-weight: 700;
+    letter-spacing: .04em;
+    background: rgba(124,108,255,.1);
+    color: #a49fff; border: 1px solid rgba(124,108,255,.3);
+  }
+  .tag.cyan  { background: rgba(0,212,255,.1); color: #00d4ff; border-color: rgba(0,212,255,.3); }
+  .tag.green { background: rgba(0,255,179,.1); color: #00ffb3; border-color: rgba(0,255,179,.3); }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px 28px;
+    transition: border-color .25s, transform .25s;
+  }
+  .card:hover { border-color: var(--accent); transform: translateY(-3px); }
+
+  /* ════════════════════════════════
+     SLIDE 1 — HERO
+  ════════════════════════════════ */
+  .s-hero {
+    flex-direction: column;
+    gap: 0;
+  }
+  .hero-inner {
+    display: flex; align-items: center; gap: 70px;
+    max-width: 1100px; width: 100%;
+  }
+  .hero-photo {
+    width: 230px; height: 230px; border-radius: 50%; flex-shrink: 0;
+    object-fit: cover;
+    border: 3px solid transparent;
+    background-image: linear-gradient(var(--card), var(--card)), var(--grad);
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+    box-shadow: 0 0 60px rgba(124,108,255,.35);
+    animation: pulse 3s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 40px rgba(124,108,255,.3); }
+    50%       { box-shadow: 0 0 80px rgba(124,108,255,.55); }
+  }
+  .hero-text { flex: 1; }
+  .hero-label { font-size: .8rem; letter-spacing: .15em; color: var(--accent); font-weight: 700; margin-bottom: 12px; }
+  .hero-name { font-size: 3.6rem; font-weight: 900; line-height: 1.1; margin-bottom: 14px; }
+  .hero-role { font-size: 1.2rem; color: var(--muted); margin-bottom: 24px; line-height: 1.5; }
+  .hero-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+  .hero-stats {
+    display: flex; gap: 40px; margin-top: 36px;
+    padding-top: 28px; border-top: 1px solid var(--border);
+    max-width: 1100px; width: 100%;
+  }
+  .stat-val { font-size: 2.2rem; font-weight: 900; }
+  .stat-lbl { font-size: .78rem; color: var(--muted); margin-top: 2px; }
+
+  /* ════════════════════════════════
+     SLIDE 2 — STACK
+  ════════════════════════════════ */
+  .s-stack { flex-direction: column; gap: 40px; }
+  .slide-title { text-align: center; font-size: 2.4rem; font-weight: 900; }
+  .slide-sub   { text-align: center; color: var(--muted); font-size: 1rem; }
+
+  .stack-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+    max-width: 900px; width: 100%;
+  }
+  .stack-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 22px 18px;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    transition: border-color .25s, transform .25s;
+  }
+  .stack-card:hover { border-color: var(--accent); transform: translateY(-4px); }
+  .stack-icon { font-size: 2rem; }
+  .stack-name { font-size: .88rem; font-weight: 700; color: var(--text); }
+  .stack-desc { font-size: .72rem; color: var(--muted); text-align: center; }
+
+  /* ════════════════════════════════
+     SLIDE 3 — PROJECTS GRID
+  ════════════════════════════════ */
+  .s-projects { flex-direction: column; gap: 32px; }
+  .projects-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+    max-width: 1100px; width: 100%;
+  }
+  .proj-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; overflow: hidden;
+    transition: border-color .25s, transform .25s;
+    cursor: default;
+  }
+  .proj-card:hover { border-color: var(--cyan); transform: translateY(-4px); }
+  .proj-img {
+    width: 100%; height: 130px; object-fit: cover;
+    background: var(--card2);
+  }
+  .proj-body { padding: 14px 16px; }
+  .proj-name { font-size: .95rem; font-weight: 700; margin-bottom: 6px; }
+  .proj-desc { font-size: .76rem; color: var(--muted); line-height: 1.5; }
+  .proj-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+
+  /* ════════════════════════════════
+     SLIDE 4 — AI PROJECTS
+  ════════════════════════════════ */
+  .s-ai { flex-direction: column; gap: 36px; }
+  .ai-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;
+    max-width: 900px; width: 100%;
+  }
+  .ai-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 28px 24px;
+    transition: border-color .25s, transform .25s;
+    position: relative; overflow: hidden;
+  }
+  .ai-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: var(--grad);
+  }
+  .ai-card.g2::before { background: var(--grad2); }
+  .ai-card:hover { border-color: var(--accent); transform: translateY(-4px); }
+  .ai-icon { font-size: 2.2rem; margin-bottom: 12px; }
+  .ai-name { font-size: 1.15rem; font-weight: 800; margin-bottom: 8px; }
+  .ai-desc { font-size: .85rem; color: var(--muted); line-height: 1.6; }
+  .ai-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 14px; }
+
+  /* ════════════════════════════════
+     SLIDE 5 — WHY WE ARE COOL
+  ════════════════════════════════ */
+  .s-why { flex-direction: column; gap: 36px; }
+  .why-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;
+    max-width: 1000px; width: 100%;
+  }
+  .why-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 28px 22px;
+    transition: border-color .25s, transform .25s;
+  }
+  .why-card:hover { border-color: var(--green); transform: translateY(-4px); }
+  .why-num { font-size: 3rem; font-weight: 900; line-height: 1; margin-bottom: 10px; }
+  .why-title { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+  .why-desc { font-size: .82rem; color: var(--muted); line-height: 1.6; }
+
+  /* ════════════════════════════════
+     SLIDE 6 — CONTACTS CTA
+  ════════════════════════════════ */
+  .s-cta { flex-direction: column; align-items: center; gap: 32px; text-align: center; }
+  .cta-title { font-size: 3.2rem; font-weight: 900; line-height: 1.15; }
+  .cta-sub { font-size: 1.1rem; color: var(--muted); max-width: 520px; }
+  .cta-email {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 16px 36px; border-radius: 50px;
+    background: var(--grad); color: #fff;
+    font-size: 1.05rem; font-weight: 700; text-decoration: none;
+    box-shadow: 0 8px 40px rgba(124,108,255,.4);
+    transition: transform .2s, box-shadow .2s;
+  }
+  .cta-email:hover { transform: scale(1.04); box-shadow: 0 12px 50px rgba(124,108,255,.55); }
+  .cta-links { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+  .cta-link {
+    padding: 12px 26px; border-radius: 50px;
+    border: 1px solid var(--border); color: var(--text);
+    font-size: .9rem; font-weight: 600; text-decoration: none;
+    background: var(--card);
+    transition: border-color .2s, color .2s;
+  }
+  .cta-link:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ════════════════════════════════
+     SLIDE 3 — ANY LANGUAGE
+  ════════════════════════════════ */
+  .s-langs { flex-direction: column; gap: 24px; }
+
+  .langs-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+    max-width: 960px; width: 100%;
+  }
+  .lang-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 18px 16px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    text-align: center;
+    transition: border-color .25s, transform .25s;
+  }
+  .lang-card:hover { border-color: var(--cyan); transform: translateY(-4px); }
+  .lang-icon { font-size: 1.8rem; }
+  .lang-name { font-size: .88rem; font-weight: 700; color: var(--text); }
+  .lang-frameworks { font-size: .7rem; color: var(--muted); line-height: 1.5; }
+
+  .langs-footer {
+    display: flex; align-items: center; gap: 0;
+    max-width: 760px; width: 100%;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 18px 32px;
+  }
+  .lfooter-item { flex: 1; display: flex; flex-direction: column; gap: 4px; align-items: center; text-align: center; }
+  .lfooter-sep { width: 1px; height: 40px; background: var(--border); flex-shrink: 0; margin: 0 16px; }
+
+  /* ── BG GLOW ── */
+  .glow {
+    position: fixed; border-radius: 50%; filter: blur(120px);
+    pointer-events: none; z-index: 0;
+  }
+  .glow1 { width: 500px; height: 500px; top: -100px; right: -100px; background: rgba(124,108,255,.08); }
+  .glow2 { width: 400px; height: 400px; bottom: -80px; left: -80px; background: rgba(0,212,255,.07); }
+
+  .slide > * { position: relative; z-index: 1; }
+
+  /* ── KEYBOARD HINT ── */
+  .hint {
+    position: fixed; top: 20px; right: 24px;
+    font-size: .72rem; color: var(--muted);
+    background: rgba(15,17,24,.7); border: 1px solid var(--border);
+    border-radius: 8px; padding: 6px 12px;
+    z-index: 100;
+  }
+</style>
+</head>
+<body>
+
+<div class="glow glow1"></div>
+<div class="glow glow2"></div>
+<div class="progress" id="progress"></div>
+<div class="hint">← → или клавиши стрелок</div>
+
+<div class="deck" id="deck">
+
+  <!-- ══ SLIDE 1 — HERO ══ -->
+  <div class="slide s-hero active" data-i="0">
+    <div class="hero-inner">
+      <img class="hero-photo" src="../my-portfolio/img/my-foto.jpg" alt="Бадеев Александр" />
+      <div class="hero-text">
+        <div class="hero-label">// Fullstack Developer &amp; AI Builder</div>
+        <div class="hero-name">
+          <span class="gt">Бадеев</span><br>Александр
+        </div>
+        <div class="hero-role">
+          Разрабатываю веб-приложения, CRM-системы и AI-инструменты.<br>
+          От красивого фронтенда до умного бэкенда — полный цикл.
+        </div>
+        <div class="hero-tags">
+          <span class="tag">Python</span>
+          <span class="tag">FastAPI</span>
+          <span class="tag cyan">JavaScript</span>
+          <span class="tag cyan">React</span>
+          <span class="tag green">AI / ML</span>
+          <span class="tag green">Telegram Bot</span>
+        </div>
+      </div>
+    </div>
+    <div class="hero-stats">
+      <div>
+        <div class="stat-val gt">10+</div>
+        <div class="stat-lbl">проектов в продакшне</div>
+      </div>
+      <div>
+        <div class="stat-val gt">3</div>
+        <div class="stat-lbl">AI-интеграции</div>
+      </div>
+      <div>
+        <div class="stat-val gt">Full</div>
+        <div class="stat-lbl">stack — фронт + бэк + деплой</div>
+      </div>
+      <div>
+        <div class="stat-val gt">∞</div>
+        <div class="stat-lbl">желание строить крутые вещи</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 2 — STACK ══ -->
+  <div class="slide s-stack" data-i="1">
+    <div class="slide-title">Наш <span class="gt">технологический</span> стек</div>
+    <div class="slide-sub">Инструменты, которыми мы строим продукты</div>
+    <div class="stack-grid">
+      <div class="stack-card">
+        <div class="stack-icon">🐍</div>
+        <div class="stack-name">Python</div>
+        <div class="stack-desc">Backend, AI, автоматизация</div>
+      </div>
+      <div class="stack-card">
+        <div class="stack-icon">⚡</div>
+        <div class="stack-name">FastAPI</div>
+        <div class="stack-desc">REST API, async, production-ready</div>
+      </div>
+      <div class="stack-card">
+        <div class="stack-icon">🌐</div>
+        <div class="stack-name">JavaScript</div>
+        <div class="stack-desc">Vanilla JS, ES2024+</div>
+      </div>
+      <div class="stack-card">
+        <div class="stack-icon">🎨</div>
+        <div class="stack-name">HTML / CSS</div>
+        <div class="stack-desc">Адаптивные интерфейсы</div>
+      </div>
+      <div class="stack-card">
+        <div class="stack-icon">🤖</div>
+        <div class="stack-name">Claude AI</div>
+        <div class="stack-desc">Anthropic SDK, prompt engineering</div>
+      </div>
+      <div class="stack-card">
+        <div class="stack-icon">🤗</div>
+        <div class="stack-name">HuggingFace</div>
+        <div class="stack-desc">InferenceClient, ML модели</div>
+      </div>
+      <div class="stack-card">
+        <div class="stack-icon">✈️</div>
+        <div class="stack-name">Telegram Bot</div>
+        <div class="stack-desc">Mini App, каталоги, боты</div>
+      </div>
+      <div class="stack-card">
+        <div class="stack-icon">🚀</div>
+        <div class="stack-name">VPS / Nginx</div>
+        <div class="stack-desc">Деплой, продакшн сервер</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 3 — ANY LANGUAGE ══ -->
+  <div class="slide s-langs" data-i="2">
+    <div class="slide-title">Создание и поддержка сайтов<br><span class="gt">на любом языке</span></div>
+    <div class="slide-sub">Пишем, дорабатываем и сопровождаем проекты на чём угодно</div>
+    <div class="langs-grid">
+      <div class="lang-card">
+        <div class="lang-icon">🐍</div>
+        <div class="lang-name">Python</div>
+        <div class="lang-frameworks">Django · Flask · FastAPI</div>
+      </div>
+      <div class="lang-card">
+        <div class="lang-icon">🟨</div>
+        <div class="lang-name">JavaScript / Node.js</div>
+        <div class="lang-frameworks">Express · Next.js · React</div>
+      </div>
+      <div class="lang-card">
+        <div class="lang-icon">🐘</div>
+        <div class="lang-name">PHP</div>
+        <div class="lang-frameworks">Laravel · WordPress · Bitrix</div>
+      </div>
+      <div class="lang-card">
+        <div class="lang-icon">☕</div>
+        <div class="lang-name">Java</div>
+        <div class="lang-frameworks">Spring Boot · Servlets</div>
+      </div>
+      <div class="lang-card">
+        <div class="lang-icon">💎</div>
+        <div class="lang-name">Ruby</div>
+        <div class="lang-frameworks">Ruby on Rails</div>
+      </div>
+      <div class="lang-card">
+        <div class="lang-icon">🦀</div>
+        <div class="lang-name">Go</div>
+        <div class="lang-frameworks">Gin · Echo · net/http</div>
+      </div>
+      <div class="lang-card">
+        <div class="lang-icon">🔷</div>
+        <div class="lang-name">C# / .NET</div>
+        <div class="lang-frameworks">ASP.NET Core · Blazor</div>
+      </div>
+      <div class="lang-card">
+        <div class="lang-icon">🦄</div>
+        <div class="lang-name">TypeScript</div>
+        <div class="lang-frameworks">NestJS · Nuxt · Remix</div>
+      </div>
+    </div>
+    <div class="langs-footer">
+      <div class="lfooter-item">
+        <span class="gt" style="font-size:1.5rem;font-weight:900">Новый проект</span>
+        <span style="color:var(--muted);font-size:.85rem">Напишем с нуля на нужном стеке</span>
+      </div>
+      <div class="lfooter-sep"></div>
+      <div class="lfooter-item">
+        <span class="gt2" style="font-size:1.5rem;font-weight:900">Чужой код</span>
+        <span style="color:var(--muted);font-size:.85rem">Разберёмся, доработаем, починим</span>
+      </div>
+      <div class="lfooter-sep"></div>
+      <div class="lfooter-item">
+        <span class="gt" style="font-size:1.5rem;font-weight:900">Поддержка</span>
+        <span style="color:var(--muted);font-size:.85rem">Обновления, хостинг, мониторинг</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 4 — PROJECTS ══ -->
+  <div class="slide s-projects" data-i="3">
+    <div class="slide-title">Портфолио <span class="gt">проектов</span></div>
+    <div class="projects-grid">
+      <div class="proj-card">
+        <img class="proj-img" src="../my-portfolio/img/vizitka.png" alt="Визитка" />
+        <div class="proj-body">
+          <div class="proj-name">Визитка-лендинг</div>
+          <div class="proj-desc">Персональная визитная карточка с анимацией и адаптивным дизайном</div>
+          <div class="proj-tags">
+            <span class="tag" style="font-size:.65rem">HTML</span>
+            <span class="tag cyan" style="font-size:.65rem">CSS</span>
+          </div>
+        </div>
+      </div>
+      <div class="proj-card">
+        <img class="proj-img" src="../my-portfolio/img/uchet-clienta.png" alt="CRM" />
+        <div class="proj-body">
+          <div class="proj-name">CRM — Учёт клиентов</div>
+          <div class="proj-desc">Система управления клиентами с CRUD, фильтрами и аналитикой</div>
+          <div class="proj-tags">
+            <span class="tag" style="font-size:.65rem">JS</span>
+            <span class="tag cyan" style="font-size:.65rem">LocalStorage</span>
+          </div>
+        </div>
+      </div>
+      <div class="proj-card">
+        <img class="proj-img" src="../my-portfolio/img/CRM-rieltora.png" alt="CRM Риелтор" />
+        <div class="proj-body">
+          <div class="proj-name">CRM Риелтора</div>
+          <div class="proj-desc">Специализированная CRM для агентства недвижимости</div>
+          <div class="proj-tags">
+            <span class="tag" style="font-size:.65rem">JS</span>
+            <span class="tag cyan" style="font-size:.65rem">Kanban</span>
+          </div>
+        </div>
+      </div>
+      <div class="proj-card">
+        <img class="proj-img" src="../my-portfolio/img/electromontag.png" alt="Elektra" />
+        <div class="proj-body">
+          <div class="proj-name">Elektra — Лендинг</div>
+          <div class="proj-desc">Продающий лендинг для электромонтажной компании</div>
+          <div class="proj-tags">
+            <span class="tag" style="font-size:.65rem">HTML</span>
+            <span class="tag cyan" style="font-size:.65rem">CSS</span>
+          </div>
+        </div>
+      </div>
+      <div class="proj-card">
+        <img class="proj-img" src="../my-portfolio/img/calculator.png" alt="Калькулятор" />
+        <div class="proj-body">
+          <div class="proj-name">Онлайн-калькулятор</div>
+          <div class="proj-desc">Умный калькулятор расчётов с красивым UI</div>
+          <div class="proj-tags">
+            <span class="tag" style="font-size:.65rem">JS</span>
+          </div>
+        </div>
+      </div>
+      <div class="proj-card">
+        <img class="proj-img" src="../my-portfolio/img/SEO.png" alt="SEO Assistant" />
+        <div class="proj-body">
+          <div class="proj-name">SEO Ассистент</div>
+          <div class="proj-desc">AI-инструмент для генерации SEO-контента на базе Claude</div>
+          <div class="proj-tags">
+            <span class="tag green" style="font-size:.65rem">AI</span>
+            <span class="tag" style="font-size:.65rem">FastAPI</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 5 — AI PROJECTS ══ -->
+  <div class="slide s-ai" data-i="4">
+    <div class="slide-title"><span class="gt2">AI-проекты</span> — следующий уровень</div>
+    <div class="slide-sub">Интегрируем нейросети в реальные продукты</div>
+    <div class="ai-grid">
+      <div class="ai-card">
+        <div class="ai-icon">🧠</div>
+        <div class="ai-name">SEO Ассистент</div>
+        <div class="ai-desc">
+          Генерирует SEO-тексты, мета-теги и keywords на базе Claude AI.
+          Тёмная тема, мобильная адаптация, интеграция прямо в лендинг.
+        </div>
+        <div class="ai-tags">
+          <span class="tag green">Claude API</span>
+          <span class="tag">FastAPI</span>
+          <span class="tag cyan">Streaming</span>
+        </div>
+      </div>
+      <div class="ai-card g2">
+        <div class="ai-icon">🎯</div>
+        <div class="ai-name">Нейро-Маркетолог</div>
+        <div class="ai-desc">
+          AI-инструмент для создания маркетинговых стратегий, рекламных текстов
+          и анализа целевой аудитории. Работает прямо в браузере.
+        </div>
+        <div class="ai-tags">
+          <span class="tag green">AI</span>
+          <span class="tag cyan">Marketing</span>
+        </div>
+      </div>
+      <div class="ai-card g2">
+        <div class="ai-icon">👗</div>
+        <div class="ai-name">Примерка (Virtual Try-On)</div>
+        <div class="ai-desc">
+          Виртуальная примерка одежды через нейросеть Flux Fill Redux.
+          FastAPI backend + HuggingFace/Replicate AI модели.
+          Rate limiting, CORS, async обработка изображений.
+        </div>
+        <div class="ai-tags">
+          <span class="tag green">Flux AI</span>
+          <span class="tag">Replicate</span>
+          <span class="tag cyan">HuggingFace</span>
+          <span class="tag">FastAPI</span>
+        </div>
+      </div>
+      <div class="ai-card">
+        <div class="ai-icon">📊</div>
+        <div class="ai-name">Lead Parser</div>
+        <div class="ai-desc">
+          Парсер лидов с веб-интерфейсом на FastAPI.
+          Автоматический сбор и обработка данных, экспорт,
+          удобная панель управления.
+        </div>
+        <div class="ai-tags">
+          <span class="tag">FastAPI</span>
+          <span class="tag cyan">Parser</span>
+          <span class="tag">Python</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 6 — WHY COOL ══ -->
+  <div class="slide s-why" data-i="5">
+    <div class="slide-title">Почему мы <span class="gt">крутые</span> в IT</div>
+    <div class="why-grid">
+      <div class="why-card">
+        <div class="why-num gt">01</div>
+        <div class="why-title">Полный стек</div>
+        <div class="why-desc">
+          От пикселя до сервера — делаем всё сами.
+          Фронтенд, бэкенд, деплой, настройка nginx.
+          Не нужна команда из пяти человек.
+        </div>
+      </div>
+      <div class="why-card">
+        <div class="why-num gt">02</div>
+        <div class="why-title">AI в каждом проекте</div>
+        <div class="why-desc">
+          Интегрируем нейросети там, где это реально полезно.
+          Claude, HuggingFace, Flux — не хайп, а рабочие инструменты
+          в реальных продуктах.
+        </div>
+      </div>
+      <div class="why-card">
+        <div class="why-num gt">03</div>
+        <div class="why-title">Скорость</div>
+        <div class="why-desc">
+          От идеи до готового MVP — быстро.
+          Без лишних согласований и бюрократии.
+          Прототип сегодня, продакшн завтра.
+        </div>
+      </div>
+      <div class="why-card">
+        <div class="why-num gt2">04</div>
+        <div class="why-title">Реальные продукты</div>
+        <div class="why-desc">
+          Не учебные проекты — CRM для риелторов, магазины,
+          Telegram Mini Apps, SEO-инструменты.
+          Всё работает в продакшне.
+        </div>
+      </div>
+      <div class="why-card">
+        <div class="why-num gt2">05</div>
+        <div class="why-title">Дизайн + код</div>
+        <div class="why-desc">
+          Умеем делать красиво и работоспособно одновременно.
+          Dark theme, анимации, адаптив — без компромиссов
+          между UX и технической частью.
+        </div>
+      </div>
+      <div class="why-card">
+        <div class="why-num gt2">06</div>
+        <div class="why-title">Постоянный рост</div>
+        <div class="why-desc">
+          Каждый проект — новая технология или подход.
+          Virtual try-on, lead parsing, AI copywriting.
+          Стоять на месте — не про нас.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SLIDE 7 — CTA ══ -->
+  <div class="slide s-cta" data-i="6">
+    <div style="font-size:.85rem;letter-spacing:.15em;color:var(--accent);font-weight:700">// Давайте работать вместе</div>
+    <div class="cta-title">Готов строить<br><span class="gt">крутые продукты</span></div>
+    <div class="cta-sub">
+      Веб-приложения, AI-инструменты, CRM-системы, Telegram-боты.
+      Обсудим ваш проект — просто напишите.
+    </div>
+    <a class="cta-email" href="mailto:badeev777@gmail.com">
+      ✉ badeev777@gmail.com
+    </a>
+    <div class="cta-links">
+      <a class="cta-link" href="../my-portfolio/index.html">Полное портфолио →</a>
+      <a class="cta-link" href="landing.html">Лендинг услуг →</a>
+    </div>
+    <div style="position:absolute;bottom:100px;left:50%;transform:translateX(-50%);font-size:.75rem;color:var(--muted)">
+      Слайд 7 из 7 — Конец презентации
+    </div>
+  </div>
+
+</div><!-- /.deck -->
+
+<!-- ── NAVIGATION ── -->
+<div class="nav">
+  <button id="prev" title="Назад">&#8592;</button>
+  <div class="nav-dots" id="dots"></div>
+  <div class="slide-count" id="count">1 / 7</div>
+  <button id="next" title="Вперёд">&#8594;</button>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const dotsEl  = document.getElementById('dots');
+  const countEl = document.getElementById('count');
+  const progEl  = document.getElementById('progress');
+  let cur = 0;
+
+  // build dots
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.addEventListener('click', () => go(i));
+    dotsEl.appendChild(d);
+  });
+
+  function go(n) {
+    if (n < 0 || n >= slides.length) return;
+    slides[cur].classList.remove('active');
+    slides[cur].classList.add('out');
+    setTimeout(() => slides[cur].classList.remove('out'), 500);
+    cur = n;
+    slides[cur].classList.add('active');
+
+    // dots
+    document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === cur));
+    countEl.textContent = (cur + 1) + ' / ' + slides.length;
+
+    progEl.style.width = ((cur + 1) / slides.length * 100) + '%';
+  }
+
+  document.getElementById('prev').addEventListener('click', () => go(cur - 1));
+  document.getElementById('next').addEventListener('click', () => go(cur + 1));
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown')  go(cur + 1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')    go(cur - 1);
+  });
+
+  // touch swipe
+  let tx = 0;
+  document.addEventListener('touchstart', e => tx = e.touches[0].clientX);
+  document.addEventListener('touchend',   e => {
+    const dx = e.changedTouches[0].clientX - tx;
+    if (Math.abs(dx) > 50) go(dx < 0 ? cur + 1 : cur - 1);
+  });
+
+  // init progress
+  progEl.style.width = (1 / slides.length * 100) + '%';
+</script>
+</body>
+</html>

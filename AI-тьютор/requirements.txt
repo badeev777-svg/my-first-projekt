@@ -1,6 +1,8 @@
 python-telegram-bot==21.1
-anthropic==0.28.0
+openai==1.26.0
 python-dotenv==1.0.0
 sqlalchemy==2.0.25
 aiosqlite==0.22.1
 requests==2.31.0
+alembic==1.13.1
+asyncpg==0.29.0
