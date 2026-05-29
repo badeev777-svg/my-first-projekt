@@ -1,15 +1,19 @@
-"""Analyzes leads using OpenRouter/Claude."""
+"""Analyzes leads using Claude API with Effort Control."""
 import json
 import logging
-import os
 from typing import Optional
 
-import httpx
+from anthropic import Anthropic
+
+from app.config import ANTHROPIC_API_KEY
 
 log = logging.getLogger(__name__)
 
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
-OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
+client = Anthropic(api_key=ANTHROPIC_API_KEY)
+
+SYSTEM_PROMPT = """Ты эксперт в анализе фриланс-заявок для веб-разработчика.
+Анализируй заявку и возвращай структурированный JSON.
+Будь лаконичен и точен."""
 
 ANALYSIS_PROMPT = """Проанализируй заявку на фриланс-работу и верни JSON с результатами:
 
@@ -45,9 +49,13 @@ async def analyze_lead(
     text: str,
     budget: Optional[int]
 ) -> dict:
-    """Analyze a lead using Claude via OpenRouter. Returns analysis dict."""
-    if not OPENROUTER_API_KEY:
-        log.warning("OPENROUTER_API_KEY not set, skipping analysis")
+    """Analyze a lead using Claude Opus 4.8 with Effort Control.
+
+    Returns analysis dict with relevance_score, tags, summary, estimated_budget.
+    Uses low effort for faster processing and fewer tokens.
+    """
+    if not ANTHROPIC_API_KEY:
+        log.warning("ANTHROPIC_API_KEY not set, skipping analysis")
         return {}
 
     prompt = ANALYSIS_PROMPT.format(
@@ -58,48 +66,45 @@ async def analyze_lead(
     )
 
     try:
-        async with httpx.AsyncClient(timeout=30) as client:
-            response = await client.post(
-                OPENROUTER_API_URL,
-                headers={
-                    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                    "HTTP-Referer": "https://lead-parser.local",
-                    "X-Title": "Lead Parser",
-                },
-                json={
-                    "model": "anthropic/claude-3-haiku",
-                    "messages": [
-                        {
-                            "role": "user",
-                            "content": prompt
-                        }
-                    ],
-                    "temperature": 0.3,
+        response = client.messages.create(
+            model="claude-opus-4-8",
+            max_tokens=500,
+            system=SYSTEM_PROMPT,
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
                 }
-            )
-            response.raise_for_status()
-            data = response.json()
+            ],
+            output_config={
+                "effort": "low",  # Низкое усилие для быстрого анализа, экономим токены
+            },
+            thinking={
+                "type": "adaptive",  # Адаптивное мышление для лучшего анализа релевантности
+                "display": "omitted",  # Не показываем thinking процесс пользователю
+            },
+        )
 
-            content = data["choices"][0]["message"]["content"].strip()
+        content = response.content[0].text.strip()
 
-            try:
-                result = json.loads(content)
-            except json.JSONDecodeError:
-                log.error(f"Failed to parse Claude response: {content}")
-                return {}
+        try:
+            result = json.loads(content)
+        except json.JSONDecodeError:
+            log.error(f"Failed to parse Claude response: {content}")
+            return {}
 
-            analysis = {
-                "relevance_score": result.get("relevance_score"),
-                "tags": ",".join(result.get("tags", [])) if result.get("tags") else None,
-                "summary": result.get("summary"),
-                "estimated_budget": result.get("estimated_budget"),
-            }
-            log.debug(f"Analysis complete: score={analysis['relevance_score']}, tags={analysis['tags']}")
-            return analysis
+        analysis = {
+            "relevance_score": result.get("relevance_score"),
+            "tags": ",".join(result.get("tags", [])) if result.get("tags") else None,
+            "summary": result.get("summary"),
+            "estimated_budget": result.get("estimated_budget"),
+        }
+        log.debug(f"Analysis complete: score={analysis['relevance_score']}, tags={analysis['tags']}")
+        log.info(
+            f"Tokens used: input={response.usage.input_tokens}, output={response.usage.output_tokens}"
+        )
+        return analysis
 
-    except httpx.HTTPError as e:
-        log.error(f"OpenRouter API error: {e}")
-        return {}
     except Exception as e:
         log.error(f"Analysis error: {e}")
         return {}
