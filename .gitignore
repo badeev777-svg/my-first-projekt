@@ -1,0 +1,31 @@
+# Environment variables & secrets
+.env
+.env.local
+.env.*.local
+*.env
+
+# Claude settings (local, with secrets)
+.claude/settings.local.json
+**/.claude/settings.local.json
+
+# OS & IDE
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Dependencies
+node_modules/
+__pycache__/
+.pytest_cache/
+*.pyc
+
+# Build outputs
+dist/
+build/
+*.egg-info/
+
+# Backups
+refs/
