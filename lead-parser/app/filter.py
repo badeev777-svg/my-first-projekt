@@ -2,6 +2,26 @@ import re
 from app.config import KEYWORDS, MIN_BUDGET
 
 
+def is_profile_or_resume(text: str) -> bool:
+    """Detect if text is a freelancer profile/resume instead of a job order."""
+    lower = text.lower()
+    profile_keywords = [
+        "мой профиль",
+        "портфолио",
+        "опыт работы",
+        "мои услуги",
+        "фрилансер",
+        "специалист",
+        "резюме",
+        "я разработчик",
+        "я дизайнер",
+        "я маркетолог",
+        "я верстальщик",
+        "я программист",
+    ]
+    return any(kw in lower for kw in profile_keywords)
+
+
 def matches_keywords(text: str) -> bool:
     lower = text.lower()
     return any(kw in lower for kw in KEYWORDS)
