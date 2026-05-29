@@ -28,3 +28,5 @@ MIN_BUDGET: int = int(os.getenv("MIN_BUDGET") or "0")
 POLL_INTERVAL_MINUTES: int = int(os.getenv("POLL_INTERVAL_MINUTES") or "10")
 
 DEMO_MODE: bool = os.getenv("DEMO_MODE", "false").lower() == "true"
+
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
