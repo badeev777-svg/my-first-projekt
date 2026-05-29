@@ -4,14 +4,13 @@ import feedparser
 import httpx
 from datetime import datetime, timezone
 
-from app.filter import matches_keywords, extract_budget, passes_budget
+from app.filter import matches_keywords, extract_budget, passes_budget, is_profile_or_resume
 
 log = logging.getLogger(__name__)
 
-# Kwork RSS URL (глобальный RSS со всеми услугами, фильтруем по ключевым словам)
-# Примечание: старые endpoints /feed/services/* были заменены на один глобальный RSS
+# Kwork RSS URL — только заказы (requests), не услуги
 KWORK_RSS_URLS = [
-    "https://kwork.ru/rss",
+    "https://kwork.ru/requests/rss",
 ]
 
 
@@ -32,6 +31,9 @@ async def fetch_kwork_leads() -> list[dict]:
                 text = entry.get("summary", "") or entry.get("description", "") or ""
                 title = entry.get("title", "")
                 full_text = f"{title}\n{text}"
+
+                if is_profile_or_resume(full_text):
+                    continue
 
                 if not matches_keywords(full_text):
                     continue
