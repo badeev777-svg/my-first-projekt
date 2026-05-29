@@ -4,15 +4,15 @@ import feedparser
 import httpx
 from datetime import datetime, timezone
 
-from app.filter import matches_keywords, extract_budget, passes_budget
+from app.filter import matches_keywords, extract_budget, passes_budget, is_profile_or_resume
 
 log = logging.getLogger(__name__)
 
 FL_RSS_URLS = [
-    "https://www.fl.ru/rss/all.xml?category=saity",
-    "https://www.fl.ru/rss/all.xml?category=seo",
-    "https://www.fl.ru/rss/all.xml?category=programmirovanie",
-    "https://www.fl.ru/rss/all.xml?category=reklama-i-marketing",
+    "https://www.fl.ru/rss/projects/?category=saity",
+    "https://www.fl.ru/rss/projects/?category=seo",
+    "https://www.fl.ru/rss/projects/?category=programmirovanie",
+    "https://www.fl.ru/rss/projects/?category=reklama-i-marketing",
 ]
 
 
@@ -32,6 +32,9 @@ async def fetch_fl_leads() -> list[dict]:
                 text = entry.get("summary", "") or entry.get("title", "")
                 title = entry.get("title", "")
                 full_text = f"{title}\n{text}"
+
+                if is_profile_or_resume(full_text):
+                    continue
 
                 if not matches_keywords(full_text):
                     continue
