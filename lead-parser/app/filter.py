@@ -24,6 +24,10 @@ def is_profile_or_resume(text: str) -> bool:
 
 def matches_keywords(text: str) -> bool:
     lower = text.lower()
+    if not KEYWORDS:
+        import logging
+        logging.getLogger(__name__).debug(f"KEYWORDS empty, accepting all text")
+        return True
     return any(kw in lower for kw in KEYWORDS)
 
 
