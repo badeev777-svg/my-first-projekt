@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
+load_dotenv(".env.local", override=True)
 
 
 def _list(key: str, default: str = "") -> list[str]:
@@ -29,4 +30,10 @@ POLL_INTERVAL_MINUTES: int = int(os.getenv("POLL_INTERVAL_MINUTES") or "10")
 
 DEMO_MODE: bool = os.getenv("DEMO_MODE", "false").lower() == "true"
 
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
+
+VK_TOKEN = os.getenv("VK_TOKEN", "")
+VK_GROUPS: list[str] = _list(
+    "VK_GROUPS",
+    "freelance_pro,web_zakazy,seo_zakazy,it_freelance",
+)
