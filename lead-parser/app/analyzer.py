@@ -1,15 +1,16 @@
-"""Analyzes leads using Claude API with Effort Control."""
+"""Analyzes leads using OpenRouter API (Claude via OpenAI-compatible endpoint)."""
 import json
 import logging
 from typing import Optional
 
-from anthropic import Anthropic
+import httpx
 
-from app.config import ANTHROPIC_API_KEY
+from app.config import OPENROUTER_API_KEY
 
 log = logging.getLogger(__name__)
 
-client = Anthropic(api_key=ANTHROPIC_API_KEY)
+OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+MODEL = "anthropic/claude-3.5-haiku"
 
 SYSTEM_PROMPT = """Ты эксперт в анализе фриланс-заявок для веб-разработчика.
 Анализируй заявку и возвращай структурированный JSON.
@@ -49,49 +50,47 @@ async def analyze_lead(
     text: str,
     budget: Optional[int]
 ) -> dict:
-    """Analyze a lead using Claude Opus 4.8 with Effort Control.
-
-    Returns analysis dict with relevance_score, tags, summary, estimated_budget.
-    Uses low effort for faster processing and fewer tokens.
-    """
-    if not ANTHROPIC_API_KEY:
-        log.warning("ANTHROPIC_API_KEY not set, skipping analysis")
+    if not OPENROUTER_API_KEY:
+        log.warning("OPENROUTER_API_KEY not set, skipping analysis")
         return {}
 
     prompt = ANALYSIS_PROMPT.format(
         source=source,
         title=title or "Без названия",
-        text=text,
-        budget=budget or "Не указан"
+        text=text[:1500],
+        budget=budget or "Не указан",
     )
 
     try:
-        response = client.messages.create(
-            model="claude-opus-4-8",
-            max_tokens=500,
-            system=SYSTEM_PROMPT,
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            output_config={
-                "effort": "low",  # Низкое усилие для быстрого анализа, экономим токены
-            },
-            thinking={
-                "type": "adaptive",  # Адаптивное мышление для лучшего анализа релевантности
-                "display": "omitted",  # Не показываем thinking процесс пользователю
-            },
-        )
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.post(
+                OPENROUTER_URL,
+                headers={
+                    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": MODEL,
+                    "max_tokens": 400,
+                    "messages": [
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user", "content": prompt},
+                    ],
+                },
+            )
+            resp.raise_for_status()
+            data = resp.json()
 
-        content = response.content[0].text.strip()
+        content = data["choices"][0]["message"]["content"].strip()
 
-        try:
-            result = json.loads(content)
-        except json.JSONDecodeError:
-            log.error(f"Failed to parse Claude response: {content}")
-            return {}
+        # Strip possible markdown code fences
+        if content.startswith("```"):
+            content = content.split("```")[1]
+            if content.startswith("json"):
+                content = content[4:]
+            content = content.strip()
+
+        result = json.loads(content)
 
         analysis = {
             "relevance_score": result.get("relevance_score"),
@@ -99,12 +98,18 @@ async def analyze_lead(
             "summary": result.get("summary"),
             "estimated_budget": result.get("estimated_budget"),
         }
-        log.debug(f"Analysis complete: score={analysis['relevance_score']}, tags={analysis['tags']}")
+        usage = data.get("usage", {})
+        log.debug(
+            f"Analysis complete: score={analysis['relevance_score']}, tags={analysis['tags']}"
+        )
         log.info(
-            f"Tokens used: input={response.usage.input_tokens}, output={response.usage.output_tokens}"
+            f"Tokens used: input={usage.get('prompt_tokens')}, output={usage.get('completion_tokens')}"
         )
         return analysis
 
+    except json.JSONDecodeError as e:
+        log.error(f"Failed to parse LLM response: {e}")
+        return {}
     except Exception as e:
-        log.error(f"Analysis error: {e}")
+        log.error(f"Analysis error: {type(e).__name__}: {e}")
         return {}

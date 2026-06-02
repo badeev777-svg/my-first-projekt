@@ -28,15 +28,18 @@ async def fetch_fl_leads() -> list[dict]:
                 continue
 
             feed = feedparser.parse(resp.text)
+            log.info(f"FL.ru RSS has {len(feed.entries)} total entries")
             for entry in feed.entries:
                 text = entry.get("summary", "") or entry.get("title", "")
                 title = entry.get("title", "")
                 full_text = f"{title}\n{text}"
 
                 if is_profile_or_resume(full_text):
+                    log.debug(f"Filtered (profile/resume): {title[:50]}")
                     continue
 
                 if not matches_keywords(full_text):
+                    log.debug(f"Filtered (no keywords): {title[:50]}")
                     continue
 
                 budget = extract_budget(full_text)
