@@ -9,11 +9,13 @@ import re
 import csv
 import io
 import json
-import uuid
 
 from app.database import Lead, Status, DemoUser, LeadAction, DealStage, get_session
 from app.analyzer import analyze_lead
-from app.auth import is_password_set, verify_password, get_password_hash, ADMIN_PASSWORD
+from app.auth import (
+    is_password_set, verify_password, ADMIN_PASSWORD,
+    create_session_token, invalidate_session_token, is_valid_token,
+)
 
 router = APIRouter(prefix="/leads")
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
@@ -30,22 +32,18 @@ SESSION_TIMEOUT = timedelta(days=7)
 
 
 def is_authenticated(session_token: str = Cookie(None)) -> bool:
-    """Check if user has valid session token."""
     if not is_password_set():
         return True
-    if not session_token:
-        return False
-    return bool(session_token and len(session_token) > 0)
+    return is_valid_token(session_token)
 
 
 async def require_auth(
     request: Request,
     session_token: str = Cookie(None),
 ) -> bool:
-    """Dependency for protecting routes."""
     if not is_password_set():
         return True
-    if not session_token:
+    if not is_valid_token(session_token):
         raise RedirectResponse(url="/leads/login", status_code=302)
     return True
 
@@ -69,7 +67,7 @@ async def login_submit(
 
     if verify_password(password, ADMIN_PASSWORD):
         response = RedirectResponse(url="/leads/", status_code=302)
-        token = str(uuid.uuid4())
+        token = create_session_token()
         response.set_cookie(
             "session_token",
             token,
@@ -88,7 +86,8 @@ async def login_submit(
 
 
 @router.get("/logout")
-async def logout(request: Request):
+async def logout(request: Request, session_token: str = Cookie(None)):
+    invalidate_session_token(session_token)
     response = RedirectResponse(url="/leads/login" if is_password_set() else "/leads/", status_code=302)
     response.delete_cookie("session_token")
     return response
@@ -177,6 +176,7 @@ async def lead_detail(
     request: Request,
     lead_id: int,
     session: AsyncSession = Depends(get_session),
+    auth: bool = Depends(require_auth),
 ):
     lead = await session.get(Lead, lead_id)
     if not lead:
@@ -204,6 +204,44 @@ async def portfolio(request: Request):
         "portfolio.html",
         {"is_authenticated": bool(request.cookies.get("session_token"))},
     )
+
+
+async def _platform_stats(session: AsyncSession) -> list[dict]:
+    stats = []
+    for source in ["fl", "habr", "kwork", "telegram", "vk"]:
+        count = await session.scalar(
+            select(func.count()).select_from(Lead).where(Lead.source == source)
+        ) or 0
+        if count == 0:
+            continue
+        avg_rel = await session.scalar(
+            select(func.avg(Lead.relevance_score)).select_from(Lead)
+            .where(and_(Lead.source == source, Lead.relevance_score.isnot(None)))
+        ) or 0
+        avg_budget = await session.scalar(
+            select(func.avg(Lead.budget)).select_from(Lead)
+            .where(and_(Lead.source == source, Lead.budget.isnot(None)))
+        ) or 0
+        high_rel = await session.scalar(
+            select(func.count()).select_from(Lead)
+            .where(and_(Lead.source == source, Lead.relevance_score >= 80))
+        ) or 0
+        min_dt = await session.scalar(
+            select(func.min(Lead.created_at)).select_from(Lead).where(Lead.source == source)
+        )
+        max_dt = await session.scalar(
+            select(func.max(Lead.created_at)).select_from(Lead).where(Lead.source == source)
+        )
+        days = max(1, (max_dt - min_dt).days + 1) if min_dt and max_dt else 1
+        stats.append({
+            "source": source,
+            "count": count,
+            "avg_relevance": round(avg_rel, 1),
+            "avg_budget": round(avg_budget, 0),
+            "leads_per_day": round(count / days, 1),
+            "high_relevance_percent": int(round(high_rel / count * 100, 0)),
+        })
+    return stats
 
 
 @router.get("/analytics", response_class=HTMLResponse)
@@ -265,50 +303,7 @@ async def analytics(
     ) or 0
 
     # Сравнение платформ (для таблицы)
-    platforms_comparison = []
-    for source in ["fl", "habr", "kwork", "telegram"]:
-        count = await session.scalar(
-            select(func.count()).select_from(Lead).where(Lead.source == source)
-        ) or 0
-
-        if count > 0:
-            avg_rel_src = await session.scalar(
-                select(func.avg(Lead.relevance_score)).select_from(Lead)
-                .where(and_(Lead.source == source, Lead.relevance_score.isnot(None)))
-            ) or 0
-
-            avg_budget_src = await session.scalar(
-                select(func.avg(Lead.budget)).select_from(Lead)
-                .where(and_(Lead.source == source, Lead.budget.isnot(None)))
-            ) or 0
-
-            high_relevance = await session.scalar(
-                select(func.count()).select_from(Lead)
-                .where(and_(Lead.source == source, Lead.relevance_score >= 80))
-            ) or 0
-
-            min_created = await session.scalar(
-                select(func.min(Lead.created_at)).select_from(Lead).where(Lead.source == source)
-            )
-            max_created = await session.scalar(
-                select(func.max(Lead.created_at)).select_from(Lead).where(Lead.source == source)
-            )
-
-            days_active = 1
-            if min_created and max_created:
-                days_active = max(1, (max_created - min_created).days + 1)
-
-            leads_per_day = round(count / days_active, 1) if days_active > 0 else 0
-            high_rel_percent = round((high_relevance / count * 100), 0) if count > 0 else 0
-
-            platforms_comparison.append({
-                "source": source,
-                "count": count,
-                "avg_relevance": round(avg_rel_src, 1),
-                "avg_budget": round(avg_budget_src, 0),
-                "leads_per_day": leads_per_day,
-                "high_relevance_percent": int(high_rel_percent),
-            })
+    platforms_comparison = await _platform_stats(session)
 
     # Метрики конверсии
     won_count = await session.scalar(
@@ -413,49 +408,15 @@ async def analytics_export_csv(
     writer.writerow(["Platform Comparison"])
     writer.writerow(["Source", "Total Leads", "Avg Relevance (%)", "Avg Budget (₽)", "Leads/Day", "High Relevance (%)"])
 
-    for source in ["fl", "habr", "kwork", "telegram"]:
-        count = await session.scalar(
-            select(func.count()).select_from(Lead).where(Lead.source == source)
-        ) or 0
-
-        if count > 0:
-            avg_rel_src = await session.scalar(
-                select(func.avg(Lead.relevance_score)).select_from(Lead)
-                .where(and_(Lead.source == source, Lead.relevance_score.isnot(None)))
-            ) or 0
-
-            avg_budget_src = await session.scalar(
-                select(func.avg(Lead.budget)).select_from(Lead)
-                .where(and_(Lead.source == source, Lead.budget.isnot(None)))
-            ) or 0
-
-            high_relevance = await session.scalar(
-                select(func.count()).select_from(Lead)
-                .where(and_(Lead.source == source, Lead.relevance_score >= 80))
-            ) or 0
-
-            min_created = await session.scalar(
-                select(func.min(Lead.created_at)).select_from(Lead).where(Lead.source == source)
-            )
-            max_created = await session.scalar(
-                select(func.max(Lead.created_at)).select_from(Lead).where(Lead.source == source)
-            )
-
-            days_active = 1
-            if min_created and max_created:
-                days_active = max(1, (max_created - min_created).days + 1)
-
-            leads_per_day = round(count / days_active, 1) if days_active > 0 else 0
-            high_rel_percent = round((high_relevance / count * 100), 0) if count > 0 else 0
-
-            writer.writerow([
-                SOURCE_LABELS.get(source, source),
-                count,
-                round(avg_rel_src, 1),
-                round(avg_budget_src, 0),
-                leads_per_day,
-                int(high_rel_percent),
-            ])
+    for p in await _platform_stats(session):
+        writer.writerow([
+            SOURCE_LABELS.get(p["source"], p["source"]),
+            p["count"],
+            p["avg_relevance"],
+            p["avg_budget"],
+            p["leads_per_day"],
+            p["high_relevance_percent"],
+        ])
 
     output.seek(0)
     return StreamingResponse(
@@ -739,6 +700,7 @@ async def export_csv(
     search: str = Query(""),
     min_relevance: int = Query(0, ge=0, le=100),
     session: AsyncSession = Depends(get_session),
+    auth: bool = Depends(require_auth),
 ):
     query = select(Lead)
     filters = []
@@ -792,6 +754,7 @@ async def export_json(
     search: str = Query(""),
     min_relevance: int = Query(0, ge=0, le=100),
     session: AsyncSession = Depends(get_session),
+    auth: bool = Depends(require_auth),
 ):
     query = select(Lead)
     filters = []

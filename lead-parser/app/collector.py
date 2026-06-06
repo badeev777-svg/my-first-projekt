@@ -9,7 +9,6 @@ from app.analyzer import analyze_lead
 from app.database import SessionLocal, Lead
 from app.notifier import notify_new_lead
 from app.scrapers.fl_rss import fetch_fl_leads
-from app.scrapers.habr import fetch_habr_leads
 from app.scrapers.kwork import fetch_kwork_leads
 from app.scrapers.profi import fetch_profi_leads
 from app.scrapers.vk import fetch_vk_leads
@@ -65,7 +64,7 @@ async def run_collection() -> int:
                 await session.commit()
                 await session.refresh(lead)
                 saved += 1
-                log.info(f"Saved lead #{lead.id}: {lead.title[:50]}")
+                log.info(f"Saved lead #{lead.id}: {(lead.title or '')[:50]}")
 
                 try:
                     analysis = await analyze_lead(
