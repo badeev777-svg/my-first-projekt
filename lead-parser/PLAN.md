@@ -107,23 +107,22 @@
 
 ---
 
-### 4. Профи.ру парсер (заморожен)
-**Описание:** Добавить четвертый источник через веб-скрейпинг  
-**Статус:** ❌ ЗАМОРОЖЕН — требует Playwright/Selenium
+### 4. Profi.ru + VK парсинг
+**Описание:** Playwright для JS-рендеринга Profi.ru, VK Groups API для постов с заказами  
+**Статус:** ✅ ЗАВЕРШЕНО (2026-06-06)
 
-**Почему не реализовано:**
-- Profi.ru использует JavaScript рендеринг (SPA)
-- Простой HTTP + BeautifulSoup не работает
-- Решение требует: Playwright/Selenium (~500MB) или скрытое API
-- Сейчас хватает 3 источников (FL.ru, Habr, Kwork) — ~50 лидов/день
+**Реализовано:**
+- [x] `profi.py` — полный Playwright скрапер (Next.js JSON payload + DOM fallback)
+- [x] 6 поисковых запросов: разработка сайта, лендинг, интернет-магазин, верстка, SEO, создание сайта
+- [x] `vk.py` — VK Groups API, читает посты из публичных групп с заказами
+- [x] Playwright + Chromium добавлены в Docker образ
+- [x] `settings_store.py` — динамические настройки фильтров (keywords, budget, vk_groups) без перезапуска
+- [x] `filter.py` — читает из settings_store, добавлен max_budget
 
-**Если понадобится в будущем:**
-- Добавить Playwright в зависимости
-- Реализовать браузер-like парсер в `app/scrapers/profi.py`
-- Или найти API Profi.ru через DevTools анализ
-
-**Примерный объем:** 4-6 часов  
-**Приоритет:** 🔴 Очень низкий (лишь если нужно 100+ лидов/день)
+**Код:**
+- Profi.ru scraper: [app/scrapers/profi.py](app/scrapers/profi.py)
+- VK scraper: [app/scrapers/vk.py](app/scrapers/vk.py)
+- Settings store: [app/settings_store.py](app/settings_store.py)
 
 ---
 
@@ -142,8 +141,13 @@
              ├─ Deal Assignment & Tracking
              └─ Conversion Metrics & Filters
 
-2026-06-??: 🔄 Phase 3 — Расширение (опционально)
-          ├─ Профи.ру парсер ❌ заморожен (требует Playwright)
+2026-06-06: ✅ Phase 3 — Расширение источников
+          ├─ Profi.ru парсер ✅ (Playwright, Next.js JSON + DOM fallback)
+          ├─ VK Groups API ✅ (посты с заказами)
+          └─ settings_store ✅ (динамические фильтры без перезапуска)
+
+2026-06-??: 🔄 Phase 4 — Опционально
+          ├─ /settings UI (редактор keywords/budget в браузере)
           ├─ Telegram Premium + userbot (если будет)
           └─ LinkedIn интеграция (если нужны B2B)
 ```
@@ -152,9 +156,9 @@
 
 ## 💾 Текущее состояние
 
-**Источники:** 3 (FL.ru, Habr, Kwork)  
+**Источники:** 5 (FL.ru, Kwork, Profi.ru, VK, Telegram*)  
 **Интервал:** 10 минут  
-**Лидов/день:** ~30-50 (质量высокая)  
+**Лидов/день:** ~50-100+  
 **Server:** 155.212.208.194:8000/leads  
 **Database:** SQLite (можно мигрировать на PostgreSQL)  
 
