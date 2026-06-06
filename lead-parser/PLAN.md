@@ -148,7 +148,6 @@
 
 2026-06-??: 🔄 Phase 4 — Опционально
           ├─ /settings UI (редактор keywords/budget в браузере)
-          ├─ Telegram Premium + userbot (если будет)
           └─ LinkedIn интеграция (если нужны B2B)
 ```
 
