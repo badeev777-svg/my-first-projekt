@@ -71,7 +71,8 @@ async def _scrape_query(ctx, query: str, seen: set) -> list[dict]:
 
     try:
         page = await ctx.new_page()
-        await page.goto(url, wait_until="networkidle", timeout=30_000)
+        await page.goto(url, wait_until="domcontentloaded", timeout=20_000)
+        await page.wait_for_timeout(2000)
 
         # Try Next.js JSON payload first — avoids selector fragility
         raw = await page.evaluate("() => { const el = document.getElementById('__NEXT_DATA__'); return el ? el.textContent : null; }")

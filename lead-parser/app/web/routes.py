@@ -12,6 +12,7 @@ import json
 
 from app.database import Lead, Status, DemoUser, LeadAction, DealStage, get_session
 from app.analyzer import analyze_lead
+from app.settings_store import load_settings, save_settings
 from app.auth import (
     is_password_set, verify_password, ADMIN_PASSWORD,
     create_session_token, invalidate_session_token, is_valid_token,
@@ -691,6 +692,48 @@ async def demo_analyze(
     await session.commit()
 
     return JSONResponse(analysis)
+
+
+@router.get("/settings", response_class=HTMLResponse)
+async def settings_page(
+    request: Request,
+    saved: bool = Query(False),
+    auth: bool = Depends(require_auth),
+):
+    settings = load_settings()
+    return templates.TemplateResponse(
+        request,
+        "settings.html",
+        {
+            "settings": settings,
+            "keywords_text": "\n".join(settings.get("keywords", [])),
+            "stack_text": "\n".join(settings.get("stack", [])),
+            "vk_groups_text": "\n".join(settings.get("vk_groups", [])),
+            "saved": saved,
+            "is_authenticated": bool(request.cookies.get("session_token")),
+        },
+    )
+
+
+@router.post("/settings", response_class=HTMLResponse)
+async def settings_save(
+    request: Request,
+    keywords: str = Form(""),
+    stack: str = Form(""),
+    min_budget: int = Form(0),
+    max_budget: int = Form(0),
+    vk_groups: str = Form(""),
+    auth: bool = Depends(require_auth),
+):
+    new_settings = {
+        "keywords": [k.strip() for k in keywords.splitlines() if k.strip()],
+        "stack": [s.strip() for s in stack.splitlines() if s.strip()],
+        "min_budget": max(0, min_budget),
+        "max_budget": max(0, max_budget),
+        "vk_groups": [g.strip() for g in vk_groups.splitlines() if g.strip()],
+    }
+    save_settings(new_settings)
+    return RedirectResponse(url="/leads/settings?saved=1", status_code=303)
 
 
 @router.get("/export/csv")

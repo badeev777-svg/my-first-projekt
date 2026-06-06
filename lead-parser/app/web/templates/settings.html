@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="mb-6">
+  <h2 class="text-xl font-semibold">Настройки фильтров</h2>
+  <p class="text-sm text-gray-400 mt-1">Изменения применяются немедленно, без перезапуска</p>
+</div>
+
+{% if saved %}
+<div class="bg-green-900/40 border border-green-700 text-green-300 px-4 py-3 rounded mb-6 text-sm">
+  ✅ Настройки сохранены
+</div>
+{% endif %}
+
+<form method="post" class="space-y-6 max-w-2xl">
+
+  <!-- Keywords -->
+  <div class="bg-gray-900 border border-gray-800 rounded-lg p-5">
+    <label class="block text-sm font-medium mb-2">Ключевые слова <span class="text-gray-500">(по одному на строку)</span></label>
+    <textarea name="keywords" rows="6"
+      class="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:border-blue-500"
+      placeholder="сайт&#10;лендинг&#10;интернет-магазин">{{ keywords_text }}</textarea>
+    <p class="text-xs text-gray-500 mt-1">Лид проходит, если хотя бы одно слово найдено в тексте</p>
+  </div>
+
+  <!-- Stack -->
+  <div class="bg-gray-900 border border-gray-800 rounded-lg p-5">
+    <label class="block text-sm font-medium mb-2">Технологии / стек <span class="text-gray-500">(по одному на строку)</span></label>
+    <textarea name="stack" rows="4"
+      class="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:border-blue-500"
+      placeholder="React&#10;FastAPI&#10;Python">{{ stack_text }}</textarea>
+    <p class="text-xs text-gray-500 mt-1">Дополнительные слова, объединяются с ключевыми словами (OR)</p>
+  </div>
+
+  <!-- Budget -->
+  <div class="bg-gray-900 border border-gray-800 rounded-lg p-5">
+    <label class="block text-sm font-medium mb-3">Бюджет (₽)</label>
+    <div class="flex gap-4">
+      <div class="flex-1">
+        <label class="text-xs text-gray-400 mb-1 block">Минимум</label>
+        <input type="number" name="min_budget" value="{{ settings.min_budget }}" min="0" step="1000"
+          class="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+          placeholder="0">
+      </div>
+      <div class="flex-1">
+        <label class="text-xs text-gray-400 mb-1 block">Максимум <span class="text-gray-600">(0 = без ограничений)</span></label>
+        <input type="number" name="max_budget" value="{{ settings.max_budget }}" min="0" step="1000"
+          class="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+          placeholder="0">
+      </div>
+    </div>
+    <p class="text-xs text-gray-500 mt-2">Лиды без явного бюджета всегда проходят</p>
+  </div>
+
+  <!-- VK Groups -->
+  <div class="bg-gray-900 border border-gray-800 rounded-lg p-5">
+    <label class="block text-sm font-medium mb-2">VK группы <span class="text-gray-500">(domain, по одному на строку)</span></label>
+    <textarea name="vk_groups" rows="4"
+      class="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:border-blue-500"
+      placeholder="web_orders&#10;freelance_russia">{{ vk_groups_text }}</textarea>
+    <p class="text-xs text-gray-500 mt-1">Требует VK_TOKEN в .env</p>
+  </div>
+
+  <div class="flex gap-3">
+    <button type="submit"
+      class="bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded text-sm font-medium">
+      Сохранить
+    </button>
+    <a href="/leads/" class="text-gray-400 hover:text-gray-200 px-4 py-2 text-sm">Отмена</a>
+  </div>
+
+</form>
+{% endblock %}
