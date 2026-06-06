@@ -1,10 +1,14 @@
 """Telegram channel monitor using Telethon userbot."""
 from datetime import datetime, timezone, timedelta
 
+import logging
+
 from telethon import TelegramClient
 from telethon.tl.types import Message
 
 from app.config import TG_API_ID, TG_API_HASH, TG_PHONE, TG_CHANNELS
+
+log = logging.getLogger(__name__)
 from app.filter import matches_keywords, extract_budget, passes_budget
 
 SESSION_FILE = "data/tg_session"
@@ -61,7 +65,8 @@ async def fetch_telegram_leads(since_minutes: int = 15) -> list[dict]:
                         "created_at": msg.date,
                     }
                 )
-        except Exception:
+        except Exception as e:
+            log.warning(f"Telegram channel '{channel}' failed: {type(e).__name__}: {e}")
             continue
 
     return leads
