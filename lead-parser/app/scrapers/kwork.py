@@ -3,7 +3,7 @@ import logging
 import httpx
 from datetime import datetime, timezone
 
-from app.filter import extract_budget, passes_budget, is_profile_or_resume
+from app.filter import matches_keywords, extract_budget, passes_budget, is_profile_or_resume
 
 log = logging.getLogger(__name__)
 
@@ -48,6 +48,9 @@ async def fetch_kwork_leads() -> list[dict]:
                 full_text = f"{title}\n{text}"
 
                 if is_profile_or_resume(full_text):
+                    continue
+
+                if not matches_keywords(full_text):
                     continue
 
                 budget_raw = want.get("priceLimit")

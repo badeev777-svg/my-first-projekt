@@ -11,6 +11,8 @@ SOURCE_LABELS = {
     "fl": "FL.ru",
     "habr": "Habr Freelance",
     "kwork": "Kwork",
+    "vk": "VK",
+    "profi": "Profi.ru",
 }
 
 

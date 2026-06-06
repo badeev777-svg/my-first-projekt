@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 
@@ -51,7 +51,7 @@ class Lead(Base):
     contact: Mapped[str | None] = mapped_column(String(256))
     status: Mapped[str] = mapped_column(SAEnum(Status), default=Status.new, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
-    fetched_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     tags: Mapped[str | None] = mapped_column(String(512))
     summary: Mapped[str | None] = mapped_column(Text)
@@ -73,7 +73,7 @@ class LeadAction(Base):
     old_value: Mapped[str | None] = mapped_column(String(256))
     new_value: Mapped[str] = mapped_column(String(256), nullable=False)
     changed_by: Mapped[str] = mapped_column(String(128), default="admin", nullable=False)
-    changed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    changed_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     description: Mapped[str | None] = mapped_column(String(512))
 
 
@@ -82,7 +82,7 @@ class DemoUser(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     ip_address: Mapped[str] = mapped_column(String(45), unique=True, nullable=False)
-    used_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    used_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
 
 
 async def init_db(demo: bool = False) -> None:
@@ -95,7 +95,7 @@ async def init_db(demo: bool = False) -> None:
 
 
 async def _load_demo_data() -> None:
-    from datetime import datetime, timezone, timedelta
+    from datetime import timedelta
 
     demo_leads = [
         {
