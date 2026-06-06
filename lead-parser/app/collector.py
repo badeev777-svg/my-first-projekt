@@ -12,6 +12,8 @@ from app.scrapers.fl_rss import fetch_fl_leads
 from app.scrapers.kwork import fetch_kwork_leads
 from app.scrapers.profi import fetch_profi_leads
 from app.scrapers.vk import fetch_vk_leads
+from app.scrapers.freelance_ru import fetch_freelance_ru_leads
+from app.scrapers.workzilla import fetch_workzilla_leads
 
 log = logging.getLogger(__name__)
 
@@ -35,6 +37,12 @@ async def run_collection() -> int:
 
     vk_leads = await fetch_vk_leads()
     raw.extend(vk_leads)
+
+    freelance_ru_leads = await fetch_freelance_ru_leads()
+    raw.extend(freelance_ru_leads)
+
+    workzilla_leads = await fetch_workzilla_leads()
+    raw.extend(workzilla_leads)
 
     log.info(f"Total raw leads collected: {len(raw)}")
     saved = 0
