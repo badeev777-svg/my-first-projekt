@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lead Parser — AI парсер заказов</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg:       #070b12;
+    --bg2:      #0d1320;
+    --bg3:      #111827;
+    --green:    #00e676;
+    --green2:   #00c853;
+    --orange:   #ff6b35;
+    --blue:     #4fc3f7;
+    --purple:   #b388ff;
+    --white:    #e8f0fe;
+    --muted:    #546e7a;
+    --border:   rgba(0,230,118,.15);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    font-family: 'Space Mono', monospace;
+    color: var(--white);
+    overflow: hidden;
+    cursor: default;
+    user-select: none;
+  }
+
+  /* ─── NOISE OVERLAY ─── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 9999; opacity: .4;
+  }
+
+  /* ─── SCANLINE ─── */
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 2px,
+      rgba(0,0,0,.03) 2px, rgba(0,0,0,.03) 4px
+    );
+    pointer-events: none; z-index: 9998;
+  }
+
+  /* ─── SLIDE ENGINE ─── */
+  .slides { width: 100%; height: 100%; position: relative; }
+
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    padding: 60px 80px;
+    opacity: 0;
+    transform: translateX(60px);
+    transition: opacity .5s ease, transform .5s cubic-bezier(.25,.46,.45,.94);
+    pointer-events: none;
+  }
+  .slide.active {
+    opacity: 1; transform: translateX(0); pointer-events: all;
+  }
+  .slide.exit {
+    opacity: 0; transform: translateX(-60px);
+    transition: opacity .35s ease, transform .35s ease;
+  }
+
+  /* ─── PROGRESS BAR ─── */
+  #progress {
+    position: fixed; top: 0; left: 0; height: 2px;
+    background: linear-gradient(90deg, var(--green), var(--orange));
+    transition: width .4s ease;
+    z-index: 1000;
+    box-shadow: 0 0 8px var(--green);
+  }
+
+  /* ─── NAV ─── */
+  #nav {
+    position: fixed; bottom: 32px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; align-items: center; gap: 12px;
+    z-index: 1000;
+  }
+  .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--muted);
+    transition: all .3s ease; cursor: pointer;
+  }
+  .dot.on {
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    width: 20px; border-radius: 3px;
+  }
+
+  #slide-counter {
+    position: fixed; top: 28px; right: 40px;
+    font-size: 11px; color: var(--muted);
+    letter-spacing: .15em;
+    z-index: 1000;
+  }
+  #slide-counter span { color: var(--green); }
+
+  /* ─── ARROWS ─── */
+  .arrow {
+    position: fixed; top: 50%; transform: translateY(-50%);
+    width: 44px; height: 44px;
+    border: 1px solid var(--border);
+    background: rgba(13,19,32,.8);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; z-index: 1000;
+    transition: all .2s ease;
+    font-size: 16px; color: var(--muted);
+  }
+  .arrow:hover { border-color: var(--green); color: var(--green); box-shadow: 0 0 12px var(--border); }
+  #prev { left: 24px; }
+  #next { right: 24px; }
+
+  /* ─── GRID BG ─── */
+  .grid-bg {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(0,230,118,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,230,118,.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+  }
+
+  /* ─── GLOW ORBS ─── */
+  .orb {
+    position: absolute; border-radius: 50%;
+    filter: blur(80px); pointer-events: none; opacity: .18;
+  }
+
+  /* ─── SLIDE 1: COVER ─── */
+  #s1 { justify-content: center; align-items: flex-start; }
+  #s1 .grid-bg { opacity: .6; }
+
+  .cover-tag {
+    font-size: 10px; letter-spacing: .25em; color: var(--green);
+    border: 1px solid var(--green);
+    padding: 4px 12px; border-radius: 2px;
+    margin-bottom: 40px;
+    position: relative;
+  }
+  .cover-tag::before {
+    content: '▶';
+    margin-right: 8px; font-size: 8px;
+    animation: blink 1s step-end infinite;
+  }
+
+  .cover-title {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(56px, 8vw, 96px);
+    font-weight: 900;
+    line-height: .95;
+    letter-spacing: -.02em;
+    color: var(--white);
+    margin-bottom: 8px;
+  }
+  .cover-title .hl {
+    color: transparent;
+    -webkit-text-stroke: 1px var(--green);
+    text-stroke: 1px var(--green);
+  }
+
+  .cover-sub {
+    font-size: 14px; color: var(--muted);
+    letter-spacing: .08em;
+    margin-top: 20px; margin-bottom: 48px;
+    max-width: 420px;
+    line-height: 1.7;
+  }
+
+  .terminal-line {
+    font-size: 12px; color: var(--green);
+    margin-bottom: 6px;
+  }
+  .terminal-line .prompt { color: var(--muted); margin-right: 8px; }
+  .cursor {
+    display: inline-block; width: 8px; height: 14px;
+    background: var(--green); vertical-align: middle;
+    animation: blink .8s step-end infinite;
+  }
+
+  .cover-meta {
+    position: absolute; bottom: 60px; right: 80px;
+    text-align: right; font-size: 11px; color: var(--muted);
+    line-height: 1.8;
+  }
+  .cover-meta strong { color: var(--white); display: block; font-size: 13px; }
+
+  .cover-badge {
+    position: absolute; top: 60px; right: 80px;
+    display: flex; gap: 8px;
+  }
+  .badge {
+    font-size: 10px; letter-spacing: .1em;
+    padding: 4px 10px;
+    border-radius: 2px;
+    background: rgba(0,230,118,.08);
+    border: 1px solid rgba(0,230,118,.2);
+    color: var(--green);
+  }
+  .badge.orange { background: rgba(255,107,53,.08); border-color: rgba(255,107,53,.2); color: var(--orange); }
+  .badge.blue { background: rgba(79,195,247,.08); border-color: rgba(79,195,247,.2); color: var(--blue); }
+
+  /* ─── SLIDE 2: PROBLEM ─── */
+  .slide-label {
+    font-size: 10px; letter-spacing: .3em; color: var(--orange);
+    margin-bottom: 16px; align-self: flex-start;
+  }
+  .slide-title {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(28px, 4vw, 48px);
+    font-weight: 700; line-height: 1.1;
+    margin-bottom: 48px;
+    align-self: flex-start;
+  }
+  .slide-title em { font-style: normal; color: var(--orange); }
+
+  .problem-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    width: 100%; max-width: 900px;
+  }
+  .problem-card {
+    background: var(--bg2);
+    border: 1px solid rgba(255,107,53,.12);
+    border-left: 3px solid var(--orange);
+    padding: 24px 28px;
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+  }
+  .problem-card::before {
+    content: attr(data-n);
+    position: absolute; top: -10px; right: 16px;
+    font-family: 'Orbitron', monospace;
+    font-size: 48px; font-weight: 900;
+    color: rgba(255,107,53,.06);
+    line-height: 1;
+  }
+  .problem-card h3 { font-size: 13px; color: var(--orange); margin-bottom: 8px; letter-spacing: .05em; }
+  .problem-card p { font-size: 12px; color: var(--muted); line-height: 1.7; font-family: 'Inter', sans-serif; }
+
+  .problem-stat {
+    margin-top: 32px;
+    padding: 20px 32px;
+    background: rgba(255,107,53,.05);
+    border: 1px solid rgba(255,107,53,.15);
+    border-radius: 4px;
+    font-size: 13px; color: var(--white);
+    width: 100%; max-width: 900px;
+    text-align: center;
+    font-family: 'Inter', sans-serif;
+  }
+  .problem-stat strong { color: var(--orange); }
+
+  /* ─── SLIDE 3: SOLUTION ─── */
+  .solution-wrap { width: 100%; max-width: 900px; }
+  .solution-flow {
+    display: flex; align-items: center; gap: 0;
+    margin: 40px 0;
+  }
+  .flow-step {
+    flex: 1;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 28px 20px;
+    text-align: center;
+    position: relative;
+  }
+  .flow-step .icon {
+    font-size: 32px; margin-bottom: 12px; display: block;
+  }
+  .flow-step h3 {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px; letter-spacing: .1em;
+    color: var(--green); margin-bottom: 8px;
+  }
+  .flow-step p { font-size: 11px; color: var(--muted); font-family: 'Inter', sans-serif; line-height: 1.5; }
+  .flow-arrow {
+    width: 40px; text-align: center;
+    color: var(--green); font-size: 18px;
+    flex-shrink: 0;
+    animation: pulse-arrow 1.5s ease-in-out infinite;
+  }
+
+  .solution-quote {
+    padding: 20px 28px;
+    border-left: 3px solid var(--green);
+    background: rgba(0,230,118,.04);
+    font-size: 14px; color: var(--white);
+    line-height: 1.7;
+    font-family: 'Inter', sans-serif;
+    font-style: italic;
+  }
+  .solution-quote strong { color: var(--green); font-style: normal; }
+
+  /* ─── SLIDE 4: FEATURES ─── */
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    width: 100%; max-width: 960px;
+  }
+  .feat-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 22px;
+    transition: border-color .2s, transform .2s;
+    position: relative; overflow: hidden;
+  }
+  .feat-card:hover { border-color: var(--green); transform: translateY(-2px); }
+  .feat-card .f-icon { font-size: 22px; margin-bottom: 12px; }
+  .feat-card h3 {
+    font-size: 11px; letter-spacing: .1em;
+    color: var(--green); margin-bottom: 8px;
+    font-family: 'Orbitron', monospace;
+  }
+  .feat-card p { font-size: 11px; color: var(--muted); line-height: 1.6; font-family: 'Inter', sans-serif; }
+  .feat-card .corner {
+    position: absolute; top: 0; right: 0;
+    width: 0; height: 0;
+    border-style: solid;
+    border-width: 0 20px 20px 0;
+    border-color: transparent var(--green) transparent transparent;
+    opacity: .3;
+  }
+
+  /* ─── SLIDE 5: STACK ─── */
+  .stack-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    width: 100%; max-width: 900px;
+  }
+  .stack-group h3 {
+    font-size: 10px; letter-spacing: .25em; color: var(--muted);
+    margin-bottom: 16px; border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+  }
+  .stack-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,.03);
+  }
+  .stack-item:last-child { border-bottom: none; }
+  .stack-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .stack-item .name { font-size: 13px; color: var(--white); flex: 1; }
+  .stack-item .role { font-size: 10px; color: var(--muted); font-family: 'Inter', sans-serif; }
+
+  .stack-diagram {
+    grid-column: 1 / -1;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 24px;
+    font-size: 11px; color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    line-height: 1.8;
+  }
+  .stack-diagram .c-green { color: var(--green); }
+  .stack-diagram .c-blue { color: var(--blue); }
+  .stack-diagram .c-orange { color: var(--orange); }
+  .stack-diagram .c-purple { color: var(--purple); }
+
+  /* ─── SLIDE 6: RESULTS ─── */
+  .results-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    width: 100%; max-width: 960px;
+    margin-bottom: 32px;
+  }
+  .result-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 28px 16px;
+    text-align: center;
+  }
+  .result-num {
+    font-family: 'Orbitron', monospace;
+    font-size: 36px; font-weight: 900;
+    color: var(--green);
+    line-height: 1;
+    margin-bottom: 8px;
+    text-shadow: 0 0 20px rgba(0,230,118,.3);
+  }
+  .result-label {
+    font-size: 10px; letter-spacing: .1em;
+    color: var(--muted);
+    font-family: 'Inter', sans-serif;
+    line-height: 1.5;
+  }
+
+  .results-checks {
+    width: 100%; max-width: 960px;
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .check-item {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 14px 20px;
+    background: var(--bg2); border-radius: 4px;
+    border: 1px solid var(--border);
+    font-size: 12px; font-family: 'Inter', sans-serif; line-height: 1.5;
+  }
+  .check-item .ck { color: var(--green); font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+
+  /* ─── SLIDE 7: ROADMAP ─── */
+  .roadmap-list {
+    width: 100%; max-width: 760px;
+    position: relative;
+  }
+  .roadmap-list::before {
+    content: '';
+    position: absolute; left: 20px; top: 0; bottom: 0;
+    width: 1px; background: var(--border);
+  }
+  .road-item {
+    display: flex; gap: 32px;
+    padding: 20px 0 20px 60px;
+    position: relative;
+    border-bottom: 1px solid rgba(255,255,255,.03);
+  }
+  .road-item:last-child { border-bottom: none; }
+  .road-dot {
+    position: absolute; left: 12px; top: 26px;
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 2px solid var(--border);
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 7px; color: var(--muted);
+  }
+  .road-dot.done { border-color: var(--green); background: rgba(0,230,118,.1); color: var(--green); }
+  .road-dot.next { border-color: var(--orange); background: rgba(255,107,53,.1); color: var(--orange); }
+  .road-content h3 { font-size: 13px; color: var(--white); margin-bottom: 4px; }
+  .road-content p { font-size: 11px; color: var(--muted); font-family: 'Inter', sans-serif; line-height: 1.5; }
+  .road-tag {
+    font-size: 9px; letter-spacing: .1em;
+    padding: 2px 8px; border-radius: 2px;
+    margin-left: 8px; vertical-align: middle;
+  }
+  .road-tag.done { background: rgba(0,230,118,.1); color: var(--green); }
+  .road-tag.next { background: rgba(255,107,53,.1); color: var(--orange); }
+  .road-tag.soon { background: rgba(79,195,247,.1); color: var(--blue); }
+
+  /* ─── SLIDE 7: ANALYTICS ─── */
+  .analytics-grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr;
+    gap: 18px;
+    width: 100%; max-width: 1060px;
+  }
+  .chart-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    display: flex; flex-direction: column;
+  }
+  .chart-card-title {
+    font-size: 9px; letter-spacing: .2em; color: var(--muted);
+    margin-bottom: 4px;
+    font-family: 'Space Mono', monospace;
+  }
+  .chart-card-val {
+    font-family: 'Orbitron', monospace;
+    font-size: 22px; font-weight: 700;
+    margin-bottom: 14px;
+  }
+  .chart-card-val .unit { font-size: 11px; color: var(--muted); margin-left: 4px; font-family: 'Inter', sans-serif; }
+  .chart-wrap { flex: 1; position: relative; min-height: 160px; }
+  .analytics-bottom {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    width: 100%; max-width: 1060px;
+    margin-top: 16px;
+  }
+  .stat-pill {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 16px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .stat-pill .sp-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .stat-pill .sp-lbl { font-size: 10px; color: var(--muted); font-family: 'Inter', sans-serif; flex: 1; }
+  .stat-pill .sp-val { font-family: 'Orbitron', monospace; font-size: 13px; font-weight: 700; }
+
+  /* ─── SLIDE 9: CONTACT ─── */
+  #s9 { align-items: center; }
+  .contact-box {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 52px 64px;
+    text-align: center;
+    max-width: 600px; width: 100%;
+    position: relative; overflow: hidden;
+  }
+  .contact-box::before {
+    content: '';
+    position: absolute; inset: -1px;
+    background: linear-gradient(135deg, rgba(0,230,118,.2), transparent 50%, rgba(255,107,53,.1));
+    border-radius: 8px;
+    z-index: -1;
+  }
+  .contact-avatar {
+    width: 72px; height: 72px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--green), var(--blue));
+    margin: 0 auto 24px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Orbitron', monospace;
+    font-size: 24px; font-weight: 900; color: var(--bg);
+  }
+  .contact-name {
+    font-family: 'Orbitron', monospace;
+    font-size: 22px; font-weight: 700; color: var(--white);
+    margin-bottom: 6px;
+  }
+  .contact-role {
+    font-size: 11px; color: var(--muted); letter-spacing: .15em;
+    margin-bottom: 36px;
+  }
+  .contact-links { display: flex; flex-direction: column; gap: 12px; }
+  .contact-link {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 20px;
+    background: rgba(0,0,0,.3);
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: 6px;
+    font-size: 13px; color: var(--white);
+    text-decoration: none;
+    transition: border-color .2s, background .2s;
+    font-family: 'Inter', sans-serif;
+  }
+  .contact-link:hover { border-color: var(--green); background: rgba(0,230,118,.05); }
+  .contact-link .icon-wrap {
+    width: 32px; height: 32px; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .contact-link .lbl { flex: 1; text-align: left; }
+  .contact-link .val { color: var(--muted); font-size: 12px; }
+
+  /* ─── ANIMATIONS ─── */
+  @keyframes blink { 50% { opacity: 0; } }
+  @keyframes pulse-arrow {
+    0%, 100% { transform: translateX(0); opacity: 1; }
+    50% { transform: translateX(4px); opacity: .6; }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-12px); }
+  }
+  @keyframes count-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+  /* STAGGER animation for active slide children */
+  .slide.active .stagger > * {
+    animation: fadeUp .5s ease both;
+  }
+  .slide.active .stagger > *:nth-child(1) { animation-delay: .05s; }
+  .slide.active .stagger > *:nth-child(2) { animation-delay: .1s; }
+  .slide.active .stagger > *:nth-child(3) { animation-delay: .15s; }
+  .slide.active .stagger > *:nth-child(4) { animation-delay: .2s; }
+  .slide.active .stagger > *:nth-child(5) { animation-delay: .25s; }
+  .slide.active .stagger > *:nth-child(6) { animation-delay: .3s; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  .ai-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 10px; color: var(--purple);
+    border: 1px solid rgba(179,136,255,.2);
+    background: rgba(179,136,255,.06);
+    padding: 3px 10px; border-radius: 2px;
+    letter-spacing: .1em;
+    vertical-align: middle;
+    margin-left: 10px;
+  }
+  .ai-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--purple);
+    animation: blink .7s ease-in-out infinite;
+  }
+
+  /* ─── SLIDE 3: DASHBOARD MOCK ─── */
+  #s3 { flex-direction: row; align-items: center; justify-content: center; }
+  .s3-layout {
+    display: grid;
+    grid-template-columns: 1fr 390px;
+    gap: 52px;
+    align-items: center;
+    width: 100%; max-width: 1120px;
+  }
+  .s3-left { display: flex; flex-direction: column; }
+  .s3-left .slide-label, .s3-left .slide-title { align-self: flex-start; }
+  .s3-left .slide-title { margin-bottom: 28px; }
+  .s3-left .solution-flow { margin: 0 0 20px; }
+  .s3-left .solution-flow .flow-step { padding: 18px 12px; }
+  .s3-left .solution-flow .flow-step .icon { font-size: 22px; margin-bottom: 8px; }
+
+  .dash-mock {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    font-family: 'Inter', sans-serif;
+    box-shadow: 0 0 40px rgba(0,230,118,.07), 0 20px 60px rgba(0,0,0,.5);
+  }
+  .dash-chrome {
+    background: #0a0f1a;
+    border-bottom: 1px solid var(--border);
+    padding: 8px 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .chrome-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .chrome-url {
+    flex: 1; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.06);
+    border-radius: 4px; padding: 4px 10px;
+    font-size: 9px; color: var(--muted); letter-spacing: .02em;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .chrome-url .lock { color: var(--green); font-size: 8px; }
+  .dash-header {
+    background: rgba(0,230,118,.04);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 14px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .dash-title { font-family: 'Orbitron', monospace; font-size: 10px; color: var(--green); letter-spacing: .1em; }
+  .dash-live { display: flex; align-items: center; gap: 5px; font-size: 8px; color: var(--green); letter-spacing: .15em; }
+  .live-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); animation: blink .8s ease-in-out infinite; }
+
+  .dash-kpi {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+  }
+  .kpi-item {
+    flex: 1; padding: 10px 12px; text-align: center;
+    border-right: 1px solid var(--border);
+  }
+  .kpi-item:last-child { border-right: none; }
+  .kpi-n { display: block; font-family: 'Orbitron', monospace; font-size: 16px; font-weight: 700; color: var(--green); }
+  .kpi-l { font-size: 8px; color: var(--muted); letter-spacing: .04em; }
+
+  .dash-leads { padding: 8px; display: flex; flex-direction: column; gap: 5px; }
+  .dash-lead {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: 4px;
+    background: rgba(255,255,255,.015);
+    border: 1px solid rgba(255,255,255,.04);
+    border-left: 2px solid transparent;
+  }
+  .dash-lead.hi { border-left-color: var(--green); }
+  .dash-lead.md { border-left-color: #ffd600; }
+
+  .lead-score {
+    width: 34px; height: 34px; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Orbitron', monospace; font-size: 9px; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .lead-score.hi { background: rgba(0,230,118,.1); color: var(--green); }
+  .lead-score.md { background: rgba(255,214,0,.1); color: #ffd600; }
+
+  .lead-info { flex: 1; min-width: 0; }
+  .lead-title-t { font-size: 10px; color: var(--white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
+  .lead-meta-t { font-size: 8px; color: var(--muted); margin-bottom: 3px; }
+  .lead-tags-t { display: flex; gap: 3px; }
+  .lead-tags-t span {
+    font-size: 7px; padding: 1px 5px; border-radius: 2px;
+    background: rgba(179,136,255,.1); color: var(--purple);
+    border: 1px solid rgba(179,136,255,.15);
+  }
+  .new-badge {
+    display: inline-block;
+    font-size: 7px; padding: 1px 5px; border-radius: 2px;
+    background: rgba(255,107,53,.2); color: var(--orange);
+    vertical-align: middle; margin-left: 5px;
+    animation: blink .6s step-end infinite;
+  }
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+
+<div id="slide-counter"><span id="cur">1</span> / <span id="tot">8</span></div>
+
+<div id="nav"></div>
+
+<button class="arrow" id="prev" onclick="go(-1)">&#8592;</button>
+<button class="arrow" id="next" onclick="go(1)">&#8594;</button>
+
+<div class="slides">
+
+  <!-- ══════════ SLIDE 1: COVER ══════════ -->
+  <div class="slide active" id="s1">
+    <div class="grid-bg"></div>
+    <div class="orb" style="width:400px;height:400px;background:var(--green);top:-100px;right:-50px;"></div>
+    <div class="orb" style="width:300px;height:300px;background:var(--orange);bottom:-80px;left:100px;"></div>
+
+    <div class="cover-badge">
+      <span class="badge">v1.0</span>
+      <span class="badge orange">PRODUCTION</span>
+      <span class="badge blue">AI-POWERED</span>
+    </div>
+
+    <div class="cover-tag">PORTFOLIO PROJECT</div>
+
+    <div class="cover-title">
+      LEAD<br><span class="hl">PARSER</span>
+    </div>
+    <p class="cover-sub">Умный парсер для поиска заказов на базе AI</p>
+
+    <div>
+      <div class="terminal-line"><span class="prompt">~/lead-parser $</span> status --all</div>
+      <div class="terminal-line"><span class="prompt">›</span> sources: FL.ru · Habr · Kwork · Freelance.ru</div>
+      <div class="terminal-line"><span class="prompt">›</span> ai-model: Claude 3.5 Sonnet</div>
+      <div class="terminal-line"><span class="prompt">›</span> uptime: 24/7 on VPS <span class="cursor"></span></div>
+    </div>
+
+    <div class="cover-meta">
+      <strong>Александр Бадеев</strong>
+      Full-stack Developer<br>
+      badeev777@gmail.com<br>
+      @CowboyAleksandr
+    </div>
+  </div>
+
+  <!-- ══════════ SLIDE 2: PROBLEM ══════════ -->
+  <div class="slide" id="s2">
+    <div class="grid-bg" style="opacity:.3"></div>
+    <div class="orb" style="width:350px;height:350px;background:var(--orange);top:-100px;left:-100px;"></div>
+
+    <div class="slide-label">01 / ПРОБЛЕМА</div>
+    <div class="slide-title">Боль <em>фрилансера</em><br>каждое утро</div>
+
+    <div class="problem-grid stagger">
+      <div class="problem-card" data-n="01">
+        <h3>⏱ ПОТЕРЯ ВРЕМЕНИ</h3>
+        <p>30+ минут в день на ручной мониторинг FL.ru, Habr и Kwork — и это каждый день, без выходных.</p>
+      </div>
+      <div class="problem-card" data-n="02">
+        <h3>💸 УПУЩЕННЫЕ ЗАКАЗЫ</h3>
+        <p>Лучшие заказы уходят за первые 10 минут. Пока открываешь все вкладки — уже поздно.</p>
+      </div>
+      <div class="problem-card" data-n="03">
+        <h3>🔍 ИНФОРМАЦИОННЫЙ ШУМ</h3>
+        <p>Нерелевантные посты, нереальные бюджеты, резюме вместо заказов — всё вперемешку.</p>
+      </div>
+      <div class="problem-card" data-n="04">
+        <h3>📊 НЕТ АНАЛИТИКИ</h3>
+        <p>Невозможно понять, где больше заказов по твоему профилю и какой средний бюджет на рынке.</p>
+      </div>
+    </div>
+
+    <div class="problem-stat">
+      Фрилансер тратит до <strong>150+ часов в год</strong> только на ручной поиск заказов —<br>
+      это почти <strong>4 рабочих недели</strong>, которые можно потратить на работу
+    </div>
+  </div>
+
+  <!-- ══════════ SLIDE 3: SOLUTION ══════════ -->
+  <div class="slide" id="s3">
+    <div class="grid-bg" style="opacity:.25"></div>
+    <div class="orb" style="width:300px;height:300px;background:var(--green);bottom:-50px;right:-30px;"></div>
+
+    <div class="s3-layout">
+      <!-- LEFT: text + flow -->
+      <div class="s3-left">
+        <div class="slide-label">02 / РЕШЕНИЕ</div>
+        <div class="slide-title">Один дашборд.<br>AI расставляет <em style="color:var(--green)">приоритеты.</em></div>
+
+        <div class="solution-flow">
+          <div class="flow-step">
+            <span class="icon">🕷️</span>
+            <h3>ПАРСИНГ</h3>
+            <p>FL.ru, Habr, Kwork, Freelance.ru — каждые 10 мин</p>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">
+            <span class="icon">🤖</span>
+            <h3>AI-АНАЛИЗ</h3>
+            <p>Claude: релевантность, теги, бюджет</p>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="flow-step">
+            <span class="icon">📲</span>
+            <h3>УВЕДОМЛЕНИЕ</h3>
+            <p>Telegram только ≥70% релевантности</p>
+          </div>
+        </div>
+
+        <div class="solution-quote">
+          Вместо ручного мониторинга — <strong>умный фильтр</strong>, который работает 24/7 и присылает только то, что важно. Экономия: <strong>30+ минут каждый день.</strong>
+        </div>
+      </div>
+
+      <!-- RIGHT: dashboard mock -->
+      <div class="dash-mock">
+        <!-- browser chrome -->
+        <div class="dash-chrome">
+          <div class="chrome-dot" style="background:#ff5f57"></div>
+          <div class="chrome-dot" style="background:#febc2e"></div>
+          <div class="chrome-dot" style="background:#28c840"></div>
+          <div class="chrome-url">
+            <span class="lock">🔒</span>
+            155.212.208.194:8000/leads/
+          </div>
+        </div>
+        <!-- app header -->
+        <div class="dash-header">
+          <span class="dash-title">⚡ LEAD PARSER</span>
+          <div class="dash-live"><div class="live-dot"></div>LIVE</div>
+        </div>
+        <!-- kpi row -->
+        <div class="dash-kpi">
+          <div class="kpi-item"><span class="kpi-n">47</span><span class="kpi-l">Лидов</span></div>
+          <div class="kpi-item"><span class="kpi-n">12</span><span class="kpi-l">Сегодня</span></div>
+          <div class="kpi-item"><span class="kpi-n">68%</span><span class="kpi-l">Ср. оценка</span></div>
+        </div>
+        <!-- leads list -->
+        <div class="dash-leads">
+          <div class="dash-lead hi">
+            <div class="lead-score hi">95%</div>
+            <div class="lead-info">
+              <div class="lead-title-t">E-commerce на WooCommerce</div>
+              <div class="lead-meta-t">FL.ru · 140 000 ₽</div>
+              <div class="lead-tags-t"><span>fullstack</span><span>woocommerce</span></div>
+            </div>
+          </div>
+          <div class="dash-lead hi">
+            <div class="lead-score hi">88%</div>
+            <div class="lead-info">
+              <div class="lead-title-t">Лендинг для стоматологии</div>
+              <div class="lead-meta-t">Kwork · 75 000 ₽</div>
+              <div class="lead-tags-t"><span>landing</span><span>react</span></div>
+            </div>
+          </div>
+          <div class="dash-lead md">
+            <div class="lead-score md">72%</div>
+            <div class="lead-info">
+              <div class="lead-title-t">SEO-продвижение сайта</div>
+              <div class="lead-meta-t">Habr · 55 000 ₽</div>
+              <div class="lead-tags-t"><span>seo</span><span>analytics</span></div>
+            </div>
+          </div>
+          <div class="dash-lead hi">
+            <div class="lead-score hi">92%</div>
+            <div class="lead-info">
+              <div class="lead-title-t">Корпоративный сайт <span class="new-badge">NEW</span></div>
+              <div class="lead-meta-t">FL.ru · 115 000 ₽</div>
+              <div class="lead-tags-t"><span>corporate</span><span>backend</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ SLIDE 4: FEATURES ══════════ -->
+  <div class="slide" id="s4">
+    <div class="grid-bg" style="opacity:.2"></div>
+
+    <div class="slide-label">03 / ВОЗМОЖНОСТИ</div>
+    <div class="slide-title">Что умеет <em style="color:var(--green)">система</em></div>
+
+    <div class="features-grid stagger">
+      <div class="feat-card">
+        <div class="corner"></div>
+        <div class="f-icon">🕷️</div>
+        <h3>МУЛЬТИСОРС ПАРСИНГ</h3>
+        <p>FL.ru, Habr, Kwork, Freelance.ru — четыре источника, цикл обновления 10 минут. Новые заказы не пропустишь.</p>
+      </div>
+      <div class="feat-card">
+        <div class="corner"></div>
+        <div class="f-icon">🧠</div>
+        <h3>AI-СКОРИНГ</h3>
+        <p>Claude 3.5 анализирует каждый заказ: релевантность 0–100%, автотеги, резюме, оценка бюджета.</p>
+      </div>
+      <div class="feat-card">
+        <div class="corner"></div>
+        <div class="f-icon">🎨</div>
+        <h3>ЦВЕТОВОЙ ПРИОРИТЕТ</h3>
+        <p>🟢 ≥80% высокий / 🟡 50–79% средний / 🔴 &lt;50% низкий — одним взглядом понятно что важно.</p>
+      </div>
+      <div class="feat-card">
+        <div class="corner"></div>
+        <div class="f-icon">📲</div>
+        <h3>TELEGRAM-БОТ</h3>
+        <p>Мгновенные уведомления о топ-лидах прямо в мессенджер. Фильтр по порогу релевантности.</p>
+      </div>
+      <div class="feat-card">
+        <div class="corner"></div>
+        <div class="f-icon">📊</div>
+        <h3>АНАЛИТИКА</h3>
+        <p>KPI-карточки, 3 интерактивных графика, таблица по платформам, экспорт в CSV.</p>
+      </div>
+      <div class="feat-card">
+        <div class="corner"></div>
+        <div class="f-icon">⚙️</div>
+        <h3>PRODUCTION READY</h3>
+        <p>Docker-контейнер, PostgreSQL/SQLite, Beget VPS, работает 24/7 без ручного вмешательства.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ SLIDE 5: STACK ══════════ -->
+  <div class="slide" id="s5">
+    <div class="grid-bg" style="opacity:.2"></div>
+    <div class="orb" style="width:280px;height:280px;background:var(--blue);top:-60px;right:-60px;"></div>
+
+    <div class="slide-label">04 / ТЕХНОЛОГИИ</div>
+    <div class="slide-title">Стек <em style="color:var(--blue)">разработки</em></div>
+
+    <div class="stack-layout">
+      <div class="stack-group">
+        <h3>BACKEND</h3>
+        <div class="stack-item">
+          <div class="stack-dot" style="background:var(--green)"></div>
+          <span class="name">Python + FastAPI</span>
+          <span class="role">Основной фреймворк</span>
+        </div>
+        <div class="stack-item">
+          <div class="stack-dot" style="background:var(--green)"></div>
+          <span class="name">SQLAlchemy + Alembic</span>
+          <span class="role">ORM и миграции</span>
+        </div>
+        <div class="stack-item">
+          <div class="stack-dot" style="background:var(--green)"></div>
+          <span class="name">aiohttp + feedparser</span>
+          <span class="role">Асинхронный парсинг</span>
+        </div>
+        <div class="stack-item">
+          <div class="stack-dot" style="background:var(--green)"></div>
+          <span class="name">aiogram</span>
+          <span class="role">Telegram Bot API</span>
+        </div>
+      </div>
+
+      <div class="stack-group">
+        <h3>AI / ИНФРАСТРУКТУРА</h3>
+        <div class="stack-item">
+          <div class="stack-dot" style="background:var(--purple)"></div>
+          <span class="name">Claude 3.5 Sonnet</span>
+          <span class="role">AI-анализ заказов</span>
+        </div>
+        <div class="stack-item">
+          <div class="stack-dot" style="background:var(--purple)"></div>
+          <span class="name">OpenRouter API</span>
+          <span class="role">LLM провайдер</span>
+        </div>
+        <div class="stack-item">
+          <div class="stack-dot" style="background:var(--orange)"></div>
+          <span class="name">Docker</span>
+          <span class="role">Контейнеризация</span>
+        </div>
+        <div class="stack-item">
+          <div class="stack-dot" style="background:var(--orange)"></div>
+          <span class="name">Beget VPS Ubuntu 24.04</span>
+          <span class="role">Хостинг, 24/7</span>
+        </div>
+      </div>
+
+      <div class="stack-diagram">
+<span class="c-green">FL.ru</span> · <span class="c-green">Habr</span> · <span class="c-green">Kwork</span> · <span class="c-green">Freelance.ru</span>
+  <span class="c-muted">↓</span> feedparser / aiohttp (каждые <span class="c-orange">10 мин</span>)
+<span class="c-blue">FastAPI</span> → SQLite/PostgreSQL
+  <span class="c-muted">↓</span> OpenRouter → <span class="c-purple">Claude 3.5</span>
+<span class="c-orange">score</span> + <span class="c-orange">tags</span> + <span class="c-orange">budget</span> → <span class="c-green">Telegram</span> (if score ≥ 70)
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ SLIDE 6: RESULTS ══════════ -->
+  <div class="slide" id="s6">
+    <div class="grid-bg" style="opacity:.2"></div>
+    <div class="orb" style="width:320px;height:320px;background:var(--green);bottom:-80px;left:-80px;"></div>
+
+    <div class="slide-label">05 / РЕЗУЛЬТАТЫ</div>
+    <div class="slide-title">Что <em style="color:var(--green)">получилось</em></div>
+
+    <div class="results-grid stagger">
+      <div class="result-card">
+        <div class="result-num" data-target="4" data-suffix="">0</div>
+        <div class="result-label">ИСТОЧНИКА<br>ЗАКАЗОВ</div>
+      </div>
+      <div class="result-card">
+        <div class="result-num" data-target="10" data-suffix="">0</div>
+        <div class="result-label">МИН ЦИКЛ<br>ОБНОВЛЕНИЯ</div>
+      </div>
+      <div class="result-card">
+        <div class="result-num" data-target="70" data-suffix="%">0%</div>
+        <div class="result-label">ПОРОГ<br>УВЕДОМЛЕНИЙ</div>
+      </div>
+      <div class="result-card">
+        <div class="result-num" data-target="24" data-suffix="/7">0/7</div>
+        <div class="result-label">РАБОТА БЕЗ<br>ОСТАНОВОК</div>
+      </div>
+    </div>
+
+    <div class="results-checks stagger">
+      <div class="check-item"><span class="ck">✓</span>Задеплоен на Beget VPS — работает в production</div>
+      <div class="check-item"><span class="ck">✓</span>AI-анализ каждого лида: релевантность + бюджет + теги</div>
+      <div class="check-item"><span class="ck">✓</span>Telegram-бот с умной фильтрацией по порогу</div>
+      <div class="check-item"><span class="ck">✓</span>Аналитика с графиками и экспортом в CSV</div>
+      <div class="check-item"><span class="ck">✓</span>Экономия 30+ минут ежедневно на мониторинге</div>
+      <div class="check-item"><span class="ck">✓</span>Docker-контейнер, переносимая архитектура</div>
+    </div>
+  </div>
+
+  <!-- ══════════ SLIDE 7: ANALYTICS ══════════ -->
+  <div class="slide" id="s7">
+    <div class="grid-bg" style="opacity:.2"></div>
+    <div class="orb" style="width:340px;height:340px;background:var(--blue);top:-80px;right:-80px;"></div>
+    <div class="orb" style="width:260px;height:260px;background:var(--green);bottom:-60px;left:-60px;"></div>
+
+    <div class="slide-label">05 / АНАЛИТИКА</div>
+    <div class="slide-title" style="margin-bottom:28px">Данные в <em style="color:var(--blue)">реальном времени</em></div>
+
+    <div class="analytics-grid">
+      <!-- Bar: leads by source -->
+      <div class="chart-card">
+        <div class="chart-card-title">ЛИДЫ ПО ИСТОЧНИКАМ</div>
+        <div class="chart-card-val" style="color:var(--green)">68 <span class="unit">лидов всего</span></div>
+        <div class="chart-wrap"><canvas id="chartSources"></canvas></div>
+      </div>
+      <!-- Line: daily trend -->
+      <div class="chart-card">
+        <div class="chart-card-title">АКТИВНОСТЬ ЗА НЕДЕЛЮ</div>
+        <div class="chart-card-val" style="color:var(--blue)">+34% <span class="unit">к прошлой неделе</span></div>
+        <div class="chart-wrap"><canvas id="chartTrend"></canvas></div>
+      </div>
+      <!-- Doughnut: relevance tiers -->
+      <div class="chart-card">
+        <div class="chart-card-title">РАСПРЕДЕЛЕНИЕ ПО РЕЛЕВАНТНОСТИ</div>
+        <div class="chart-card-val" style="color:var(--orange)">68% <span class="unit">средняя оценка</span></div>
+        <div class="chart-wrap"><canvas id="chartRelevance"></canvas></div>
+      </div>
+    </div>
+
+    <div class="analytics-bottom">
+      <div class="stat-pill">
+        <div class="sp-dot" style="background:var(--green)"></div>
+        <span class="sp-lbl">Высокие (≥80%)</span>
+        <span class="sp-val" style="color:var(--green)">18</span>
+      </div>
+      <div class="stat-pill">
+        <div class="sp-dot" style="background:#ffd600"></div>
+        <span class="sp-lbl">Средние (50–79%)</span>
+        <span class="sp-val" style="color:#ffd600">21</span>
+      </div>
+      <div class="stat-pill">
+        <div class="sp-dot" style="background:var(--orange)"></div>
+        <span class="sp-lbl">Низкие (&lt;50%)</span>
+        <span class="sp-val" style="color:var(--orange)">8</span>
+      </div>
+      <div class="stat-pill">
+        <div class="sp-dot" style="background:var(--blue)"></div>
+        <span class="sp-lbl">Отправлено в TG</span>
+        <span class="sp-val" style="color:var(--blue)">18</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ SLIDE 8: ROADMAP ══════════ -->
+  <div class="slide" id="s8">
+    <div class="grid-bg" style="opacity:.2"></div>
+
+    <div class="slide-label">07 / ROADMAP</div>
+    <div class="slide-title">Что <em style="color:var(--orange)">дальше</em></div>
+
+    <div class="roadmap-list">
+      <div class="road-item">
+        <div class="road-dot done">✓</div>
+        <div class="road-content">
+          <h3>MVP: 3 источника + AI-анализ <span class="road-tag done">ГОТОВО</span></h3>
+          <p>FL.ru, Habr, Kwork + Claude scoring + Telegram-бот + деплой на VPS</p>
+        </div>
+      </div>
+      <div class="road-item">
+        <div class="road-dot done">✓</div>
+        <div class="road-content">
+          <h3>Аналитический дашборд <span class="road-tag done">ГОТОВО</span></h3>
+          <p>KPI-карточки, графики, CSV-экспорт, таблица по платформам</p>
+        </div>
+      </div>
+      <div class="road-item">
+        <div class="road-dot done">✓</div>
+        <div class="road-content">
+          <h3>Profi.ru + Freelance.ru парсинг <span class="road-tag done">ГОТОВО</span></h3>
+          <p>Playwright для JS-рендеринга Profi.ru, httpx + BS4 для Freelance.ru</p>
+        </div>
+      </div>
+      <div class="road-item">
+        <div class="road-dot next">→</div>
+        <div class="road-content">
+          <h3>Workzilla + VK парсинг <span class="road-tag next">СЛЕДУЮЩИЙ</span></h3>
+          <p>Workzilla open tasks (требуется авторизация), VK Groups API для постов с заказами</p>
+        </div>
+      </div>
+      <div class="road-item">
+        <div class="road-dot"></div>
+        <div class="road-content">
+          <h3>Умный скоринг на истории <span class="road-tag soon">ИДЕЯ</span></h3>
+          <p>Модель обучается на твоих откликах — со временем предсказывает успех заявки</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ SLIDE 9: CONTACT ══════════ -->
+  <div class="slide" id="s9">
+    <div class="grid-bg" style="opacity:.2"></div>
+    <div class="orb" style="width:400px;height:400px;background:var(--green);top:-150px;right:-150px;"></div>
+    <div class="orb" style="width:300px;height:300px;background:var(--blue);bottom:-100px;left:-100px;"></div>
+
+    <div class="slide-label" style="margin-bottom:32px">08 / КОНТАКТЫ</div>
+
+    <div class="contact-box">
+      <div class="contact-avatar">А</div>
+      <div class="contact-name">Александр Бадеев</div>
+      <div class="contact-role">FULL-STACK DEVELOPER · AI INTEGRATIONS</div>
+      <div class="contact-links">
+        <a class="contact-link" href="mailto:badeev777@gmail.com">
+          <div class="icon-wrap" style="background:rgba(0,230,118,.1)">📧</div>
+          <span class="lbl">Email</span>
+          <span class="val">badeev777@gmail.com</span>
+        </a>
+        <a class="contact-link" href="#">
+          <div class="icon-wrap" style="background:rgba(79,195,247,.1)">✈️</div>
+          <span class="lbl">Telegram</span>
+          <span class="val">@CowboyAleksandr</span>
+        </a>
+        <a class="contact-link" href="http://155.212.208.194:8000/leads/" target="_blank">
+          <div class="icon-wrap" style="background:rgba(0,230,118,.08)">⚡</div>
+          <span class="lbl">Live Demo</span>
+          <span class="val" style="color:var(--green)">155.212.208.194:8000/leads/</span>
+        </a>
+        <a class="contact-link" href="#">
+          <div class="icon-wrap" style="background:rgba(179,136,255,.1)">🌐</div>
+          <span class="lbl">Portfolio</span>
+          <span class="val">Портфолио проектов</span>
+        </a>
+      </div>
+    </div>
+
+    <div style="margin-top:24px;font-size:10px;color:var(--muted);letter-spacing:.2em">
+      LEAD PARSER · 2026 · BUILT WITH PYTHON + AI
+    </div>
+  </div>
+
+</div><!-- /slides -->
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let cur = 0;
+
+  document.getElementById('tot').textContent = total;
+
+  // Build dots
+  const nav = document.getElementById('nav');
+  for (let i = 0; i < total; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' on' : '');
+    d.onclick = () => go(i - cur);
+    nav.appendChild(d);
+  }
+
+  function updateUI() {
+    document.getElementById('cur').textContent = cur + 1;
+    document.getElementById('progress').style.width = ((cur + 1) / total * 100) + '%';
+    document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('on', i === cur));
+  }
+
+  function countUp(el) {
+    const target = parseInt(el.dataset.target, 10);
+    const suffix = el.dataset.suffix || '';
+    const duration = 1200;
+    const steps = 40;
+    const step = duration / steps;
+    let i = 0;
+    el.textContent = '0' + suffix;
+    const id = setInterval(() => {
+      i++;
+      const val = Math.round(target * (i / steps));
+      el.textContent = val + suffix;
+      if (i >= steps) { clearInterval(id); el.textContent = target + suffix; }
+    }, step);
+  }
+
+  const RESULTS_SLIDE   = 5; // s6
+  const ANALYTICS_SLIDE = 6; // s7
+  let resultsAnimated = false;
+
+  // ─── CHART.JS THEME ───
+  Chart.defaults.color = '#546e7a';
+  Chart.defaults.font.family = "'Inter', sans-serif";
+  Chart.defaults.font.size = 10;
+
+  let chartInstances = {};
+
+  function buildCharts() {
+    const gOpts = (color) => ({
+      color: 'rgba(0,230,118,.06)',
+      lineWidth: 1,
+      drawTicks: false,
+    });
+
+    // destroy previous if any
+    Object.values(chartInstances).forEach(c => c.destroy());
+    chartInstances = {};
+
+    // ── 1. Bar: leads by source ──
+    chartInstances.sources = new Chart(document.getElementById('chartSources'), {
+      type: 'bar',
+      data: {
+        labels: ['FL.ru', 'Habr', 'Kwork', 'Freelance.ru'],
+        datasets: [{
+          data: [24, 15, 18, 11],
+          backgroundColor: ['rgba(0,230,118,.25)', 'rgba(79,195,247,.25)', 'rgba(255,107,53,.25)', 'rgba(179,136,255,.25)'],
+          borderColor:      ['#00e676', '#4fc3f7', '#ff6b35', '#b388ff'],
+          borderWidth: 1, borderRadius: 5, borderSkipped: false
+        }]
+      },
+      options: {
+        animation: { duration: 1000, easing: 'easeOutQuart' },
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: {
+          backgroundColor: '#0d1320', borderColor: 'rgba(0,230,118,.2)', borderWidth: 1,
+          titleColor: '#e8f0fe', bodyColor: '#546e7a'
+        }},
+        scales: {
+          y: { grid: { color: 'rgba(0,230,118,.06)' }, ticks: { color: '#546e7a' },
+               border: { color: 'transparent' } },
+          x: { grid: { display: false }, ticks: { color: '#546e7a' },
+               border: { color: 'transparent' } }
+        }
+      }
+    });
+
+    // ── 2. Line: weekly trend ──
+    chartInstances.trend = new Chart(document.getElementById('chartTrend'), {
+      type: 'line',
+      data: {
+        labels: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
+        datasets: [{
+          data: [5, 8, 6, 12, 9, 11, 6],
+          borderColor: '#4fc3f7',
+          backgroundColor: 'rgba(79,195,247,.08)',
+          borderWidth: 2, pointRadius: 4,
+          pointBackgroundColor: '#4fc3f7',
+          pointBorderColor: '#0d1320',
+          pointBorderWidth: 2,
+          tension: 0.4, fill: true
+        }]
+      },
+      options: {
+        animation: { duration: 1200, easing: 'easeOutCubic' },
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: {
+          backgroundColor: '#0d1320', borderColor: 'rgba(79,195,247,.2)', borderWidth: 1,
+          titleColor: '#e8f0fe', bodyColor: '#546e7a'
+        }},
+        scales: {
+          y: { grid: { color: 'rgba(79,195,247,.06)' }, ticks: { color: '#546e7a' },
+               border: { color: 'transparent' } },
+          x: { grid: { display: false }, ticks: { color: '#546e7a' },
+               border: { color: 'transparent' } }
+        }
+      }
+    });
+
+    // ── 3. Doughnut: relevance tiers ──
+    chartInstances.relevance = new Chart(document.getElementById('chartRelevance'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Высокие ≥80%', 'Средние 50–79%', 'Низкие <50%'],
+        datasets: [{
+          data: [18, 21, 8],
+          backgroundColor: ['rgba(0,230,118,.3)', 'rgba(255,214,0,.3)', 'rgba(255,107,53,.3)'],
+          borderColor:      ['#00e676', '#ffd600', '#ff6b35'],
+          borderWidth: 1, hoverOffset: 6
+        }]
+      },
+      options: {
+        animation: { duration: 1000, animateRotate: true, easing: 'easeOutQuart' },
+        responsive: true, maintainAspectRatio: false,
+        cutout: '68%',
+        plugins: {
+          legend: { position: 'bottom', labels: { color: '#546e7a', boxWidth: 10, padding: 10, font: { size: 9 } } },
+          tooltip: {
+            backgroundColor: '#0d1320', borderColor: 'rgba(0,230,118,.2)', borderWidth: 1,
+            titleColor: '#e8f0fe', bodyColor: '#546e7a'
+          }
+        }
+      }
+    });
+  }
+
+  function go(dir) {
+    const next = cur + dir;
+    if (next < 0 || next >= total) return;
+
+    slides[cur].classList.remove('active');
+    slides[cur].classList.add('exit');
+    setTimeout(() => slides[cur].classList.remove('exit'), 400);
+
+    cur = next;
+    slides[cur].classList.add('active');
+    updateUI();
+
+    if (cur === RESULTS_SLIDE) {
+      setTimeout(() => {
+        document.querySelectorAll('#s6 .result-num').forEach(el => countUp(el));
+      }, 300);
+    }
+
+    if (cur === ANALYTICS_SLIDE) {
+      setTimeout(() => buildCharts(), 350);
+    }
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') go(1);
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') go(-1);
+  });
+
+  // Touch/swipe
+  let tx = 0;
+  document.addEventListener('touchstart', e => tx = e.touches[0].clientX);
+  document.addEventListener('touchend', e => {
+    const dx = tx - e.changedTouches[0].clientX;
+    if (Math.abs(dx) > 40) go(dx > 0 ? 1 : -1);
+  });
+
+  updateUI();
+</script>
+</body>
+</html>
