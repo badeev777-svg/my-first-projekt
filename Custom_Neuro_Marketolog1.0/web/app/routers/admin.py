@@ -45,12 +45,7 @@ async def leads_list(request: Request, _: str = Depends(_check_auth)):
     leads = await db.get_all_leads()
     for lead in leads:
         lead["status_label"] = _STATUS_LABELS.get(lead.get("status", "new"), lead.get("status", ""))
-        stage = "Agent 1"
-        if lead.get("has_agent2"):
-            stage = "Agent 2"
-        if lead.get("has_agent3"):
-            stage = "Agent 3"
-        lead["stage"] = stage
+        lead["stage"] = "Маркетолог"
     return _TEMPLATES.TemplateResponse("admin/leads.html", {
         "request": request,
         "leads": leads,
