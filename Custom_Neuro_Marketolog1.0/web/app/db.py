@@ -9,11 +9,6 @@ async def init() -> None:
     DB_PATH.parent.mkdir(exist_ok=True)
     async with aiosqlite.connect(DB_PATH) as db:
         await db.executescript("""
-            CREATE TABLE IF NOT EXISTS arch_outputs (
-                arch_session_id TEXT PRIMARY KEY,
-                output          TEXT NOT NULL,
-                saved_at        TEXT DEFAULT (datetime('now'))
-            );
             CREATE TABLE IF NOT EXISTS sessions (
                 session_id  TEXT PRIMARY KEY,
                 ip          TEXT DEFAULT '',
@@ -21,7 +16,10 @@ async def init() -> None:
                 finished_at TEXT,
                 finished    INTEGER DEFAULT 0,
                 msg_count   INTEGER DEFAULT 0,
-                handoff_block TEXT
+                report_text TEXT,
+                utm_source  TEXT DEFAULT '',
+                utm_medium  TEXT DEFAULT '',
+                utm_campaign TEXT DEFAULT ''
             );
             CREATE TABLE IF NOT EXISTS messages (
                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -38,9 +36,6 @@ async def init() -> None:
                 business_name   TEXT,
                 niche           TEXT,
                 pain_points     TEXT,
-                budget_estimate TEXT,
-                agent2_output   TEXT,
-                agent3_proposal TEXT,
                 status          TEXT DEFAULT 'new',
                 notes           TEXT,
                 utm_source      TEXT,
@@ -55,12 +50,17 @@ async def init() -> None:
 
 async def _migrate() -> None:
     async with aiosqlite.connect(DB_PATH) as db:
-        for col in ("utm_source", "utm_medium", "utm_campaign"):
+        for col, definition in [
+            ("report_text", "TEXT"),
+            ("utm_source", "TEXT DEFAULT ''"),
+            ("utm_medium", "TEXT DEFAULT ''"),
+            ("utm_campaign", "TEXT DEFAULT ''"),
+        ]:
             try:
-                await db.execute(f"ALTER TABLE sessions ADD COLUMN {col} TEXT")
+                await db.execute(f"ALTER TABLE sessions ADD COLUMN {col} {definition}")
                 await db.commit()
             except Exception:
-                pass  # column already exists
+                pass
 
 
 def _now() -> str:
@@ -85,14 +85,14 @@ async def create_session(
 
 
 async def finish_session(
-    session_id: str, msg_count: int, handoff_block: str | None
+    session_id: str, msg_count: int, report_text: str | None
 ) -> None:
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
             """UPDATE sessions
-               SET finished=1, finished_at=?, msg_count=?, handoff_block=?
+               SET finished=1, finished_at=?, msg_count=?, report_text=?
                WHERE session_id=?""",
-            (_now(), msg_count, handoff_block, session_id),
+            (_now(), msg_count, report_text, session_id),
         )
         await db.commit()
 
@@ -113,16 +113,6 @@ async def log_message(session_id: str, role: str, content: str) -> None:
             (session_id, role, content, _now()),
         )
         await db.commit()
-
-
-async def get_handoff_block(session_id: str) -> str | None:
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        row = await (await db.execute(
-            "SELECT handoff_block FROM sessions WHERE session_id=? AND finished=1",
-            (session_id,),
-        )).fetchone()
-        return row["handoff_block"] if row else None
 
 
 async def get_session_utm(session_id: str) -> dict:
@@ -146,7 +136,6 @@ async def save_lead(
     business_name: str = "",
     niche: str = "",
     pain_points: str = "",
-    budget_estimate: str = "",
     utm_source: str = "",
     utm_medium: str = "",
     utm_campaign: str = "",
@@ -154,65 +143,14 @@ async def save_lead(
     async with aiosqlite.connect(DB_PATH) as db:
         cursor = await db.execute(
             """INSERT OR IGNORE INTO leads
-               (session_id, business_name, niche, pain_points, budget_estimate,
+               (session_id, business_name, niche, pain_points,
                 utm_source, utm_medium, utm_campaign)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-            (session_id, business_name, niche, pain_points, budget_estimate,
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (session_id, business_name, niche, pain_points,
              utm_source, utm_medium, utm_campaign),
         )
         await db.commit()
         return cursor.lastrowid or 0
-
-
-async def save_arch_output(arch_session_id: str, output: str) -> None:
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute(
-            """INSERT INTO arch_outputs (arch_session_id, output)
-               VALUES (?, ?)
-               ON CONFLICT(arch_session_id) DO UPDATE SET output=excluded.output""",
-            (arch_session_id, output),
-        )
-        await db.commit()
-
-
-async def get_arch_output(arch_session_id: str) -> str | None:
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        row = await (await db.execute(
-            "SELECT output FROM arch_outputs WHERE arch_session_id=?",
-            (arch_session_id,),
-        )).fetchone()
-        return row["output"] if row else None
-
-
-async def get_agent2_output(session_id: str) -> str | None:
-    async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row
-        row = await (await db.execute(
-            "SELECT agent2_output FROM leads WHERE session_id=?",
-            (session_id,),
-        )).fetchone()
-        return row["agent2_output"] if row else None
-
-
-async def update_lead_agent2(session_id: str, output: str) -> None:
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute(
-            """INSERT INTO leads (session_id, agent2_output)
-               VALUES (?, ?)
-               ON CONFLICT(session_id) DO UPDATE SET agent2_output=excluded.agent2_output""",
-            (session_id, output),
-        )
-        await db.commit()
-
-
-async def update_lead_agent3(session_id: str, output: str) -> None:
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute(
-            "UPDATE leads SET agent3_proposal=? WHERE session_id=?",
-            (output, session_id),
-        )
-        await db.commit()
 
 
 async def update_lead_status(lead_id: int, status: str, notes: str | None = None) -> None:
@@ -232,10 +170,7 @@ async def get_all_leads() -> list[dict]:
         db.row_factory = aiosqlite.Row
         rows = await (await db.execute(
             """SELECT id, session_id, business_name, niche, pain_points,
-                      budget_estimate, status, utm_source, utm_medium, utm_campaign,
-                      created_at,
-                      CASE WHEN agent2_output IS NOT NULL THEN 1 ELSE 0 END as has_agent2,
-                      CASE WHEN agent3_proposal IS NOT NULL THEN 1 ELSE 0 END as has_agent3
+                      status, utm_source, utm_medium, utm_campaign, created_at
                FROM leads
                ORDER BY created_at DESC"""
         )).fetchall()
@@ -259,6 +194,16 @@ async def get_messages_by_session(session_id: str) -> list[dict]:
             (session_id,),
         )).fetchall()
         return [dict(r) for r in rows]
+
+
+async def get_report_text(session_id: str) -> str | None:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        row = await (await db.execute(
+            "SELECT report_text FROM sessions WHERE session_id=?",
+            (session_id,),
+        )).fetchone()
+        return row["report_text"] if row else None
 
 
 async def get_stats() -> dict:

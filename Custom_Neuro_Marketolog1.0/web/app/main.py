@@ -7,8 +7,6 @@ from pathlib import Path
 
 from app.config import settings
 from app.routers.chat import router as chat_router
-from app.routers.chat2 import router as arch_router
-from app.routers.chat3 import router as sales_router
 from app.routers.admin import router as admin_router
 from app import db
 
@@ -19,11 +17,9 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="custom_neuro_marketolog", docs_url=None, redoc_url=None, lifespan=lifespan)
+app = FastAPI(title="neuro-marketolog", docs_url=None, redoc_url=None, lifespan=lifespan)
 
 app.include_router(chat_router)
-app.include_router(arch_router)
-app.include_router(sales_router)
 app.include_router(admin_router)
 
 _STATIC = Path(__file__).parent.parent / "static"
@@ -60,33 +56,4 @@ async def index(request: Request):
         "wa_link": settings.WA_LINK,
         "max_link": settings.MAX_LINK,
         "chat_only": settings.CHAT_ONLY_MODE,
-    })
-
-
-@app.get("/analytics")
-async def analytics(request: Request):
-    return templates.TemplateResponse("analytics.html", {
-        "request": request,
-        "site_title": f"Аналитика — {settings.AGENCY_NAME}",
-        "agency_name": settings.AGENCY_NAME,
-    })
-
-
-@app.get("/architect")
-async def architect(request: Request):
-    return templates.TemplateResponse("architect.html", {
-        "request": request,
-        "site_title": f"AI-Архитектор — {settings.AGENCY_NAME}",
-        "agency_name": settings.AGENCY_NAME,
-        "contact_link": settings.CONTACT_LINK,
-    })
-
-
-@app.get("/sales")
-async def sales(request: Request):
-    return templates.TemplateResponse("sales.html", {
-        "request": request,
-        "site_title": f"AI Sales Engineer — {settings.AGENCY_NAME}",
-        "agency_name": settings.AGENCY_NAME,
-        "contact_link": settings.CONTACT_LINK,
     })
