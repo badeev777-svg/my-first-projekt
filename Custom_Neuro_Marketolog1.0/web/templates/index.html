@@ -6,7 +6,7 @@
   <title>{{ site_title }}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/static/style.css?v=2" />
+  <link rel="stylesheet" href="/static/style.css?v=3" />
   {% if chat_only %}
   <style>
     body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
@@ -23,20 +23,20 @@
 <!-- ═══════════════ HERO ═══════════════ -->
 <section class="hero">
   <div class="hero__inner">
-    <div class="badge">AI-инструмент · Для бизнеса · Персональный аудит · 15 минут · Диагностика бесплатна</div>
+    <div class="badge">AI-консультант · Персональный аудит · 15 минут · Диагностика бесплатна</div>
     <h1>Ваш персональный<br><span class="accent">AI-маркетолог</span></h1>
     <p class="hero__sub">
-      Проведёт бизнес-диагностику за 15 минут. Проанализирует ЦА и конкурентов,
-      найдёт точки роста, выявит процессы для автоматизации.
+      Проведёт диагностику бизнеса за 15 минут и выдаст полный маркетинговый анализ:
+      аудитория, конкуренты, SWOT, Quick Wins, каналы привлечения.
       Без воды — только факты и конкретные шаги.
     </p>
     <div class="hero__chips">
       <span>✦ Анализ ЦА и конкурентов</span>
-      <span>✦ SWOT и точки роста</span>
+      <span>✦ SWOT-матрица</span>
       <span>✦ Quick Wins за 7–14 дней</span>
-      <span>✦ Готовность к AI</span>
+      <span>✦ Рекомендации по каналам</span>
     </div>
-    <button class="btn-primary" id="startBtn">Начать диагностику</button>
+    <button class="btn-primary" id="startBtn">Начать диагностику →</button>
   </div>
 </section>
 
@@ -48,17 +48,17 @@
       <div class="step">
         <div class="step__num">1</div>
         <h3>Интервью</h3>
-        <p>AI задаёт точные вопросы о вашем бизнесе — по одному, без лишнего</p>
+        <p>AI задаёт точные вопросы о вашем бизнесе — по одному, без лишнего. Занимает 10–15 минут</p>
       </div>
       <div class="step">
         <div class="step__num">2</div>
         <h3>Анализ</h3>
-        <p>Обрабатывает ответы через JTBD, SWOT, конкурентный анализ и 5 блоков диагностики</p>
+        <p>Обрабатывает данные через JTBD, SWOT, конкурентный анализ — строго по вашей нише</p>
       </div>
       <div class="step">
         <div class="step__num">3</div>
         <h3>Отчёт</h3>
-        <p>Получаете структурированный аудит с конкретными проблемами, Quick Wins и KPI</p>
+        <p>Получаете персональный маркетинговый анализ с таблицами, цифрами и конкретными шагами</p>
       </div>
     </div>
   </div>
@@ -77,7 +77,7 @@
             <div class="chat-header__status" id="statusDot">Готов к диагностике</div>
           </div>
         </div>
-        <div style="display:flex;gap:8px;">
+        <div style="display:flex;gap:8px;align-items:center;">
           <button class="btn-reset" id="undoBtn" style="display:none" title="Вернуться к предыдущему вопросу">↩ Назад</button>
           <button class="btn-reset" id="resetBtn" title="Новая сессия">↺ Сначала</button>
         </div>
@@ -85,7 +85,7 @@
 
       <div class="chat-messages" id="messages"></div>
 
-      <div class="chat-input-wrap">
+      <div class="chat-input-wrap" id="inputWrap">
         <textarea
           id="userInput"
           class="chat-input"
@@ -105,6 +105,19 @@
   </div>
 </section>
 
+<!-- ═══════════════ UNLOCK MODAL ═══════════════ -->
+<div class="modal-overlay" id="unlockModal" style="display:none">
+  <div class="modal">
+    <button class="modal__close" id="modalClose">✕</button>
+    <div class="modal__icon">🔓</div>
+    <h3 class="modal__title">Введите токен доступа</h3>
+    <p class="modal__desc">Токен выдаётся после оплаты полной версии анализа. Напишите <a href="{{ contact_link }}" target="_blank">{{ agent_name }}</a>, чтобы получить доступ.</p>
+    <input type="text" class="modal__input" id="tokenInput" placeholder="Введите токен..." />
+    <div class="modal__error" id="tokenError" style="display:none">Неверный токен. Проверьте и попробуйте снова.</div>
+    <button class="btn-primary modal__btn" id="tokenSubmit">Активировать</button>
+  </div>
+</div>
+
 {% if not chat_only %}
 <!-- ═══════════════ FOOTER ═══════════════ -->
 <footer class="footer">
@@ -121,7 +134,10 @@
 
 <script>
   window.CHAT_ONLY = {{ 'true' if chat_only else 'false' }};
+  window.CONTACT_LINK = "{{ contact_link }}";
+  window.AGENT_NAME = "{{ agent_name }}";
 </script>
-<script src="/static/chat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="/static/chat.js?v=3"></script>
 </body>
 </html>
