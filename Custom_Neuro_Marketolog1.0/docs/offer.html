@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI-Маркетолог под ваш бренд — Badeev Agency</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0d0f;
+      --surface: #161618;
+      --surface2: #1e1e21;
+      --border: #2a2a2e;
+      --accent: #6c63ff;
+      --accent2: #a78bfa;
+      --text: #f0f0f2;
+      --muted: #8b8b99;
+      --green: #22c55e;
+      --radius: 12px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      font-size: 16px;
+    }
+
+    a { color: var(--accent2); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* NAV */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(13,13,15,.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 60px;
+    }
+    .nav-brand { font-weight: 700; font-size: 15px; color: var(--text); letter-spacing: -.3px; }
+    .nav-brand span { color: var(--accent2); }
+    .nav-cta {
+      background: var(--accent);
+      color: #fff;
+      padding: 8px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      transition: background .2s;
+    }
+    .nav-cta:hover { background: #5a52e0; text-decoration: none; }
+
+    /* SECTIONS */
+    section { padding: 80px 24px; max-width: 1080px; margin: 0 auto; }
+
+    /* HERO */
+    .hero {
+      padding-top: 100px;
+      padding-bottom: 100px;
+      text-align: center;
+    }
+    .hero-badge {
+      display: inline-block;
+      background: rgba(108,99,255,.15);
+      border: 1px solid rgba(108,99,255,.35);
+      color: var(--accent2);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 5px 14px;
+      border-radius: 20px;
+      margin-bottom: 28px;
+      letter-spacing: .3px;
+    }
+    .hero h1 {
+      font-size: clamp(32px, 6vw, 60px);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -1.5px;
+      margin-bottom: 22px;
+    }
+    .hero h1 em { font-style: normal; color: var(--accent2); }
+    .hero p {
+      font-size: clamp(16px, 2vw, 19px);
+      color: var(--muted);
+      max-width: 620px;
+      margin: 0 auto 40px;
+    }
+    .hero-btns { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      padding: 14px 32px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      transition: background .2s, transform .1s;
+      display: inline-block;
+    }
+    .btn-primary:hover { background: #5a52e0; text-decoration: none; transform: translateY(-1px); }
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 14px 32px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 500;
+      transition: background .2s;
+      display: inline-block;
+    }
+    .btn-secondary:hover { background: var(--surface2); text-decoration: none; }
+
+    /* DEMO PREVIEW */
+    .demo-preview {
+      margin-top: 64px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      max-width: 720px;
+      margin-left: auto;
+      margin-right: auto;
+      text-align: left;
+    }
+    .demo-bar {
+      display: flex; gap: 6px; margin-bottom: 20px;
+    }
+    .demo-bar span {
+      width: 12px; height: 12px; border-radius: 50%;
+    }
+    .demo-bar span:nth-child(1) { background: #ff5f57; }
+    .demo-bar span:nth-child(2) { background: #febc2e; }
+    .demo-bar span:nth-child(3) { background: #28c840; }
+    .chat-msg {
+      display: flex; gap: 12px; margin-bottom: 16px; align-items: flex-start;
+    }
+    .chat-avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0;
+    }
+    .chat-avatar.user { background: var(--surface2); color: var(--muted); }
+    .chat-bubble {
+      background: var(--surface2);
+      border-radius: 0 12px 12px 12px;
+      padding: 12px 16px;
+      font-size: 14px;
+      color: var(--text);
+      max-width: 520px;
+    }
+    .chat-msg.user { flex-direction: row-reverse; }
+    .chat-msg.user .chat-bubble {
+      background: rgba(108,99,255,.2);
+      border-radius: 12px 0 12px 12px;
+    }
+
+    /* SECTION TITLE */
+    .section-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--accent2);
+      margin-bottom: 12px;
+    }
+    .section-title {
+      font-size: clamp(26px, 4vw, 38px);
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 16px;
+    }
+    .section-sub {
+      font-size: 17px;
+      color: var(--muted);
+      max-width: 580px;
+      margin-bottom: 48px;
+    }
+
+    /* HOW IT WORKS */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 24px;
+    }
+    .step {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+    }
+    .step-num {
+      width: 40px; height: 40px;
+      background: rgba(108,99,255,.15);
+      border: 1px solid rgba(108,99,255,.3);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; font-weight: 800;
+      color: var(--accent2);
+      margin-bottom: 18px;
+    }
+    .step h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+    .step p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+    /* WHAT YOU GET */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+    }
+    .feature {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      transition: border-color .2s;
+    }
+    .feature:hover { border-color: rgba(108,99,255,.5); }
+    .feature-icon {
+      font-size: 28px;
+      margin-bottom: 14px;
+      display: block;
+    }
+    .feature h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+    .feature p { font-size: 13px; color: var(--muted); line-height: 1.55; }
+
+    /* NICHES */
+    .niches-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 14px;
+    }
+    .niche-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .niche-icon { font-size: 22px; flex-shrink: 0; }
+    .niche-card div { font-size: 14px; font-weight: 600; }
+    .niche-card span { font-size: 12px; color: var(--muted); display: block; margin-top: 2px; }
+
+    /* RESULTS */
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+    .result-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      border-left: 3px solid var(--accent);
+    }
+    .result-tag {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--accent2);
+      margin-bottom: 10px;
+    }
+    .result-card h4 { font-size: 16px; font-weight: 700; margin-bottom: 10px; }
+    .result-card p { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 14px; }
+    .result-nums {
+      display: flex; gap: 20px; flex-wrap: wrap;
+    }
+    .result-num { }
+    .result-num strong { font-size: 22px; font-weight: 800; color: var(--green); display: block; }
+    .result-num span { font-size: 11px; color: var(--muted); }
+
+    /* PACKAGE */
+    .package-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 40px;
+    }
+    .package-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+    .package-item {
+      display: flex; gap: 12px; align-items: flex-start;
+    }
+    .package-check {
+      width: 22px; height: 22px;
+      background: rgba(34,197,94,.15);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+      font-size: 12px;
+    }
+    .package-item-text { font-size: 14px; line-height: 1.5; }
+    .package-item-text strong { display: block; font-weight: 600; }
+    .package-item-text span { color: var(--muted); font-size: 13px; }
+
+    /* PRICING */
+    .pricing-card {
+      background: var(--surface);
+      border: 2px solid var(--accent);
+      border-radius: 16px;
+      padding: 48px;
+      text-align: center;
+      max-width: 520px;
+      margin: 0 auto;
+    }
+    .pricing-tag {
+      display: inline-block;
+      background: var(--accent);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 24px;
+    }
+    .price-big {
+      font-size: clamp(42px, 8vw, 64px);
+      font-weight: 800;
+      letter-spacing: -2px;
+      margin-bottom: 6px;
+    }
+    .price-big sup { font-size: 24px; vertical-align: super; }
+    .price-sub { font-size: 15px; color: var(--muted); margin-bottom: 32px; }
+    .pricing-features {
+      list-style: none;
+      text-align: left;
+      margin-bottom: 36px;
+    }
+    .pricing-features li {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 14px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .pricing-features li:last-child { border-bottom: none; }
+    .pricing-features li::before {
+      content: '✓';
+      color: var(--green);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .btn-big {
+      display: block;
+      background: var(--accent);
+      color: #fff;
+      padding: 18px 40px;
+      border-radius: 12px;
+      font-size: 17px;
+      font-weight: 700;
+      transition: background .2s, transform .1s;
+      text-align: center;
+    }
+    .btn-big:hover { background: #5a52e0; text-decoration: none; transform: translateY(-2px); }
+
+    /* FAQ */
+    .faq { max-width: 680px; margin: 0 auto; }
+    .faq-item {
+      border-bottom: 1px solid var(--border);
+      padding: 20px 0;
+    }
+    .faq-q { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+    .faq-a { font-size: 14px; color: var(--muted); line-height: 1.65; }
+
+    /* FOOTER CTA */
+    .footer-cta {
+      text-align: center;
+      padding: 80px 24px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+    }
+    .footer-cta h2 {
+      font-size: clamp(24px, 4vw, 38px);
+      font-weight: 800;
+      margin-bottom: 14px;
+      letter-spacing: -1px;
+    }
+    .footer-cta p { font-size: 16px; color: var(--muted); margin-bottom: 32px; }
+
+    /* DIVIDER */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 0;
+    }
+
+    footer {
+      text-align: center;
+      padding: 24px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    @media (max-width: 600px) {
+      section { padding: 56px 20px; }
+      .hero { padding-top: 64px; padding-bottom: 64px; }
+      .package-box { padding: 24px; }
+      .pricing-card { padding: 32px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand">Badeev <span>Agency</span></div>
+  <a href="https://t.me/badeev777" class="nav-cta" target="_blank">Обсудить проект</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">White-label AI-продукт</div>
+  <h1>AI-маркетолог<br><em>под ваш бренд</em></h1>
+  <p>Персональный AI-консультант, который проводит диагностику бизнеса клиентов и приводит вам горячих лидов — на вашем домене, с вашим именем.</p>
+  <div class="hero-btns">
+    <a href="https://t.me/badeev777" class="btn-primary" target="_blank">Обсудить проект →</a>
+    <a href="#how-it-works" class="btn-secondary">Как это работает</a>
+  </div>
+
+  <!-- DEMO CHAT PREVIEW -->
+  <div class="demo-preview">
+    <div class="demo-bar">
+      <span></span><span></span><span></span>
+    </div>
+    <div class="chat-msg">
+      <div class="chat-avatar">AI</div>
+      <div class="chat-bubble">Привет! Я AI-маркетолог вашей компании. Проведу бесплатную 15-минутную диагностику и покажу, где вы теряете деньги. Готовы начать? Расскажите в двух словах, чем занимается ваш бизнес.</div>
+    </div>
+    <div class="chat-msg user">
+      <div class="chat-avatar user">Вы</div>
+      <div class="chat-bubble">Салон красоты, 6 мастеров, запись через Instagram</div>
+    </div>
+    <div class="chat-msg">
+      <div class="chat-avatar">AI</div>
+      <div class="chat-bubble">Понял. Сколько клиентов записывается в месяц, и какой процент из них не приходит (но-шоу)? По опыту: в салонах без автоматических напоминаний но-шоу часто достигает 20-30%.</div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- HOW IT WORKS -->
+<section id="how-it-works">
+  <div class="section-label">Схема работы</div>
+  <h2 class="section-title">Как это работает</h2>
+  <p class="section-sub">Клиент открывает чат на вашем сайте — AI сам проводит диагностику и передаёт вам готового лида.</p>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <h3>Клиент открывает чат</h3>
+      <p>По ссылке, на субдомене или через Telegram-бот. Видит вашу компанию, ваш бренд, вашего AI-консультанта.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <h3>AI проводит диагностику</h3>
+      <p>15 минут, 5 блоков вопросов. Выявляет узкие места, считает потенциал, говорит конкретными цифрами клиента.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <h3>Вы получаете горячего лида</h3>
+      <p>AI завершает диагностику, предлагает клиенту связаться с вами. Вам приходит уведомление в Telegram с резюме диалога.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- WHAT YOU GET -->
+<section id="features">
+  <div class="section-label">Состав продукта</div>
+  <h2 class="section-title">Что вы получаете</h2>
+  <p class="section-sub">Полностью готовый продукт, настроенный под ваш бизнес и развёрнутый на вашем сервере.</p>
+  <div class="features">
+    <div class="feature">
+      <span class="feature-icon">💬</span>
+      <h3>Веб-чат на вашем домене</h3>
+      <p>Полноэкранный AI-консультант на вашем субдомене. Тёмная тема, адаптив под мобильные, ваш логотип и имя.</p>
+    </div>
+    <div class="feature">
+      <span class="feature-icon">🤖</span>
+      <h3>Telegram-бот</h3>
+      <p>Опционально. Клиент начинает диагностику прямо в Telegram — без переходов на сайт.</p>
+    </div>
+    <div class="feature">
+      <span class="feature-icon">🎯</span>
+      <h3>Настройка под 8 ниш</h3>
+      <p>Готовые сценарии диагностики: бьюти, рестораны, образование, юридические, B2B, e-commerce, строительство, медицина.</p>
+    </div>
+    <div class="feature">
+      <span class="feature-icon">🔔</span>
+      <h3>Уведомления в Telegram</h3>
+      <p>Каждый завершённый разговор → уведомление вам с кратким резюме: проблемы клиента, его бюджет, готовность.</p>
+    </div>
+    <div class="feature">
+      <span class="feature-icon">⚡</span>
+      <h3>Деплой за 1 день</h3>
+      <p>Устанавливаем на ваш VPS удалённо. Nginx + SSL + systemd. Никаких технических знаний не требуется.</p>
+    </div>
+    <div class="feature">
+      <span class="feature-icon">📖</span>
+      <h3>Полный исходный код</h3>
+      <p>Весь код передаётся вам. Можете доработать, перепродать, масштабировать — без ограничений.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- NICHES -->
+<section id="niches">
+  <div class="section-label">Для кого</div>
+  <h2 class="section-title">8 готовых ниш</h2>
+  <p class="section-sub">Для каждой ниши — адаптированный сценарий диагностики и кейсы с реальными результатами.</p>
+  <div class="niches-grid">
+    <div class="niche-card">
+      <span class="niche-icon">💅</span>
+      <div><div>Бьюти-бизнес</div><span>Салоны, барбершопы, студии</span></div>
+    </div>
+    <div class="niche-card">
+      <span class="niche-icon">🍽️</span>
+      <div><div>Рестораны и кафе</div><span>HoReCa, доставка еды</span></div>
+    </div>
+    <div class="niche-card">
+      <span class="niche-icon">📚</span>
+      <div><div>Онлайн-образование</div><span>Курсы, школы, коучи</span></div>
+    </div>
+    <div class="niche-card">
+      <span class="niche-icon">⚖️</span>
+      <div><div>Юридические услуги</div><span>Фирмы, адвокаты, нотариусы</span></div>
+    </div>
+    <div class="niche-card">
+      <span class="niche-icon">🤝</span>
+      <div><div>B2B-продажи</div><span>Производство, опт, поставки</span></div>
+    </div>
+    <div class="niche-card">
+      <span class="niche-icon">🛒</span>
+      <div><div>E-commerce</div><span>WB, Ozon, интернет-магазины</span></div>
+    </div>
+    <div class="niche-card">
+      <span class="niche-icon">🏗️</span>
+      <div><div>Строительство</div><span>Ремонт, отделка, строительство</span></div>
+    </div>
+    <div class="niche-card">
+      <span class="niche-icon">🏥</span>
+      <div><div>Медицина</div><span>Клиники, стоматология, косметология</span></div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- RESULTS -->
+<section id="results">
+  <div class="section-label">Примеры диагностик</div>
+  <h2 class="section-title">Что находит AI-маркетолог</h2>
+  <p class="section-sub">Конкретные результаты из практики — то, что AI выявляет в первые 15 минут разговора.</p>
+  <div class="results-grid">
+    <div class="result-card">
+      <div class="result-tag">Салон красоты · Москва</div>
+      <h4>Но-шоу 22%, запись через Instagram DM</h4>
+      <p>AI выявил: нет автоматических напоминаний, клиентская база не оцифрована, «спящие» клиенты не реактивируются.</p>
+      <div class="result-nums">
+        <div class="result-num"><strong>−68%</strong><span>но-шоу</span></div>
+        <div class="result-num"><strong>+18%</strong><span>выручка</span></div>
+        <div class="result-num"><strong>3 мес</strong><span>до результата</span></div>
+      </div>
+    </div>
+    <div class="result-card">
+      <div class="result-tag">B2B-продажи · Екатеринбург</div>
+      <h4>Конверсия лид → договор 8%, нет CRM-дисциплины</h4>
+      <p>AI выявил: менеджеры забывают перезванивать, сделки зависают без движения, нет скриптов для разных сегментов.</p>
+      <div class="result-nums">
+        <div class="result-num"><strong>+137%</strong><span>конверсия</span></div>
+        <div class="result-num"><strong>−38%</strong><span>цикл сделки</span></div>
+        <div class="result-num"><strong>+31%</strong><span>выручка</span></div>
+      </div>
+    </div>
+    <div class="result-card">
+      <div class="result-tag">E-commerce · WB</div>
+      <h4>Возвраты 47%, рейтинг карточек падает</h4>
+      <p>AI выявил: нет таблиц размеров, нет системы сбора отзывов, рекламный бюджет размазан по «широкому таргету».</p>
+      <div class="result-nums">
+        <div class="result-num"><strong>−38%</strong><span>возвраты</span></div>
+        <div class="result-num"><strong>+34%</strong><span>выручка</span></div>
+        <div class="result-num"><strong>2 мес</strong><span>до результата</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- PACKAGE DETAILS -->
+<section id="package">
+  <div class="section-label">Поставка</div>
+  <h2 class="section-title">Что входит в пакет</h2>
+  <p class="section-sub">Всё необходимое для запуска — без доплат и скрытых условий.</p>
+  <div class="package-box">
+    <div class="package-list">
+      <div class="package-item">
+        <div class="package-check">✓</div>
+        <div class="package-item-text">
+          <strong>Полный исходный код</strong>
+          <span>FastAPI + Jinja2 + aiogram 3.x. Ваша собственность без ограничений.</span>
+        </div>
+      </div>
+      <div class="package-item">
+        <div class="package-check">✓</div>
+        <div class="package-item-text">
+          <strong>8 нишевых сценариев диагностики</strong>
+          <span>Instructions.txt + кейсы для каждой ниши. Настраиваются под специфику клиента.</span>
+        </div>
+      </div>
+      <div class="package-item">
+        <div class="package-check">✓</div>
+        <div class="package-item-text">
+          <strong>База знаний AI</strong>
+          <span>15+ файлов: методики, кейсы, SWOT, JTBD, скрипты возражений, шаблоны стратегий.</span>
+        </div>
+      </div>
+      <div class="package-item">
+        <div class="package-check">✓</div>
+        <div class="package-item-text">
+          <strong>Деплой на VPS</strong>
+          <span>Устанавливаем удалённо: Python, Nginx, SSL, systemd-сервис.</span>
+        </div>
+      </div>
+      <div class="package-item">
+        <div class="package-check">✓</div>
+        <div class="package-item-text">
+          <strong>Брендинг под вас</strong>
+          <span>Имя агента, инициалы, название компании, контактная ссылка — всё через .env.</span>
+        </div>
+      </div>
+      <div class="package-item">
+        <div class="package-check">✓</div>
+        <div class="package-item-text">
+          <strong>Telegram-уведомления</strong>
+          <span>Вам приходит уведомление о каждом завершённом диалоге.</span>
+        </div>
+      </div>
+      <div class="package-item">
+        <div class="package-check">✓</div>
+        <div class="package-item-text">
+          <strong>Руководство пользователя</strong>
+          <span>Как управлять, перезапускать, добавлять кейсы — без программиста.</span>
+        </div>
+      </div>
+      <div class="package-item">
+        <div class="package-check">✓</div>
+        <div class="package-item-text">
+          <strong>Поддержка 30 дней</strong>
+          <span>Отвечаем на вопросы, правим конфигурацию, помогаем настроить нишу.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- PRICING -->
+<section id="pricing">
+  <div class="section-label">Стоимость</div>
+  <h2 class="section-title" style="text-align:center">Цена</h2>
+  <div class="pricing-card">
+    <div class="pricing-tag">Единоразовый платёж</div>
+    <div class="price-big"><sup>от</sup> 50 000 <sup>₽</sup></div>
+    <div class="price-sub">Разовая оплата. Ежемесячных платежей нет.<br>Единственный расход — OpenRouter API (~1 000–3 000 ₽/мес.)</div>
+    <ul class="pricing-features">
+      <li>Веб-чат + Telegram-бот</li>
+      <li>8 нишевых сценариев диагностики</li>
+      <li>Деплой на ваш VPS (удалённо)</li>
+      <li>Полный исходный код — навсегда ваш</li>
+      <li>Брендинг под вашу компанию</li>
+      <li>Поддержка 30 дней</li>
+      <li>Без ежемесячных платежей</li>
+    </ul>
+    <a href="https://t.me/badeev777" class="btn-big" target="_blank">Написать в Telegram →</a>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- FAQ -->
+<section id="faq">
+  <div class="section-label">Вопросы</div>
+  <h2 class="section-title">Часто спрашивают</h2>
+  <div class="faq">
+    <div class="faq-item">
+      <div class="faq-q">Нужен ли мне свой сервер?</div>
+      <div class="faq-a">Да, нужен VPS — любой с Ubuntu 22/24, от 1 GB RAM. Можно взять на Beget, Timeweb, Selectel или любом другом хостинге за 300–600 ₽/мес. Если нет — поможем выбрать и настроить.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">Сколько будет стоить работа AI?</div>
+      <div class="faq-a">Модель работает через OpenRouter API. При 100–300 диагностиках в месяц расход ~1 000–3 000 ₽/мес. Первые $5 на OpenRouter — бесплатно.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">Могу ли я перепродавать это своим клиентам?</div>
+      <div class="faq-a">Да. Вы получаете полный исходный код без ограничений на использование. Можете кастомизировать, перепродавать, использовать в агентских проектах.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">Как быстро можно запустить?</div>
+      <div class="faq-a">После оплаты: 1 рабочий день на деплой. Настройка ниши и брендинга — ещё 2–4 часа. Итого: система готова за 1–2 рабочих дня.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">Можно ли добавить свои кейсы и специфику?</div>
+      <div class="faq-a">Да, и это рекомендуется. Добавляете свои кейсы в knowledge base — AI сразу начинает использовать их в диалогах. Инструкция прилагается.</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER CTA -->
+<div class="footer-cta">
+  <h2>Готовы запустить<br>своего AI-маркетолога?</h2>
+  <p>Напишите в Telegram — обсудим вашу нишу и запустим за 1 день.</p>
+  <a href="https://t.me/badeev777" class="btn-primary" style="display:inline-block;font-size:17px;padding:16px 40px" target="_blank">Написать Александру →</a>
+</div>
+
+<footer>
+  © 2026 Badeev Agency — AI-автоматизация бизнеса ·
+  <a href="https://t.me/badeev777" target="_blank">@badeev777</a>
+</footer>
+
+</body>
+</html>

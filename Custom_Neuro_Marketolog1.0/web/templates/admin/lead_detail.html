@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Лид #{{ lead.id }} — {{ agency_name }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f0f13; --bg2: #16161d; --bg3: #1e1e28;
+      --border: #2a2a38; --accent: #7c6ef5;
+      --text: #e8e8f0; --text2: #9898b0; --font: 'Inter', sans-serif;
+      --green: #4ade80; --yellow: #facc15; --red: #f87171; --blue: #60a5fa;
+    }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; }
+    header {
+      padding: 14px 28px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 16px; background: var(--bg2);
+    }
+    header a { color: var(--text2); text-decoration: none; font-size: 13px; }
+    header a:hover { color: var(--text); }
+    header h1 { font-size: 16px; font-weight: 600; }
+    main { max-width: 900px; margin: 0 auto; padding: 28px 24px; display: flex; flex-direction: column; gap: 24px; }
+
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 20px 24px; }
+    .card-title { font-size: 13px; font-weight: 600; color: var(--text2); text-transform: uppercase;
+                  letter-spacing: .06em; margin-bottom: 14px; }
+
+    .meta-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+    .meta-item {}
+    .meta-label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 3px; }
+    .meta-val { font-size: 14px; font-weight: 500; }
+
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 5px; font-size: 12px; font-weight: 500; }
+    .badge-new       { background: #2a2a38; color: var(--text2); }
+    .badge-contacted { background: #1e3a5f; color: var(--blue); }
+    .badge-qualified { background: #1a3a1a; color: var(--green); }
+    .badge-closed    { background: #3a1a1a; color: var(--red); }
+
+    .status-form { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap; margin-top: 14px; }
+    select, textarea {
+      background: var(--bg3); border: 1px solid var(--border); color: var(--text);
+      border-radius: 6px; padding: 8px 12px; font-family: var(--font); font-size: 13px;
+    }
+    select { cursor: pointer; }
+    textarea { width: 100%; min-height: 70px; resize: vertical; }
+    .btn {
+      padding: 8px 18px; border-radius: 6px; border: none; cursor: pointer;
+      font-family: var(--font); font-size: 13px; font-weight: 600; transition: opacity .15s;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { opacity: .85; }
+
+    .chat-log { display: flex; flex-direction: column; gap: 10px; max-height: 500px; overflow-y: auto; padding-right: 4px; }
+    .msg { display: flex; gap: 10px; }
+    .msg-role { min-width: 40px; font-size: 11px; font-weight: 600; color: var(--text2);
+                padding-top: 3px; text-transform: uppercase; letter-spacing: .04em; }
+    .msg-text { font-size: 13px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
+    .msg--user .msg-role { color: var(--blue); }
+    .msg--assistant .msg-role { color: var(--accent); }
+
+    .handoff-block {
+      white-space: pre-wrap; font-size: 13px; line-height: 1.6;
+      color: var(--text2); word-break: break-word;
+    }
+
+    .save-msg { font-size: 12px; color: var(--green); display: none; margin-top: 6px; }
+  </style>
+</head>
+<body>
+<header>
+  <a href="/admin/leads">← Все лиды</a>
+  <h1>Лид #{{ lead.id }} — {{ lead.business_name or 'без названия' }}</h1>
+</header>
+<main>
+
+  <!-- Профиль -->
+  <div class="card">
+    <div class="card-title">Профиль лида</div>
+    <div class="meta-grid">
+      <div class="meta-item">
+        <div class="meta-label">Бизнес</div>
+        <div class="meta-val">{{ lead.business_name or '—' }}</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Ниша</div>
+        <div class="meta-val">{{ lead.niche or '—' }}</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Боль</div>
+        <div class="meta-val">{{ lead.pain_points or '—' }}</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Бюджет</div>
+        <div class="meta-val">{{ lead.budget_estimate or '—' }}</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">UTM Источник</div>
+        <div class="meta-val" style="color:var(--blue)">{{ lead.utm_source or 'прямой' }}{% if lead.utm_medium %} / {{ lead.utm_medium }}{% endif %}</div>
+      </div>
+      <div class="meta-item">
+        <div class="meta-label">Дата</div>
+        <div class="meta-val">{{ lead.created_at[:16] | replace('T', ' ') }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Статус -->
+  <div class="card">
+    <div class="card-title">Статус сделки</div>
+    <div>Текущий: <span class="badge badge-{{ lead.status or 'new' }}">{{ status_labels[lead.status or 'new'] }}</span></div>
+    <div class="status-form">
+      <select id="statusSelect">
+        {% for key, label in status_labels.items() %}
+        <option value="{{ key }}" {% if lead.status == key %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <div style="flex:1; min-width: 200px;">
+        <textarea id="notesArea" placeholder="Заметки...">{{ lead.notes or '' }}</textarea>
+      </div>
+      <button class="btn btn-primary" onclick="saveStatus()">Сохранить</button>
+    </div>
+    <div class="save-msg" id="saveMsg">✓ Сохранено</div>
+  </div>
+
+  <!-- Чат -->
+  {% if messages %}
+  <div class="card">
+    <div class="card-title">История диагностики (Agent 1)</div>
+    <div class="chat-log">
+      {% for msg in messages %}
+      <div class="msg msg--{{ msg.role }}">
+        <div class="msg-role">{{ 'Вы' if msg.role == 'user' else 'AI' }}</div>
+        <div class="msg-text">{{ msg.content }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Agent2 -->
+  {% if lead.agent2_output %}
+  <div class="card">
+    <div class="card-title">AI-Архитектор (Agent 2)</div>
+    <div class="handoff-block">{{ lead.agent2_output }}</div>
+  </div>
+  {% endif %}
+
+  <!-- Agent3 -->
+  {% if lead.agent3_proposal %}
+  <div class="card">
+    <div class="card-title">Sales Engineer (Agent 3)</div>
+    <div class="handoff-block">{{ lead.agent3_proposal }}</div>
+  </div>
+  {% endif %}
+
+</main>
+
+<script>
+async function saveStatus() {
+  const status = document.getElementById('statusSelect').value;
+  const notes = document.getElementById('notesArea').value;
+  const r = await fetch('/admin/leads/{{ lead.id }}/status', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status, notes }),
+  });
+  if (r.ok) {
+    const msg = document.getElementById('saveMsg');
+    msg.style.display = 'block';
+    setTimeout(() => { msg.style.display = 'none'; }, 2500);
+    document.querySelector('.badge').className = 'badge badge-' + status;
+    document.querySelector('.badge').textContent = document.getElementById('statusSelect').selectedOptions[0].text;
+  }
+}
+</script>
+</body>
+</html>

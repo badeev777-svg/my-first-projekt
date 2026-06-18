@@ -268,8 +268,42 @@ body {
 }
 .btn-cta:hover { background: var(--accent2); }
 .cta-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
+.btn-cta--arch  { background: #0ea5e9; }
+.btn-cta--arch:hover  { background: #0284c7; }
+.btn-cta--sales { background: #f59e0b; color: #1a1a1a; }
+.btn-cta--sales:hover { background: #d97706; color: #1a1a1a; }
+.btn-cta--tg { background: #229ed9; }
+.btn-cta--tg:hover { background: #1a87b8; }
 .btn-cta--max { background: #0077ff; }
 .btn-cta--max:hover { background: #0066dd; }
+
+/* Contact form inside CTA */
+.contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0;
+}
+.contact-form input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  padding: 9px 12px;
+  transition: border-color .2s;
+  width: 100%;
+}
+.contact-form input:focus { outline: none; border-color: #f59e0b; }
+.contact-form input::placeholder { color: var(--text2); }
+.contact-form__success {
+  color: #4ade80;
+  font-weight: 600;
+  font-size: 14px;
+  margin-top: 4px;
+  display: none;
+}
 
 /* ── INPUT ── */
 .chat-input-wrap {
@@ -335,6 +369,8 @@ body {
   font-weight: 500;
 }
 .footer__link:hover { text-decoration: underline; }
+.footer__privacy { font-size: 12px; color: var(--text2); opacity: 0.6; width: 100%; text-align: center; margin-top: 8px; }
+.chat-privacy { font-size: 13px; color: #9898b0; text-align: center; margin-top: 20px; padding: 0 24px; }
 
 @media (max-width: 600px) {
   .chat-wrap { height: calc(100vh - 140px); }

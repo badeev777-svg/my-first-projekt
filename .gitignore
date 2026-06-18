@@ -4,6 +4,9 @@
 .env.*.local
 *.env
 
+# Local credentials file (never commit!)
+CREDENTIALS.local.md
+
 # Claude settings (local, with secrets)
 .claude/settings.local.json
 **/.claude/settings.local.json
@@ -29,3 +32,12 @@ build/
 
 # Backups
 refs/
+
+# SQLite databases
+*.db
+data/sessions.db
+
+# Python venvs
+venv/
+web-venv/
+bot-venv/
