@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ site_title }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/style.css?v=2" />
+  {% if chat_only %}
+  <style>
+    body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
+    .chat-section { flex: 1; display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+    .chat-section .container { flex: 1; display: flex; flex-direction: column; max-width: 100%; padding: 0; overflow: hidden; }
+    .chat-wrap { flex: 1; display: flex; flex-direction: column; border-radius: 0; overflow: hidden; }
+    .chat-messages { flex: 1; overflow-y: auto; }
+  </style>
+  {% endif %}
+</head>
+<body>
+
+{% if not chat_only %}
+<!-- ═══════════════ HERO ═══════════════ -->
+<section class="hero">
+  <div class="hero__inner">
+    <div class="badge">AI-инструмент · Для бизнеса · Персональный аудит · 15 минут · Диагностика бесплатна</div>
+    <h1>Ваш персональный<br><span class="accent">AI-маркетолог</span></h1>
+    <p class="hero__sub">
+      Проведёт бизнес-диагностику за 15 минут. Проанализирует ЦА и конкурентов,
+      найдёт точки роста, выявит процессы для автоматизации.
+      Без воды — только факты и конкретные шаги.
+    </p>
+    <div class="hero__chips">
+      <span>✦ Анализ ЦА и конкурентов</span>
+      <span>✦ SWOT и точки роста</span>
+      <span>✦ Quick Wins за 7–14 дней</span>
+      <span>✦ Готовность к AI</span>
+    </div>
+    <button class="btn-primary" id="startBtn">Начать диагностику</button>
+  </div>
+</section>
+
+<!-- ═══════════════ HOW ═══════════════ -->
+<section class="how">
+  <div class="container">
+    <h2>Как это работает</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step__num">1</div>
+        <h3>Интервью</h3>
+        <p>AI задаёт точные вопросы о вашем бизнесе — по одному, без лишнего</p>
+      </div>
+      <div class="step">
+        <div class="step__num">2</div>
+        <h3>Анализ</h3>
+        <p>Обрабатывает ответы через JTBD, SWOT, конкурентный анализ и 5 блоков диагностики</p>
+      </div>
+      <div class="step">
+        <div class="step__num">3</div>
+        <h3>Отчёт</h3>
+        <p>Получаете структурированный аудит с конкретными проблемами, Quick Wins и KPI</p>
+      </div>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- ═══════════════ CHAT ═══════════════ -->
+<section class="chat-section" id="chatSection">
+  <div class="container">
+    <div class="chat-wrap">
+      <div class="chat-header">
+        <div class="chat-header__info">
+          <div class="avatar">{{ agent_initials }}</div>
+          <div>
+            <div class="chat-header__name">{{ agent_name }}</div>
+            <div class="chat-header__status" id="statusDot">Готов к диагностике</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-reset" id="undoBtn" style="display:none" title="Вернуться к предыдущему вопросу">↩ Назад</button>
+          <button class="btn-reset" id="resetBtn" title="Новая сессия">↺ Сначала</button>
+        </div>
+      </div>
+
+      <div class="chat-messages" id="messages"></div>
+
+      <div class="chat-input-wrap">
+        <textarea
+          id="userInput"
+          class="chat-input"
+          rows="1"
+          placeholder="Напишите ответ..."
+          disabled
+        ></textarea>
+        <button class="btn-send" id="sendBtn" disabled>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <p class="chat-privacy">Используя сервис, вы соглашаетесь с тем, что введённые данные сохраняются для обработки запроса и не передаются третьим лицам.</p>
+  </div>
+</section>
+
+{% if not chat_only %}
+<!-- ═══════════════ FOOTER ═══════════════ -->
+<footer class="footer">
+  <div class="container">
+    <p>{{ agency_name }} · {{ agency_tagline }}</p>
+    <div class="footer__links">
+      <a href="{{ contact_link }}" target="_blank" class="footer__link">Telegram →</a>
+      {% if wa_link %}<a href="{{ wa_link }}" target="_blank" class="footer__link">WhatsApp →</a>{% endif %}
+      {% if max_link %}<a href="{{ max_link }}" target="_blank" class="footer__link">MAX →</a>{% endif %}
+    </div>
+  </div>
+</footer>
+{% endif %}
+
+<script>
+  window.CHAT_ONLY = {{ 'true' if chat_only else 'false' }};
+</script>
+<script src="/static/chat.js"></script>
+</body>
+</html>
