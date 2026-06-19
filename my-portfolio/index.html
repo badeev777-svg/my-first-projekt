@@ -1232,7 +1232,7 @@
           <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
           Email
         </a>
-        <a href="https://github.com/badeev777-svg" class="contact-chip" target="_blank">
+        <a class="contact-chip">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58v-2.04c-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.74.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.83 2.8 1.3 3.49 1 .11-.78.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.12-.3-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 013-.4c1.02.005 2.04.14 3 .4 2.28-1.55 3.29-1.23 3.29-1.23.66 1.66.24 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.63-5.48 5.92.43.37.81 1.1.81 2.22v3.29c0 .32.22.7.83.58C20.57 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/></svg>
           GitHub
         </a>
@@ -1324,6 +1324,168 @@
       parallaxHero.style.transform = `translateY(${scrollValue}px)`;
       parallaxGrid.style.transform = `translateY(${scrollValue * 0.6}px)`;
     }
+  });
+</script>
+
+<!-- ── Chat Widget (Manager-saler) ──────────────────── -->
+<style>
+  #chat-bubble {
+    position: fixed; bottom: 28px; right: 28px;
+    width: 60px; height: 60px; border-radius: 50%;
+    background: linear-gradient(135deg, #7c6cff, #00d4ff);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 20px rgba(124,108,255,.5);
+    z-index: 9999; transition: transform .2s;
+  }
+  #chat-bubble:hover { transform: scale(1.1); }
+  #chat-bubble svg { width: 28px; height: 28px; fill: white; }
+
+  #chat-window {
+    position: fixed; bottom: 100px; right: 28px;
+    width: 370px; max-height: 560px;
+    background: #1a1a2e; border-radius: 16px;
+    box-shadow: 0 8px 40px rgba(0,0,0,.6);
+    display: flex; flex-direction: column; overflow: hidden;
+    z-index: 9998; transform: scale(0); transform-origin: bottom right;
+    transition: transform .25s cubic-bezier(.34,1.56,.64,1);
+  }
+  #chat-window.open { transform: scale(1); }
+
+  .cw-header {
+    background: linear-gradient(135deg, #7c6cff, #00d4ff);
+    padding: 14px 18px; display: flex; align-items: center; gap: 10px;
+  }
+  .cw-header .cw-avatar {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: rgba(255,255,255,.2);
+    display: flex; align-items: center; justify-content: center; font-size: 20px;
+  }
+  .cw-header .cw-name { font-weight: 600; font-size: 15px; color: #fff; }
+  .cw-header .cw-status { font-size: 12px; color: rgba(255,255,255,.75); }
+
+  #cw-messages {
+    flex: 1; overflow-y: auto; padding: 16px;
+    display: flex; flex-direction: column; gap: 10px; scroll-behavior: smooth;
+  }
+  #cw-messages::-webkit-scrollbar { width: 4px; }
+  #cw-messages::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+
+  .cw-msg {
+    max-width: 82%; padding: 10px 14px; border-radius: 14px;
+    font-size: 14px; line-height: 1.5; word-break: break-word;
+  }
+  .cw-msg.bot { background: #262640; align-self: flex-start; border-bottom-left-radius: 4px; }
+  .cw-msg.user {
+    background: linear-gradient(135deg, #7c6cff, #4f46e5);
+    color: white; align-self: flex-end; border-bottom-right-radius: 4px;
+  }
+  .cw-msg.typing span {
+    display: inline-block; width: 7px; height: 7px;
+    background: #888; border-radius: 50%; margin: 0 2px;
+    animation: cwBounce .9s infinite;
+  }
+  .cw-msg.typing span:nth-child(2) { animation-delay: .15s; }
+  .cw-msg.typing span:nth-child(3) { animation-delay: .3s; }
+  @keyframes cwBounce {
+    0%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-6px); }
+  }
+
+  .cw-input {
+    display: flex; padding: 12px; gap: 8px;
+    border-top: 1px solid #2a2a45; background: #1a1a2e;
+  }
+  .cw-input input {
+    flex: 1; background: #262640; border: none; border-radius: 10px;
+    padding: 10px 14px; color: #e0e0e0; font-size: 14px; outline: none;
+  }
+  .cw-input input::placeholder { color: #666; }
+  .cw-input button {
+    background: linear-gradient(135deg, #7c6cff, #00d4ff);
+    border: none; border-radius: 10px; padding: 10px 14px;
+    cursor: pointer; color: white; font-size: 18px; transition: opacity .2s;
+  }
+  .cw-input button:disabled { opacity: .5; cursor: not-allowed; }
+</style>
+
+<div id="chat-bubble" onclick="cwToggle()">
+  <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+</div>
+
+<div id="chat-window">
+  <div class="cw-header">
+    <div class="cw-avatar">🤖</div>
+    <div>
+      <div class="cw-name">Алекс — BA Agency</div>
+      <div class="cw-status">● Онлайн</div>
+    </div>
+  </div>
+  <div id="cw-messages"></div>
+  <div class="cw-input">
+    <input id="cw-input" type="text" placeholder="Напишите сообщение..." autocomplete="off" />
+    <button id="cw-send" onclick="cwSend()">➤</button>
+  </div>
+</div>
+
+<script>
+  const CW_SESSION = 'portfolio_' + Math.random().toString(36).slice(2, 10);
+  const CW_API = 'http://155.212.208.194:8002/api/chat';
+  let cwOpen = false, cwGreeted = false;
+
+  function cwToggle() {
+    cwOpen = !cwOpen;
+    document.getElementById('chat-window').classList.toggle('open', cwOpen);
+    if (cwOpen && !cwGreeted) {
+      cwGreeted = true;
+      cwAppend('bot', 'Привет! Я Алекс — менеджер Badeev Agency 👋\n\nМы создаём AI-агентов, Telegram-ботов, сайты и автоматизации для бизнеса.\n\nРасскажите — чем занимается ваш бизнес и какую задачу хотите решить?');
+    }
+  }
+
+  function cwAppend(role, text) {
+    const msgs = document.getElementById('cw-messages');
+    const div = document.createElement('div');
+    div.className = `cw-msg ${role}`;
+    div.innerText = text;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+    return div;
+  }
+
+  async function cwSend() {
+    const input = document.getElementById('cw-input');
+    const btn = document.getElementById('cw-send');
+    const text = input.value.trim();
+    if (!text) return;
+    cwAppend('user', text);
+    input.value = '';
+    btn.disabled = true;
+
+    const typing = document.createElement('div');
+    typing.className = 'cw-msg bot typing';
+    typing.id = 'cw-typing';
+    typing.innerHTML = '<span></span><span></span><span></span>';
+    document.getElementById('cw-messages').appendChild(typing);
+
+    try {
+      const res = await fetch(CW_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: CW_SESSION, message: text }),
+      });
+      const data = await res.json();
+      document.getElementById('cw-typing')?.remove();
+      cwAppend('bot', data.reply);
+    } catch {
+      document.getElementById('cw-typing')?.remove();
+      cwAppend('bot', 'Произошла ошибка. Попишите нам напрямую — @Aleksandr_Saler_Bot');
+    } finally {
+      btn.disabled = false;
+      input.focus();
+    }
+  }
+
+  document.getElementById('cw-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') cwSend();
   });
 </script>
 
