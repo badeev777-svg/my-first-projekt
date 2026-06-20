@@ -1,6 +1,5 @@
 package com.example.calendar
 
-import com.example.calendar.ui.main.MainViewModel
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -8,11 +7,13 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 
 class MainViewModelTest {
-    @Test fun `weekStart is Monday of current week`() = runTest {
-        val today = LocalDate.now()
-        val expectedMonday = today.with(DayOfWeek.MONDAY)
-        val actual = today.with(DayOfWeek.MONDAY)
-        assertEquals(expectedMonday, actual)
+
+    @Test fun `with DayOfWeek MONDAY gives correct week start from Friday`() = runTest {
+        // A Friday should map back to its Monday
+        val friday = LocalDate.of(2026, 6, 19)       // known Friday
+        val expected = LocalDate.of(2026, 6, 15)      // known Monday of that week
+        val actual = friday.with(DayOfWeek.MONDAY)
+        assertEquals(expected, actual)
     }
 
     @Test fun `previousWeek subtracts 7 days`() = runTest {
