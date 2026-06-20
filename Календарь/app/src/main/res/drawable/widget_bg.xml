@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <bitmap
+            android:src="@drawable/rose"
+            android:gravity="fill" />
+    </item>
+    <item>
+        <shape>
+            <gradient
+                android:type="linear"
+                android:angle="270"
+                android:startColor="#E6050015"
+                android:centerColor="#99050015"
+                android:endColor="#26000000" />
+        </shape>
+    </item>
+</layer-list>
