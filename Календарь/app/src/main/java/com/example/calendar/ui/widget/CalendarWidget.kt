@@ -56,7 +56,7 @@ class CalendarWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val repo = TaskRepository(TaskDatabase.getInstance(context).taskDao())
-        val prefs = currentState<androidx.datastore.preferences.core.Preferences>()
+        val prefs = currentState<androidx.datastore.preferences.core.Preferences>(context, id)
         val dateStr = prefs[KEY_SELECTED_DATE] ?: LocalDate.now().toString()
         val tasks = repo.getTasksForDateOnce(LocalDate.parse(dateStr))
 
