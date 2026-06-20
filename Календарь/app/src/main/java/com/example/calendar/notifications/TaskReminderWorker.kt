@@ -15,6 +15,7 @@ class TaskReminderWorker(ctx: Context, params: WorkerParameters) : CoroutineWork
         val title = inputData.getString(KEY_TITLE) ?: return Result.failure()
         val time = inputData.getString(KEY_TIME) ?: return Result.failure()
         val notifId = inputData.getInt(KEY_NOTIF_ID, -1)
+        if (notifId <= 0) return Result.failure()
 
         NotificationHelper.show(
             context = applicationContext,
