@@ -23,4 +23,7 @@ interface TaskDao {
 
     @Delete
     suspend fun delete(task: Task)
+
+    @Query("UPDATE tasks SET isDone = NOT isDone WHERE id = :id")
+    suspend fun toggleDone(id: Int)
 }
