@@ -1,12 +1,14 @@
 package com.example.calendar
 
 import android.Manifest
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -21,9 +23,16 @@ import java.time.LocalDate
 
 class MainActivity : ComponentActivity() {
 
+    companion object {
+        const val EXTRA_DATE = "extra_date"
+        const val EXTRA_ADD  = "extra_add"
+    }
+
     private val requestNotificationPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { /* permission result handled silently */ }
+
+    private var navController: NavHostController? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,22 +46,47 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             CalendarTheme {
-                CalendarApp()
+                CalendarApp(
+                    startDate = intent.getStringExtra(EXTRA_DATE),
+                    startAdd  = intent.getBooleanExtra(EXTRA_ADD, false),
+                    onNavReady = { navController = it }
+                )
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        val date = intent.getStringExtra(EXTRA_DATE) ?: return
+        val add  = intent.getBooleanExtra(EXTRA_ADD, false)
+        val nav  = navController ?: return
+        if (add) {
+            nav.navigate("add/$date") { launchSingleTop = true }
+        } else {
+            nav.navigate("main") { popUpTo("main") { inclusive = true } }
         }
     }
 }
 
 @Composable
-private fun CalendarApp() {
+private fun CalendarApp(
+    startDate: String?,
+    startAdd: Boolean,
+    onNavReady: (NavHostController) -> Unit
+) {
     val navController = rememberNavController()
+    onNavReady(navController)
 
-    NavHost(navController = navController, startDestination = "main") {
+    val initialRoute = when {
+        startAdd && startDate != null -> "add/$startDate"
+        else -> "main"
+    }
+
+    NavHost(navController = navController, startDestination = initialRoute) {
         composable("main") {
             MainScreen(
-                onAddTask = { date ->
-                    navController.navigate("add/${date}")
-                }
+                onAddTask = { date -> navController.navigate("add/$date") }
             )
         }
         composable(
@@ -63,7 +97,7 @@ private fun CalendarApp() {
                 ?: LocalDate.now().toString()
             AddTaskScreen(
                 dateArg = dateArg,
-                onBack = { navController.popBackStack() }
+                onBack  = { navController.popBackStack() }
             )
         }
     }
