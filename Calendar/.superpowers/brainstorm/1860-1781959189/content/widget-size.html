@@ -1,0 +1,86 @@
+<h2>Какой размер виджета?</h2>
+<p class="subtitle">Выбери формат, который хочешь видеть на рабочем столе</p>
+
+<div class="cards">
+
+  <!-- Option A: Small 2x1 -->
+  <div class="card" data-choice="small" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:16px;background:#1a1a2e;border-radius:8px;">
+      <div style="background:#2d2d4e;border-radius:12px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;font-family:sans-serif;">
+        <div>
+          <div style="color:#aaa;font-size:10px;margin-bottom:2px;">Сегодня</div>
+          <div style="color:#fff;font-size:14px;font-weight:600;">3 задачи</div>
+        </div>
+        <div style="color:#e05c7a;font-size:22px;">📅</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Маленький (2×1)</h3>
+      <p>Только счётчик задач на сегодня. Минимум места на экране.</p>
+    </div>
+  </div>
+
+  <!-- Option B: Medium 4x2 -->
+  <div class="card" data-choice="medium" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:16px;background:#1a1a2e;border-radius:8px;">
+      <div style="background:#2d2d4e;border-radius:12px;padding:14px 16px;font-family:sans-serif;min-width:220px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div>
+            <div style="color:#e05c7a;font-size:11px;font-weight:600;letter-spacing:1px;">СЕГОДНЯ</div>
+            <div style="color:#fff;font-size:15px;font-weight:700;">20 июня</div>
+          </div>
+          <div style="background:#e05c7a;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;cursor:pointer;">+</div>
+        </div>
+        <div style="color:#ccc;font-size:12px;margin-bottom:5px;padding:4px 0;border-bottom:1px solid #444;">• Встреча в 10:00</div>
+        <div style="color:#ccc;font-size:12px;margin-bottom:5px;padding:4px 0;border-bottom:1px solid #444;">• Купить продукты</div>
+        <div style="color:#777;font-size:11px;margin-top:4px;">+ ещё 1 задача</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Средний (4×2) — Рекомендую</h3>
+      <p>Дата, 2–3 задачи, кнопка добавить. Золотая середина.</p>
+    </div>
+  </div>
+
+  <!-- Option C: Large 4x4 -->
+  <div class="card" data-choice="large" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:16px;background:#1a1a2e;border-radius:8px;">
+      <div style="background:#2d2d4e;border-radius:12px;padding:14px 16px;font-family:sans-serif;min-width:220px;">
+        <!-- Week strip -->
+        <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
+          <div style="text-align:center;padding:4px 6px;border-radius:8px;background:#3a3a5e;">
+            <div style="color:#aaa;font-size:9px;">пн</div><div style="color:#fff;font-size:12px;font-weight:600;">16</div>
+          </div>
+          <div style="text-align:center;padding:4px 6px;border-radius:8px;">
+            <div style="color:#aaa;font-size:9px;">вт</div><div style="color:#ccc;font-size:12px;">17</div>
+          </div>
+          <div style="text-align:center;padding:4px 6px;border-radius:8px;">
+            <div style="color:#aaa;font-size:9px;">ср</div><div style="color:#ccc;font-size:12px;">18</div>
+          </div>
+          <div style="text-align:center;padding:4px 6px;border-radius:8px;">
+            <div style="color:#aaa;font-size:9px;">чт</div><div style="color:#ccc;font-size:12px;">19</div>
+          </div>
+          <div style="text-align:center;padding:4px 6px;border-radius:8px;background:#e05c7a;">
+            <div style="color:#fff;font-size:9px;">пт</div><div style="color:#fff;font-size:12px;font-weight:700;">20</div>
+          </div>
+          <div style="text-align:center;padding:4px 6px;border-radius:8px;">
+            <div style="color:#aaa;font-size:9px;">сб</div><div style="color:#ccc;font-size:12px;">21</div>
+          </div>
+          <div style="text-align:center;padding:4px 6px;border-radius:8px;">
+            <div style="color:#aaa;font-size:9px;">вс</div><div style="color:#ccc;font-size:12px;">22</div>
+          </div>
+        </div>
+        <div style="border-top:1px solid #444;margin-bottom:8px;"></div>
+        <div style="color:#ccc;font-size:12px;margin-bottom:5px;padding:4px 0;border-bottom:1px solid #3a3a5e;">• Встреча в 10:00</div>
+        <div style="color:#ccc;font-size:12px;margin-bottom:5px;padding:4px 0;border-bottom:1px solid #3a3a5e;">• Купить продукты</div>
+        <div style="color:#ccc;font-size:12px;margin-bottom:5px;padding:4px 0;border-bottom:1px solid #3a3a5e;text-decoration:line-through;color:#666;">✓ Позвонить врачу</div>
+        <div style="color:#e05c7a;font-size:11px;margin-top:4px;text-align:right;">+ Добавить →</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Большой (4×4)</h3>
+      <p>Мини-полоска недели + все задачи. Занимает много места.</p>
+    </div>
+  </div>
+
+</div>
