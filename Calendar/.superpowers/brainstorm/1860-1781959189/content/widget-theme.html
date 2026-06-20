@@ -1,0 +1,105 @@
+<h2>Тема виджета</h2>
+<p class="subtitle">Как виджет должен выглядеть на рабочем столе?</p>
+
+<div class="cards">
+
+  <!-- Option A: Always dark -->
+  <div class="card" data-choice="dark" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:20px;background:#e8e8e8;border-radius:8px;">
+      <div style="background:#1e1e2e;border-radius:16px;padding:14px 16px;font-family:sans-serif;min-width:220px;box-shadow:0 4px 20px rgba(0,0,0,0.3);">
+        <div style="display:flex;justify-content:space-between;margin-bottom:10px;">
+          <div style="text-align:center;padding:5px 7px;border-radius:8px;background:#2d2d4e;">
+            <div style="color:#aaa;font-size:9px;">пн</div><div style="color:#fff;font-size:11px;font-weight:600;">16</div>
+          </div>
+          <div style="text-align:center;padding:5px 7px;border-radius:8px;">
+            <div style="color:#aaa;font-size:9px;">вт</div><div style="color:#999;font-size:11px;">17</div>
+          </div>
+          <div style="text-align:center;padding:5px 7px;border-radius:8px;">
+            <div style="color:#aaa;font-size:9px;">ср</div><div style="color:#999;font-size:11px;">18</div>
+          </div>
+          <div style="text-align:center;padding:5px 7px;border-radius:8px;">
+            <div style="color:#aaa;font-size:9px;">чт</div><div style="color:#999;font-size:11px;">19</div>
+          </div>
+          <div style="text-align:center;padding:5px 7px;border-radius:8px;background:#e05c7a;">
+            <div style="color:#fff;font-size:9px;">пт</div><div style="color:#fff;font-size:11px;font-weight:700;">20</div>
+          </div>
+          <div style="text-align:center;padding:5px 7px;border-radius:8px;">
+            <div style="color:#aaa;font-size:9px;">сб</div><div style="color:#999;font-size:11px;">21</div>
+          </div>
+          <div style="text-align:center;padding:5px 7px;border-radius:8px;">
+            <div style="color:#aaa;font-size:9px;">вс</div><div style="color:#999;font-size:11px;">22</div>
+          </div>
+        </div>
+        <div style="border-top:1px solid #333;margin-bottom:8px;"></div>
+        <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #2a2a3e;">
+          <div style="width:14px;height:14px;border-radius:3px;border:1.5px solid #e05c7a;flex-shrink:0;"></div>
+          <span style="color:#ccc;font-size:12px;">Встреча в 10:00</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #2a2a3e;">
+          <div style="width:14px;height:14px;border-radius:3px;border:1.5px solid #e05c7a;flex-shrink:0;"></div>
+          <span style="color:#ccc;font-size:12px;">Купить продукты</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:5px 0;">
+          <div style="width:14px;height:14px;border-radius:3px;background:#e05c7a;flex-shrink:0;display:flex;align-items:center;justify-content:center;"><span style="color:#fff;font-size:10px;">✓</span></div>
+          <span style="color:#555;font-size:12px;text-decoration:line-through;">Позвонить врачу</span>
+        </div>
+        <div style="text-align:right;margin-top:8px;">
+          <span style="color:#e05c7a;font-size:11px;">+ Добавить →</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Всегда тёмная</h3>
+      <p>Единый стиль с приложением. Хорошо смотрится на любом фоне рабочего стола.</p>
+    </div>
+  </div>
+
+  <!-- Option B: Follow system -->
+  <div class="card" data-choice="system" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:16px;background:#e8e8e8;border-radius:8px;">
+      <div style="display:flex;gap:12px;align-items:flex-start;">
+        <!-- Light version -->
+        <div style="background:#fff;border-radius:14px;padding:12px 14px;font-family:sans-serif;flex:1;box-shadow:0 2px 12px rgba(0,0,0,0.12);">
+          <div style="font-size:9px;color:#aaa;margin-bottom:4px;text-align:center;">☀️ светлая</div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+            <div style="text-align:center;padding:3px 5px;border-radius:6px;background:#f0f0f0;">
+              <div style="color:#999;font-size:8px;">пн</div><div style="color:#333;font-size:10px;font-weight:600;">16</div>
+            </div>
+            <div style="text-align:center;padding:3px 5px;border-radius:6px;background:#e05c7a;">
+              <div style="color:#fff;font-size:8px;">пт</div><div style="color:#fff;font-size:10px;font-weight:700;">20</div>
+            </div>
+            <div style="text-align:center;padding:3px 5px;border-radius:6px;background:#f0f0f0;">
+              <div style="color:#999;font-size:8px;">вс</div><div style="color:#333;font-size:10px;">22</div>
+            </div>
+          </div>
+          <div style="border-top:1px solid #eee;margin-bottom:6px;"></div>
+          <div style="color:#333;font-size:10px;padding:3px 0;border-bottom:1px solid #f0f0f0;">• Встреча в 10:00</div>
+          <div style="color:#333;font-size:10px;padding:3px 0;">• Купить продукты</div>
+        </div>
+        <!-- Dark version -->
+        <div style="background:#1e1e2e;border-radius:14px;padding:12px 14px;font-family:sans-serif;flex:1;box-shadow:0 2px 12px rgba(0,0,0,0.3);">
+          <div style="font-size:9px;color:#aaa;margin-bottom:4px;text-align:center;">🌙 тёмная</div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+            <div style="text-align:center;padding:3px 5px;border-radius:6px;background:#2d2d4e;">
+              <div style="color:#aaa;font-size:8px;">пн</div><div style="color:#fff;font-size:10px;font-weight:600;">16</div>
+            </div>
+            <div style="text-align:center;padding:3px 5px;border-radius:6px;background:#e05c7a;">
+              <div style="color:#fff;font-size:8px;">пт</div><div style="color:#fff;font-size:10px;font-weight:700;">20</div>
+            </div>
+            <div style="text-align:center;padding:3px 5px;border-radius:6px;background:#2d2d4e;">
+              <div style="color:#aaa;font-size:8px;">вс</div><div style="color:#999;font-size:10px;">22</div>
+            </div>
+          </div>
+          <div style="border-top:1px solid #333;margin-bottom:6px;"></div>
+          <div style="color:#ccc;font-size:10px;padding:3px 0;border-bottom:1px solid #2a2a3e;">• Встреча в 10:00</div>
+          <div style="color:#ccc;font-size:10px;padding:3px 0;">• Купить продукты</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Следовать системе</h3>
+      <p>Автоматически светлая или тёмная — в зависимости от настроек телефона.</p>
+    </div>
+  </div>
+
+</div>
