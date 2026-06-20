@@ -1,0 +1,91 @@
+<h2>Экран добавления задачи</h2>
+<p class="subtitle">Открывается по нажатию кнопки «+»</p>
+
+<div style="display:flex;gap:32px;justify-content:center;flex-wrap:wrap;align-items:flex-start;margin-top:16px;">
+
+  <div style="width:280px;">
+    <div style="background:#111;border-radius:36px;padding:12px;box-shadow:0 20px 60px rgba(0,0,0,0.5);border:2px solid #333;">
+      <div style="display:flex;justify-content:space-between;padding:4px 16px 8px;color:#aaa;font-size:10px;font-family:sans-serif;">
+        <span>9:41</span>
+        <span>⚡ 87%</span>
+      </div>
+      <div style="background:#0f1117;border-radius:24px;overflow:hidden;min-height:480px;font-family:sans-serif;">
+
+        <!-- App bar -->
+        <div style="background:#0f1117;padding:16px;display:flex;justify-content:space-between;align-items:center;">
+          <span style="color:#6c8ebf;font-size:14px;">✕ Отмена</span>
+          <span style="color:#fff;font-size:16px;font-weight:700;">Новая задача</span>
+          <span style="color:#4a90d9;font-size:14px;font-weight:600;">Сохранить</span>
+        </div>
+
+        <div style="padding:8px 16px;display:flex;flex-direction:column;gap:12px;">
+
+          <!-- Title field -->
+          <div style="background:#1a1f2e;border-radius:12px;padding:14px 16px;">
+            <div style="color:#666;font-size:10px;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">Название</div>
+            <div style="color:#e0e0e0;font-size:14px;border-bottom:1.5px solid #4a90d9;padding-bottom:4px;">Встреча с командой<span style="color:#4a90d9;animation:blink 1s infinite;">|</span></div>
+          </div>
+
+          <!-- Date field -->
+          <div style="background:#1a1f2e;border-radius:12px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <div style="color:#666;font-size:10px;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">Дата</div>
+              <div style="color:#e0e0e0;font-size:14px;">20 июня 2026</div>
+            </div>
+            <span style="color:#4a90d9;font-size:18px;">📅</span>
+          </div>
+
+          <!-- Time field (optional) -->
+          <div style="background:#1a1f2e;border-radius:12px;padding:14px 16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <div style="color:#666;font-size:10px;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">Время <span style="color:#444;">(необязательно)</span></div>
+                <div style="color:#e0e0e0;font-size:14px;">15:00</div>
+              </div>
+              <span style="color:#4a90d9;font-size:18px;">🕐</span>
+            </div>
+            <!-- Notification hint -->
+            <div style="margin-top:8px;padding:6px 10px;background:#0f1117;border-radius:8px;display:flex;align-items:center;gap:6px;">
+              <span style="font-size:12px;">🔔</span>
+              <span style="color:#6c8ebf;font-size:11px;">Уведомление в 9:00 и за 1 час (в 14:00)</span>
+            </div>
+          </div>
+
+          <!-- Toggle time off state -->
+          <div style="background:#1a1f2e;border-radius:12px;padding:14px 16px;opacity:0.5;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <div style="color:#666;font-size:10px;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">Без времени</div>
+                <div style="color:#666;font-size:12px;">Только утреннее уведомление в 9:00</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- States explanation -->
+  <div style="max-width:260px;">
+    <h3 style="color:#e0e0e0;margin-top:0;">Логика экрана</h3>
+    <div style="color:#aaa;font-size:13px;line-height:1.8;">
+      <p><strong style="color:#e0e0e0;">Название</strong> — обязательное поле, текстовый ввод</p>
+      <p><strong style="color:#e0e0e0;">Дата</strong> — по умолчанию выбранный день из главного экрана, можно изменить через date picker</p>
+      <p><strong style="color:#e0e0e0;">Время</strong> — необязательно. Если указано:</p>
+      <ul style="padding-left:16px;">
+        <li>Уведомление в 9:00 в день задачи</li>
+        <li>Уведомление за 1 час до начала</li>
+      </ul>
+      <p>Если время <strong style="color:#e0e0e0;">не указано</strong> — только утреннее уведомление в 9:00</p>
+      <p><strong style="color:#e0e0e0;">Сохранить</strong> — записывает в Room DB, планирует уведомления через WorkManager</p>
+    </div>
+
+    <div style="margin-top:16px;padding:12px;background:#1a1f2e;border-radius:10px;border-left:3px solid #4a90d9;">
+      <div style="color:#aaa;font-size:11px;">Удаление задачи</div>
+      <div style="color:#e0e0e0;font-size:12px;margin-top:4px;">Свайп влево по задаче в главном экране → кнопка «Удалить»</div>
+    </div>
+  </div>
+
+</div>

@@ -1,0 +1,144 @@
+<h2>Как выглядит главный экран?</h2>
+<p class="subtitle">Выбери компоновку, которая нравится больше</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#1a1a2e;padding:12px;border-radius:8px;font-family:monospace;">
+      <div style="background:#16213e;border-radius:6px;padding:8px;margin-bottom:8px;">
+        <div style="color:#e0e0e0;font-size:11px;text-align:center;margin-bottom:6px;font-weight:bold;">Июнь 2026</div>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;">
+          <div style="color:#888;font-size:9px;">Пн</div><div style="color:#888;font-size:9px;">Вт</div><div style="color:#888;font-size:9px;">Ср</div><div style="color:#888;font-size:9px;">Чт</div><div style="color:#888;font-size:9px;">Пт</div><div style="color:#888;font-size:9px;">Сб</div><div style="color:#888;font-size:9px;">Вс</div>
+          <div style="color:#666;font-size:9px;padding:2px;"> </div><div style="color:#666;font-size:9px;padding:2px;"> </div><div style="color:#666;font-size:9px;padding:2px;"> </div><div style="color:#666;font-size:9px;padding:2px;"> </div><div style="color:#666;font-size:9px;padding:2px;"> </div><div style="color:#e0e0e0;font-size:9px;padding:2px;">1</div><div style="color:#e0e0e0;font-size:9px;padding:2px;">2</div>
+          <div style="color:#e0e0e0;font-size:9px;padding:2px;">3</div><div style="color:#e0e0e0;font-size:9px;padding:2px;">4</div><div style="color:#e0e0e0;font-size:9px;padding:2px;">5</div><div style="color:#e0e0e0;font-size:9px;padding:2px;">6</div><div style="color:#e0e0e0;font-size:9px;padding:2px;">7</div><div style="color:#e0e0e0;font-size:9px;padding:2px;">8</div><div style="color:#e0e0e0;font-size:9px;padding:2px;">9</div>
+          <div style="color:#e0e0e0;font-size:9px;padding:2px;">10</div><div style="color:#e0e0e0;font-size:9px;padding:2px;">11</div><div style="color:#e0e0e0;font-size:9px;padding:2px;">12</div><div style="color:#e0e0e0;font-size:9px;padding:2px;">13</div><div style="color:#e0e0e0;font-size:9px;padding:2px;">14</div><div style="color:#e0e0e0;font-size:9px;padding:2px;">15</div><div style="color:#e0e0e0;font-size:9px;padding:2px;">16</div>
+          <div style="color:#e0e0e0;font-size:9px;padding:2px;">17</div><div style="color:#e0e0e0;font-size:9px;padding:2px;">18</div><div style="color:#e0e0e0;font-size:9px;padding:2px;">19</div><div style="background:#4a90d9;border-radius:3px;color:#fff;font-size:9px;padding:2px;font-weight:bold;">20</div><div style="color:#e0e0e0;font-size:9px;padding:2px;">21</div><div style="color:#e0e0e0;font-size:9px;padding:2px;">22</div><div style="color:#e0e0e0;font-size:9px;padding:2px;">23</div>
+        </div>
+      </div>
+      <div style="background:#16213e;border-radius:6px;padding:8px;">
+        <div style="color:#aaa;font-size:10px;margin-bottom:6px;">20 июня — задачи</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+          <div style="width:14px;height:14px;border:1.5px solid #4a90d9;border-radius:3px;display:flex;align-items:center;justify-content:center;"><span style="color:#4a90d9;font-size:10px;">✓</span></div>
+          <span style="color:#888;font-size:10px;text-decoration:line-through;">Позвонить врачу</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
+          <div style="width:14px;height:14px;border:1.5px solid #aaa;border-radius:3px;"></div>
+          <span style="color:#e0e0e0;font-size:10px;">Купить продукты</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="width:14px;height:14px;border:1.5px solid #aaa;border-radius:3px;"></div>
+          <span style="color:#e0e0e0;font-size:10px;">Написать отчёт</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Месяц + список снизу</h3>
+      <p>Сверху месячная сетка, снизу задачи выбранного дня с галочками. Тап по дню — список обновляется без перехода.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#1a1a2e;padding:12px;border-radius:8px;font-family:monospace;">
+      <div style="background:#16213e;border-radius:6px;padding:8px;margin-bottom:8px;">
+        <div style="color:#e0e0e0;font-size:11px;text-align:center;margin-bottom:6px;font-weight:bold;">&lt; Июнь 2026 &gt;</div>
+        <div style="display:flex;gap:4px;justify-content:center;">
+          <div style="text-align:center;padding:4px 6px;background:#1a1a2e;border-radius:6px;">
+            <div style="color:#888;font-size:8px;">Пн</div><div style="color:#e0e0e0;font-size:10px;">17</div>
+            <div style="width:4px;height:4px;background:#4a90d9;border-radius:50%;margin:2px auto;"></div>
+          </div>
+          <div style="text-align:center;padding:4px 6px;background:#1a1a2e;border-radius:6px;">
+            <div style="color:#888;font-size:8px;">Вт</div><div style="color:#e0e0e0;font-size:10px;">18</div>
+            <div style="width:4px;height:4px;background:#e74c3c;border-radius:50%;margin:2px auto;"></div>
+          </div>
+          <div style="text-align:center;padding:4px 6px;background:#1a1a2e;border-radius:6px;">
+            <div style="color:#888;font-size:8px;">Ср</div><div style="color:#e0e0e0;font-size:10px;">19</div>
+            <div style="width:4px;height:4px;background:#2ecc71;border-radius:50%;margin:2px auto;"></div>
+          </div>
+          <div style="text-align:center;padding:4px 6px;background:#4a90d9;border-radius:6px;">
+            <div style="color:#fff;font-size:8px;">Чт</div><div style="color:#fff;font-size:11px;font-weight:bold;">20</div>
+            <div style="width:4px;height:4px;background:#fff;border-radius:50%;margin:2px auto;"></div>
+          </div>
+          <div style="text-align:center;padding:4px 6px;background:#1a1a2e;border-radius:6px;">
+            <div style="color:#888;font-size:8px;">Пт</div><div style="color:#e0e0e0;font-size:10px;">21</div>
+          </div>
+          <div style="text-align:center;padding:4px 6px;background:#1a1a2e;border-radius:6px;">
+            <div style="color:#888;font-size:8px;">Сб</div><div style="color:#e0e0e0;font-size:10px;">22</div>
+          </div>
+          <div style="text-align:center;padding:4px 6px;background:#1a1a2e;border-radius:6px;">
+            <div style="color:#888;font-size:8px;">Вс</div><div style="color:#e0e0e0;font-size:10px;">23</div>
+          </div>
+        </div>
+      </div>
+      <div style="background:#16213e;border-radius:6px;padding:8px;flex:1;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+          <div style="width:14px;height:14px;border:1.5px solid #4a90d9;border-radius:3px;display:flex;align-items:center;justify-content:center;"><span style="color:#4a90d9;font-size:10px;">✓</span></div>
+          <span style="color:#888;font-size:10px;text-decoration:line-through;">Позвонить врачу</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+          <div style="width:14px;height:14px;border:1.5px solid #aaa;border-radius:3px;"></div>
+          <span style="color:#e0e0e0;font-size:10px;">Купить продукты</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+          <div style="width:14px;height:14px;border:1.5px solid #aaa;border-radius:3px;"></div>
+          <span style="color:#e0e0e0;font-size:10px;">Написать отчёт</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="width:14px;height:14px;border:1.5px solid #f39c12;border-radius:3px;display:flex;align-items:center;justify-content:center;"><span style="color:#f39c12;font-size:8px;">🔔</span></div>
+          <span style="color:#f39c12;font-size:10px;">Встреча 15:00</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Неделя + список</h3>
+      <p>Вверху полоса из 7 дней (свайп = следующая неделя), ниже — задачи на выбранный день. Больше места для задач, удобнее на телефоне.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#1a1a2e;padding:12px;border-radius:8px;font-family:monospace;">
+      <div style="background:#16213e;border-radius:6px;padding:8px;margin-bottom:6px;">
+        <div style="color:#e0e0e0;font-size:11px;text-align:center;margin-bottom:6px;font-weight:bold;">Июнь 2026</div>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;">
+          <div style="color:#888;font-size:8px;">Пн</div><div style="color:#888;font-size:8px;">Вт</div><div style="color:#888;font-size:8px;">Ср</div><div style="color:#888;font-size:8px;">Чт</div><div style="color:#888;font-size:8px;">Пт</div><div style="color:#888;font-size:8px;">Сб</div><div style="color:#888;font-size:8px;">Вс</div>
+          <div style="font-size:8px;padding:1px;"> </div><div style="font-size:8px;padding:1px;"> </div><div style="font-size:8px;padding:1px;"> </div><div style="font-size:8px;padding:1px;"> </div><div style="font-size:8px;padding:1px;"> </div>
+          <div style="background:#1a1a2e;border-radius:4px;padding:2px;">
+            <div style="color:#e0e0e0;font-size:8px;">1</div>
+            <div style="display:flex;justify-content:center;gap:1px;margin-top:1px;">
+              <div style="width:5px;height:5px;border:1px solid #4a90d9;border-radius:1px;display:flex;align-items:center;justify-content:center;"><span style="color:#4a90d9;font-size:5px;">✓</span></div>
+              <div style="width:5px;height:5px;border:1px solid #aaa;border-radius:1px;"></div>
+            </div>
+          </div>
+          <div style="background:#1a1a2e;border-radius:4px;padding:2px;">
+            <div style="color:#e0e0e0;font-size:8px;">2</div>
+            <div style="display:flex;justify-content:center;gap:1px;margin-top:1px;">
+              <div style="width:5px;height:5px;border:1px solid #2ecc71;border-radius:1px;display:flex;align-items:center;justify-content:center;"><span style="color:#2ecc71;font-size:5px;">✓</span></div>
+            </div>
+          </div>
+          <div style="background:#1a1a2e;border-radius:4px;padding:2px;" style="grid-column:span 5">
+            <div style="color:#e0e0e0;font-size:8px;">3</div>
+          </div>
+          <div style="background:#1a1a2e;border-radius:4px;padding:2px;"><div style="color:#e0e0e0;font-size:8px;">4</div></div>
+          <div style="background:#1a1a2e;border-radius:4px;padding:2px;"><div style="color:#e0e0e0;font-size:8px;">5</div></div>
+          <div style="background:#1a1a2e;border-radius:4px;padding:2px;"><div style="color:#e0e0e0;font-size:8px;">6</div></div>
+          <div style="background:#4a90d9;border-radius:4px;padding:2px;">
+            <div style="color:#fff;font-size:8px;font-weight:bold;">20</div>
+            <div style="display:flex;justify-content:center;gap:1px;margin-top:1px;">
+              <div style="width:5px;height:5px;border:1px solid #fff;border-radius:1px;display:flex;align-items:center;justify-content:center;"><span style="color:#fff;font-size:5px;">✓</span></div>
+              <div style="width:5px;height:5px;border:1px solid rgba(255,255,255,0.6);border-radius:1px;"></div>
+              <div style="width:5px;height:5px;border:1px solid rgba(255,255,255,0.6);border-radius:1px;"></div>
+            </div>
+          </div>
+          <div style="background:#1a1a2e;border-radius:4px;padding:2px;"><div style="color:#e0e0e0;font-size:8px;">21</div></div>
+          <div style="background:#1a1a2e;border-radius:4px;padding:2px;"><div style="color:#e0e0e0;font-size:8px;">22</div></div>
+          <div style="background:#1a1a2e;border-radius:4px;padding:2px;"><div style="color:#e0e0e0;font-size:8px;">23</div></div>
+        </div>
+      </div>
+      <div style="color:#aaa;font-size:9px;text-align:center;">↑ в каждой ячейке видны мини-чекбоксы задач</div>
+    </div>
+    <div class="card-body">
+      <h3>C — Месяц с мини-чекбоксами</h3>
+      <p>Месячная сетка, в каждой ячейке дня видны крошечные чекбоксы. Можно отметить прямо на сетке. Компактно, но мелко.</p>
+    </div>
+  </div>
+
+</div>
