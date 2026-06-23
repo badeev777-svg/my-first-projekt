@@ -46,6 +46,15 @@ class OpenDateCallback : ActionCallback {
     }
 }
 
+class DeleteTaskCallback : ActionCallback {
+    override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
+        val id = parameters[KEY_TASK_ID] ?: return
+        val repo = TaskRepository(TaskDatabase.getInstance(context).taskDao())
+        repo.deleteById(id)
+        CalendarWidget().updateAll(context)
+    }
+}
+
 class AddTaskCallback : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         val date = parameters[KEY_DATE] ?: return
