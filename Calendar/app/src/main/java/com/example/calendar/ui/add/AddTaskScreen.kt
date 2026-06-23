@@ -45,7 +45,7 @@ fun AddTaskScreen(
         ) {
             OutlinedTextField(
                 value = vm.title,
-                onValueChange = vm::setTitle,
+                onValueChange = vm::onTitleChange,
                 label = { Text("Название задачи") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
@@ -102,7 +102,7 @@ fun AddTaskScreen(
             confirmButton = {
                 TextButton(onClick = {
                     pickerState.selectedDateMillis?.let { millis ->
-                        vm.setDate(LocalDate.ofEpochDay(millis / 86_400_000L))
+                        vm.onDateChange(LocalDate.ofEpochDay(millis / 86_400_000L))
                     }
                     showDatePicker = false
                 }) { Text("OK") }
@@ -125,13 +125,13 @@ fun AddTaskScreen(
             onDismissRequest = { showTimePicker = false },
             confirmButton = {
                 TextButton(onClick = {
-                    vm.setTime("%02d:%02d".format(timePickerState.hour, timePickerState.minute))
+                    vm.onTimeChange("%02d:%02d".format(timePickerState.hour, timePickerState.minute))
                     showTimePicker = false
                 }) { Text("OK") }
             },
             dismissButton = {
                 TextButton(onClick = {
-                    vm.setTime(null)
+                    vm.onTimeChange(null)
                     showTimePicker = false
                 }) { Text("Без времени") }
             },

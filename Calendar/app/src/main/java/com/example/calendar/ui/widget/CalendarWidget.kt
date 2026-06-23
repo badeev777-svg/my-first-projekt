@@ -7,28 +7,16 @@ import androidx.compose.ui.unit.sp
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
-import androidx.glance.GlanceTheme
-import androidx.glance.Image
 import androidx.glance.ImageProvider
 import androidx.glance.action.actionParametersOf
+import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
+import androidx.glance.appwidget.state.getAppWidgetState
 import androidx.glance.background
-import androidx.glance.layout.Alignment
-import androidx.glance.layout.Box
-import androidx.glance.layout.Column
-import androidx.glance.layout.ContentScale
-import androidx.glance.layout.Row
-import androidx.glance.layout.Spacer
-import androidx.glance.layout.fillMaxSize
-import androidx.glance.layout.fillMaxWidth
-import androidx.glance.layout.height
-import androidx.glance.layout.padding
-import androidx.glance.layout.size
-import androidx.glance.layout.width
-import androidx.glance.layout.defaultWeight
+import androidx.glance.layout.*
 import androidx.glance.state.GlanceStateDefinition
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.FontWeight
@@ -56,7 +44,7 @@ class CalendarWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val repo = TaskRepository(TaskDatabase.getInstance(context).taskDao())
-        val prefs = currentState<androidx.datastore.preferences.core.Preferences>(context, id)
+        val prefs = getAppWidgetState(context, PreferencesGlanceStateDefinition, id)
         val dateStr = prefs[KEY_SELECTED_DATE] ?: LocalDate.now().toString()
         val tasks = repo.getTasksForDateOnce(LocalDate.parse(dateStr))
 
@@ -81,7 +69,7 @@ private fun WidgetContent(selectedDate: String, tasks: List<Task>) {
         modifier = GlanceModifier
             .fillMaxSize()
             .background(ImageProvider(R.drawable.widget_bg))
-            .cornerRadius(20)
+            .cornerRadius(20.dp)
     ) {
         Column(
             modifier = GlanceModifier
@@ -105,7 +93,7 @@ private fun WidgetContent(selectedDate: String, tasks: List<Task>) {
                                 if (isSelected) pink
                                 else ColorProvider(Color(0x33FFFFFF))
                             )
-                            .cornerRadius(10)
+                            .cornerRadius(10.dp)
                             .clickable(
                                 actionRunCallback<SelectDateCallback>(
                                     actionParametersOf(KEY_DATE to day.toString())
@@ -158,7 +146,7 @@ private fun WidgetContent(selectedDate: String, tasks: List<Task>) {
                     modifier = GlanceModifier
                         .size(28.dp)
                         .background(pink)
-                        .cornerRadius(50)
+                        .cornerRadius(50.dp)
                         .clickable(
                             actionRunCallback<AddTaskCallback>(
                                 actionParametersOf(KEY_DATE to date.toString())
@@ -212,7 +200,7 @@ private fun TaskRow(task: Task, dateStr: String) {
         Box(
             modifier = GlanceModifier
                 .size(16.dp)
-                .cornerRadius(4)
+                .cornerRadius(4.dp)
                 .clickable(
                     actionRunCallback<ToggleDoneCallback>(
                         actionParametersOf(KEY_TASK_ID to task.id)

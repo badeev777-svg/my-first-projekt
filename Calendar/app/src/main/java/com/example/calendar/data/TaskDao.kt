@@ -6,10 +6,10 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface TaskDao {
-    @Query("SELECT * FROM tasks WHERE date = :date ORDER BY time ASC NULLS LAST")
+    @Query("SELECT * FROM tasks WHERE date = :date ORDER BY CASE WHEN time IS NULL THEN 1 ELSE 0 END ASC, time ASC")
     fun getTasksForDate(date: String): Flow<List<Task>>
 
-    @Query("SELECT * FROM tasks WHERE date = :date ORDER BY time ASC NULLS LAST")
+    @Query("SELECT * FROM tasks WHERE date = :date ORDER BY CASE WHEN time IS NULL THEN 1 ELSE 0 END ASC, time ASC")
     suspend fun getTasksForDateOnce(date: String): List<Task>
 
     @Query("SELECT DISTINCT date FROM tasks WHERE date BETWEEN :from AND :to")
@@ -24,6 +24,6 @@ interface TaskDao {
     @Delete
     suspend fun delete(task: Task)
 
-    @Query("UPDATE tasks SET isDone = NOT isDone WHERE id = :id")
-    suspend fun toggleDone(id: Int)
+    @Query("UPDATE tasks SET isDone = 1 - isDone WHERE id = :id")
+    suspend fun toggleDone(id: Int): Int
 }

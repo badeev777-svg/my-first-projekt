@@ -4,12 +4,14 @@ import android.app.Application
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.glance.appwidget.updateAll
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.calendar.data.TaskRepository
 import com.example.calendar.data.db.TaskDatabase
 import com.example.calendar.domain.Task
 import com.example.calendar.notifications.TaskReminderWorker
+import com.example.calendar.ui.widget.CalendarWidget
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
@@ -28,9 +30,9 @@ class AddTaskViewModel(app: Application) : AndroidViewModel(app) {
         date = LocalDate.parse(dateStr)
     }
 
-    fun setTitle(value: String) { title = value }
-    fun setDate(value: LocalDate) { date = value }
-    fun setTime(value: String?) { time = value }
+    fun onTitleChange(value: String) { title = value }
+    fun onDateChange(value: LocalDate) { date = value }
+    fun onTimeChange(value: String?) { time = value }
 
     fun save(onDone: () -> Unit) {
         if (title.isBlank()) return
@@ -47,6 +49,7 @@ class AddTaskViewModel(app: Application) : AndroidViewModel(app) {
                 )
                 TaskReminderWorker.schedule(getApplication(), task)
             }
+            CalendarWidget().updateAll(getApplication())
             onDone()
         }
     }
