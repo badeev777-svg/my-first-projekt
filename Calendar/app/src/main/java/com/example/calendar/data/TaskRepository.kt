@@ -22,4 +22,6 @@ class TaskRepository(private val dao: TaskDao) {
     suspend fun delete(task: Task) = dao.delete(task)
 
     suspend fun toggleDone(id: Int) = dao.toggleDone(id)
+
+    suspend fun deleteById(id: Int) = dao.deleteById(id)
 }
