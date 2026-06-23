@@ -244,5 +244,26 @@ private fun TaskRow(task: Task, dateStr: String) {
                 )
             }
         }
+
+        Spacer(GlanceModifier.width(6.dp))
+
+        Box(
+            modifier = GlanceModifier
+                .size(16.dp)
+                .clickable(
+                    actionRunCallback<DeleteTaskCallback>(
+                        actionParametersOf(KEY_TASK_ID to task.id)
+                    )
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                "×",
+                style = TextStyle(
+                    color = ColorProvider(Color(0xFF666666)),
+                    fontSize = 14.sp
+                )
+            )
+        }
     }
 }
