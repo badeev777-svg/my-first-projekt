@@ -12,8 +12,9 @@ from src.handlers.registration import (
     ASK_NAME, ASK_AUDIENCE, ASK_GOAL, LEVEL_TEST
 )
 from src.handlers.dialog import (
-    new_dialog_command, scenario_selected, handle_message, end_dialog
+    new_dialog_command, scenario_selected, handle_message, handle_voice_message, end_dialog
 )
+from src.handlers.mode import set_voice_mode, set_text_mode
 from src.handlers.profile import profile_command, stats_command
 from src.handlers.payment import (
     start_payment_command, buy_monthly_command,
@@ -83,8 +84,11 @@ class SpeakBuddyBot:
             MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment_handler)
         )
         self.application.add_handler(CommandHandler("end", end_dialog))
+        self.application.add_handler(CommandHandler("voice", set_voice_mode))
+        self.application.add_handler(CommandHandler("text", set_text_mode))
 
         self.application.add_handler(CallbackQueryHandler(scenario_selected, pattern="^scenario_"))
+        self.application.add_handler(MessageHandler(filters.VOICE, handle_voice_message))
         self.application.add_handler(
             MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message)
         )
