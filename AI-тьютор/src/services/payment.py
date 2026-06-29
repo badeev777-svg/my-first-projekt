@@ -1,54 +1,43 @@
 from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 from src.db.models import Payment, Subscription, User
-from src.config import Config
-import requests
-import hashlib
-from hmac import compare_digest
 
 
 async def create_payment(
     session: AsyncSession,
     user_id: int,
     amount: int,
-    method: str = "star"
-) -> dict:
+    external_id: str = None,
+) -> Payment:
     payment = Payment(
         user_id=user_id,
         amount=amount,
-        currency="RUB",
+        currency="XTR",
         status="pending",
-        method=method
+        method="stars",
+        external_id=external_id,
     )
     session.add(payment)
     await session.commit()
     await session.refresh(payment)
-
-    return {
-        "id": payment.id,
-        "user_id": user_id,
-        "amount": amount,
-        "status": "pending",
-        "created_at": payment.created_at.isoformat()
-    }
+    return payment
 
 
-async def update_payment_status(
+async def complete_payment(
     session: AsyncSession,
-    payment_id: int,
-    status: str,
-    external_id: str = None
+    user_id: int,
+    telegram_payment_charge_id: str,
+    amount: int,
 ) -> bool:
-    payment = await session.get(Payment, payment_id)
-    if not payment:
-        return False
-
-    payment.status = status
-    if external_id:
-        payment.external_id = external_id
-    payment.updated_at = datetime.utcnow()
-
+    payment = Payment(
+        user_id=user_id,
+        amount=amount,
+        currency="XTR",
+        status="completed",
+        method="stars",
+        external_id=telegram_payment_charge_id,
+    )
+    session.add(payment)
     await session.commit()
     return True
 
@@ -56,33 +45,23 @@ async def update_payment_status(
 async def activate_premium(
     session: AsyncSession,
     user_id: int,
-    days: int = 30
+    days: int = 30,
 ) -> bool:
     user = await session.get(User, user_id)
     if not user:
         return False
 
-    user.premium_until = datetime.utcnow() + timedelta(days=days)
+    now = datetime.utcnow()
+    # Extend from current premium_until if still active
+    base = user.premium_until if user.premium_until and user.premium_until > now else now
+    user.premium_until = base + timedelta(days=days)
 
     subscription = Subscription(
         user_id=user_id,
-        start_date=datetime.utcnow().date(),
-        end_date=(datetime.utcnow() + timedelta(days=days)).date(),
-        plan="monthly" if days == 30 else "yearly",
+        start_date=now.date(),
+        end_date=(now + timedelta(days=days)).date(),
+        plan="monthly",
     )
     session.add(subscription)
     await session.commit()
-
     return True
-
-
-def verify_yukassa_webhook(data: dict, signature: str) -> bool:
-    if not Config.YUKASSA_API_KEY:
-        return False
-
-    message = f"{data.get('type')}.{data.get('event')}.{data.get('id')}"
-    expected_signature = hashlib.sha256(
-        f"{message}.{Config.YUKASSA_API_KEY}".encode()
-    ).hexdigest()
-
-    return compare_digest(signature, expected_signature)
