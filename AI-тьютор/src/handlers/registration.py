@@ -224,17 +224,3 @@ async def finish_test(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         return ConversationHandler.END
 
     return ConversationHandler.END
-
-
-def get_registration_handler():
-    return ConversationHandler(
-        entry_points=[],
-        states={
-            ASK_NAME: [],
-            ASK_AGE: [],
-            ASK_GOAL: [],
-            LEVEL_TEST: [],
-            TEST_SUMMARY: []
-        },
-        fallbacks=[]
-    )
