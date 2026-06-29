@@ -19,11 +19,8 @@ class Config:
     LLM_MODEL: str = "anthropic/claude-3-5-sonnet"
     LLM_MAX_TOKENS: int = 200
 
-    YUKASSA_API_KEY: str = os.getenv("YUKASSA_API_KEY", "")
-    YUKASSA_SHOP_ID: str = os.getenv("YUKASSA_SHOP_ID", "")
-
     FREE_DAILY_LIMIT: int = 10
-    PREMIUM_MONTHLY_PRICE: int = 1499
+    PREMIUM_STARS_PRICE: int = 1250
 
     def __init__(self) -> None:
         if not self.TELEGRAM_TOKEN:

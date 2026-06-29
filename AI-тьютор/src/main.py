@@ -3,7 +3,7 @@ import logging
 from telegram import Update
 from telegram.ext import (
     Application, CommandHandler, MessageHandler, CallbackQueryHandler,
-    ConversationHandler, ContextTypes, filters
+    ConversationHandler, PreCheckoutQueryHandler, ContextTypes, filters
 )
 from src.config import Config
 from src.db.database import init_db, close_db
@@ -16,7 +16,8 @@ from src.handlers.dialog import (
 )
 from src.handlers.profile import profile_command, stats_command
 from src.handlers.payment import (
-    start_payment_command, buy_monthly_command
+    start_payment_command, buy_monthly_command,
+    pre_checkout_handler, successful_payment_handler,
 )
 
 logging.basicConfig(
@@ -77,6 +78,10 @@ class SpeakBuddyBot:
         self.application.add_handler(CommandHandler("stats", stats_command))
         self.application.add_handler(CommandHandler("premium", start_payment_command))
         self.application.add_handler(CommandHandler("buy_monthly", buy_monthly_command))
+        self.application.add_handler(PreCheckoutQueryHandler(pre_checkout_handler))
+        self.application.add_handler(
+            MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment_handler)
+        )
         self.application.add_handler(CommandHandler("end", end_dialog))
 
         self.application.add_handler(CallbackQueryHandler(scenario_selected, pattern="^scenario_"))
