@@ -9,6 +9,7 @@ class Config:
 
     WEBHOOK_URL: str = os.getenv("WEBHOOK_URL", "")
     OPENROUTER_API_KEY: str = os.getenv("OPENROUTER_API_KEY", "")
+    GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
     DATABASE_URL: str = os.getenv(
         "DATABASE_URL",
         "sqlite+aiosqlite:///./speakbuddy.db"
