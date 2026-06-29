@@ -8,8 +8,8 @@ from telegram.ext import (
 from src.config import Config
 from src.db.database import init_db, close_db
 from src.handlers.registration import (
-    start_command, ask_name, ask_age, ask_audience, ask_goal, level_test_answer, finish_test,
-    ASK_NAME, ASK_AGE, ASK_AUDIENCE, ASK_GOAL, LEVEL_TEST
+    start_command, ask_name, ask_audience, ask_goal, level_test_answer, finish_test,
+    ASK_NAME, ASK_AUDIENCE, ASK_GOAL, LEVEL_TEST
 )
 from src.handlers.dialog import (
     new_dialog_command, scenario_selected, handle_message, end_dialog
@@ -64,7 +64,6 @@ class SpeakBuddyBot:
             entry_points=[CommandHandler("start", start_command)],
             states={
                 ASK_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_name)],
-                ASK_AGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, ask_age)],
                 ASK_AUDIENCE: [CallbackQueryHandler(ask_audience)],
                 ASK_GOAL: [CallbackQueryHandler(ask_goal)],
                 LEVEL_TEST: [CallbackQueryHandler(level_test_answer)],
