@@ -5,7 +5,7 @@ from sqlalchemy import select
 from src.db.models import User
 from src.db.database import AsyncSessionLocal
 
-ASK_NAME, ASK_AGE, ASK_AUDIENCE, ASK_GOAL, LEVEL_TEST, TEST_SUMMARY = range(6)
+ASK_NAME, ASK_AUDIENCE, ASK_GOAL, LEVEL_TEST, TEST_SUMMARY = range(5)
 
 LEVEL_TEST_QUESTIONS = [
     {
@@ -67,20 +67,6 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
 
 async def ask_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data["first_name"] = update.message.text
-    await update.message.reply_text("Сколько тебе лет? (или напиши 'skip')")
-    return ASK_AGE
-
-
-async def ask_age(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    text = update.message.text
-    try:
-        if text.lower() != "skip":
-            context.user_data["age"] = int(text)
-        else:
-            context.user_data["age"] = None
-    except ValueError:
-        await update.message.reply_text("Пожалуйста, введи число или 'skip'.")
-        return ASK_AGE
 
     keyboard = [
         [InlineKeyboardButton("📚 Студент", callback_data="audience_students")],
@@ -89,6 +75,8 @@ async def ask_age(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text("Ты студент или взрослый?", reply_markup=reply_markup)
     return ASK_AUDIENCE
+
+
 
 
 async def ask_audience(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -203,7 +191,6 @@ async def finish_test(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
             user = User(
                 user_id=user_id,
                 first_name=context.user_data.get("first_name", "User"),
-                age=context.user_data.get("age"),
                 level=assigned_level,
                 goal=context.user_data.get("goal", "casual"),
                 audience=context.user_data.get("audience", "adults"),
