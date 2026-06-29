@@ -1,13 +1,9 @@
-from telegram import Update
+from telegram import Update, LabeledPrice
 from telegram.ext import ContextTypes
-from sqlalchemy.ext.asyncio import AsyncSession
 from src.db.models import User
 from src.db.database import AsyncSessionLocal
-from src.services.payment import (
-    create_payment, activate_premium, verify_yukassa_webhook
-)
+from src.services.payment import activate_premium, complete_payment
 from src.config import Config
-import json
 
 
 async def start_payment_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -16,59 +12,56 @@ async def start_payment_command(update: Update, context: ContextTypes.DEFAULT_TY
     async with AsyncSessionLocal() as session:
         user = await session.get(User, user_id)
         if not user:
-            await update.message.reply_text("Please /start first!")
+            await update.message.reply_text("Сначала пройди регистрацию — /start")
             return
 
-    text = f"""
-💎 **Premium Subscription**
-
-Unlimited daily messages + priority support
-
-**Pricing:**
-- Monthly: {Config.PREMIUM_MONTHLY_PRICE} ₽ (30 days)
-
-Use /buy_monthly to purchase
-    """
-    await update.message.reply_text(text)
+    text = (
+        f"💎 *Premium подписка*\n\n"
+        f"Безлимитные сообщения в день\n\n"
+        f"Цена: *{Config.PREMIUM_STARS_PRICE} ⭐ Telegram Stars* / 30 дней\n\n"
+        f"Используй /buy\\_monthly для оплаты"
+    )
+    await update.message.reply_text(text, parse_mode="Markdown")
 
 
 async def buy_monthly_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
 
     async with AsyncSessionLocal() as session:
-        payment = await create_payment(
-            session,
-            user_id,
-            Config.PREMIUM_MONTHLY_PRICE,
-            method="yukassa"
-        )
+        user = await session.get(User, user_id)
+        if not user:
+            await update.message.reply_text("Сначала пройди регистрацию — /start")
+            return
 
-    await update.message.reply_text(
-        f"Payment created: {payment['amount']} ₽\n"
-        f"Payment ID: {payment['id']}\n\n"
-        f"Use your payment method to complete purchase."
+    await context.bot.send_invoice(
+        chat_id=update.effective_chat.id,
+        title="SpeakBuddy Premium",
+        description="Безлимитные сообщения на 30 дней",
+        payload=f"premium_monthly_{user_id}",
+        provider_token="",
+        currency="XTR",
+        prices=[LabeledPrice("30 дней Premium", Config.PREMIUM_STARS_PRICE)],
     )
 
 
-async def webhook_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    try:
-        data = json.loads(update.body) if isinstance(update.body, str) else update.body
-        signature = update.headers.get("X-Yandex-Checkout-API-Signature", "")
+async def pre_checkout_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.pre_checkout_query.answer(ok=True)
 
-        if not verify_yukassa_webhook(data, signature):
-            return {"status": "invalid"}
 
-        event = data.get("event")
-        payment_data = data.get("object", {})
+async def successful_payment_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = update.effective_user.id
+    payment_info = update.message.successful_payment
 
-        if event == "payment.succeeded":
-            async with AsyncSessionLocal() as session:
-                user_id = int(payment_data.get("metadata", {}).get("user_id", 0))
-                if user_id:
-                    await activate_premium(session, user_id, days=30)
+    async with AsyncSessionLocal() as session:
+        await complete_payment(
+            session,
+            user_id=user_id,
+            telegram_payment_charge_id=payment_info.telegram_payment_charge_id,
+            amount=payment_info.total_amount,
+        )
+        await activate_premium(session, user_id, days=30)
 
-            return {"status": "ok"}
-
-    except Exception as e:
-        print(f"Webhook error: {e}")
-        return {"status": "error"}
+    await update.message.reply_text(
+        "✅ Оплата прошла! Premium активирован на 30 дней.\n\n"
+        "Напиши /new чтобы начать практику без ограничений."
+    )
