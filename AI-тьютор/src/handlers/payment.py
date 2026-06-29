@@ -25,10 +25,9 @@ async def start_payment_command(update: Update, context: ContextTypes.DEFAULT_TY
 Unlimited daily messages + priority support
 
 **Pricing:**
-- Monthly: {Config.PREMIUM_MONTHLY_PRICE} ₽ (~30 days)
-- Yearly: {Config.PREMIUM_YEARLY_PRICE} ₽ (~365 days)
+- Monthly: {Config.PREMIUM_MONTHLY_PRICE} ₽ (30 days)
 
-Use /buy_monthly or /buy_yearly to purchase
+Use /buy_monthly to purchase
     """
     await update.message.reply_text(text)
 
