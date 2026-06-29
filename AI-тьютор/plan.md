@@ -19,7 +19,7 @@
 ✅ YuKassa + Telegram Stars  
 
 ### Активные задачи
-- [ ] Разделение: Students vs Adults (промпты, сценарии, ценообразование)
+- [x] Разделение: Students vs Adults — единый бот, audience по выбору при /start
 - [ ] Валидация платежей
 - [ ] Логирование и мониторинг
 - [ ] Voice messages (Phase 3)
@@ -85,18 +85,13 @@ AUDIENCE=adults python -m src.main    # Бот для взрослых
 
 ## 📋 Следующие шаги
 
-- [ ] **Шаг 1** — Создать двух ботов в BotFather
+- [ ] **Шаг 1** — Создать бота в BotFather
   - Читай: [CREATE_BOTS_GUIDE.md](CREATE_BOTS_GUIDE.md)
-  - Сохрани токены
+  - Сохрани токен в .env как TELEGRAM_TOKEN
 
-- [ ] **Шаг 2** — Заполнить .env
-  - TELEGRAM_TOKEN_STUDENTS
-  - TELEGRAM_TOKEN_ADULTS
-  - ANTHROPIC_API_KEY (Claude)
-
-- [ ] **Шаг 3** — Тестировать
-  - `AUDIENCE=students python -m src.main`
-  - `AUDIENCE=adults python -m src.main`
+- [ ] **Шаг 2** — Запустить и протестировать
+  - `python -m alembic upgrade head`
+  - `python -m src.main`
   - Проверить: /start → выбор аудитории → тест уровня → сценарии
 
 ---
