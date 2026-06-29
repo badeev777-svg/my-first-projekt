@@ -67,18 +67,16 @@ src/prompts/
 - `AUDIENCE_CONTEXT` — описание тона и стиля
 - `LEVEL_ADJUSTMENTS` — адаптация A1-C2
 
-### Этап 5: Конфиг — разные токены ✅
+### Этап 5: Конфиг — единый токен ✅
 ```env
-AUDIENCE=students|adults        # Выбор аудитории
-TELEGRAM_TOKEN_STUDENTS=...    # Токен для студентов
-TELEGRAM_TOKEN_ADULTS=...      # Токен для взрослых
-TELEGRAM_TOKEN=...             # Fallback
+TELEGRAM_TOKEN=...             # Один токен, один бот
+OPENROUTER_API_KEY=...         # OpenRouter (claude-3-5-sonnet)
 ```
 
 **Запуск:**
 ```bash
-AUDIENCE=students python -m src.main  # Бот для студентов
-AUDIENCE=adults python -m src.main    # Бот для взрослых
+python -m alembic upgrade head  # Применить миграции
+python -m src.main               # Запустить бота
 ```
 
 ---
