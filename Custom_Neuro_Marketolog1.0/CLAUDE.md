@@ -5,10 +5,13 @@
 Клиент проходит 15-минутную диагностику, в конце получает CTA с выходом на Александра.
 
 ## Архитектура
-- **GPT_SYSTEM/** — инструкции и knowledge base для 3-агентного пайплайна
-  - `GPT_1_NeuroMarketing/Instructions.txt` — промпт Нейро-Маркетолога (используется в боте и веб-версии)
-  - `GPT_2_AI_Architect/Instructions.txt` — промпт AI-Архитектора
-  - `GPT_3_AI_Sales_Engineer/Instructions.txt` — промпт AI Sales Engineer
+- **GPT_SYSTEM/** — инструкции и knowledge base для 3-агентного пайплайна.
+  В продакшене (бот и веб-версия для клиентов) подключён и вызывается только агент 1 —
+  GPT_2 и GPT_3 являются частью личного/внутреннего контура (не для клиентской поставки,
+  не импортируются кодом веб-приложения)
+  - `GPT_1_NeuroMarketing/Instructions.txt` — промпт Нейро-Маркетолога (используется в боте и веб-версии, продакшн)
+  - `GPT_2_AI_Architect/Instructions.txt` — промпт AI-Архитектора (личный контур, не задействован в проде)
+  - `GPT_3_AI_Sales_Engineer/Instructions.txt` — промпт AI Sales Engineer (личный контур, не задействован в проде)
   - `knowledge/` — база знаний по темам (marketing, sales, ai_agents, crm, automation, cases, offers, templates)
 - **bot/** — Telegram-бот (aiogram 3.x), агент Нейро-Маркетолога
 - **web/** — FastAPI + лендинг + встроенный чат

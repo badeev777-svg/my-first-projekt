@@ -144,6 +144,12 @@ async function sendMessage() {
   userInput.style.height = 'auto';
   disableInput();
   setStatus('Думает...');
+  showTyping('Думает...');
+
+  const typingTimer = setTimeout(() => {
+    showTyping('Тест пройден, готовлю анализ...');
+    setStatus('Формирую анализ...');
+  }, 3000);
 
   try {
     const res = await fetch('/api/chat', {
@@ -153,6 +159,8 @@ async function sendMessage() {
     });
 
     if (!res.ok) {
+      clearTimeout(typingTimer);
+      hideTyping();
       const err = await res.json().catch(() => ({}));
       renderAI(err.detail || 'Ошибка. Попробуйте ещё раз.');
       enableInput();
@@ -160,6 +168,8 @@ async function sendMessage() {
     }
 
     const data = await res.json();
+    clearTimeout(typingTimer);
+    hideTyping();
 
     if (data.finished) {
       renderReport(data.reply);
@@ -170,6 +180,8 @@ async function sendMessage() {
       undoBtn.style.display = 'inline-flex';
     }
   } catch {
+    clearTimeout(typingTimer);
+    hideTyping();
     renderAI('Ошибка соединения. Попробуйте ещё раз.');
     enableInput();
   }
@@ -317,4 +329,19 @@ function setStatus(text) {
 
 function scrollToBottom() {
   messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function showTyping(label) {
+  hideTyping();
+  const div = document.createElement('div');
+  div.className = 'msg msg--ai msg--typing';
+  div.id = 'typingIndicator';
+  div.innerHTML = `<span class="typing-label">${label}</span><span class="typing-dots"><span></span><span></span><span></span></span>`;
+  messagesEl.appendChild(div);
+  scrollToBottom();
+}
+
+function hideTyping() {
+  const el = document.getElementById('typingIndicator');
+  if (el) el.remove();
 }
