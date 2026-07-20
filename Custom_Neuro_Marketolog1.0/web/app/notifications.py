@@ -36,27 +36,20 @@ async def notify_contact(name: str, phone: str, email: str) -> None:
 
 
 async def notify_all(
-    report_text: str,
     lead_id: int = 0,
+    business_name: str = "",
+    niche: str = "",
+    pain_points: str = "",
     utm_source: str = "",
     utm_medium: str = "",
 ) -> None:
     admin_url = settings.ADMIN_URL.rstrip("/").rsplit("/admin", 1)[0]
     utm_medium_str = f" / {utm_medium}" if utm_medium else ""
 
-    # Extract brief summary from report for notification
-    summary_lines = []
-    for line in report_text.splitlines()[:30]:
-        if "|" in line and any(k in line.lower() for k in ("ниша", "продукт", "выручка")):
-            parts = [p.strip() for p in line.split("|")]
-            if len(parts) >= 3 and parts[2]:
-                summary_lines.append(parts[2][:60])
-    summary = " | ".join(summary_lines[:3]) if summary_lines else "—"
-
     text = _LEAD_TEMPLATE.format(
-        business_name=summary or "—",
-        niche="—",
-        pain_points="—",
+        business_name=business_name or "—",
+        niche=niche or "—",
+        pain_points=pain_points or "—",
         utm_source=utm_source or "прямой",
         utm_medium=utm_medium_str,
         admin_url=admin_url,
