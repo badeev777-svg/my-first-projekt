@@ -615,6 +615,37 @@ body {
   .msg--user { display: none; }
 }
 
+/* ── TYPING INDICATOR ── */
+.msg--typing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  min-height: unset;
+}
+.typing-label {
+  font-size: 14px;
+  color: var(--text-secondary, #a0a0b0);
+}
+.typing-dots {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.typing-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent, #7c6af7);
+  animation: typingBounce 1.2s infinite ease-in-out;
+}
+.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typingBounce {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40%            { transform: scale(1);   opacity: 1;   }
+}
+
 /* ── MOBILE ── */
 @media (max-width: 640px) {
   .chat-wrap { height: calc(100dvh - 120px); }

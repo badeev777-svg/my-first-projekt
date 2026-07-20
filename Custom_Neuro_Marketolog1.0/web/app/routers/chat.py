@@ -51,6 +51,7 @@ def _extract_lead_info(report: str) -> tuple[str, str, str]:
     if wins:
         pain_points = "; ".join(wins[:3])
 
+    pain_points = re.sub(r"\*{1,2}([^*]+)\*{1,2}", r"\1", pain_points)
     return business_name[:200], niche[:100], pain_points[:500]
 
 
@@ -126,7 +127,14 @@ async def chat(
             utm_medium=utm["utm_medium"],
             utm_campaign=utm["utm_campaign"],
         )
-        await notify_all(session.report_text[:2000], lead_id, utm["utm_source"], utm["utm_medium"])
+        await notify_all(
+            lead_id=lead_id,
+            business_name=business_name,
+            niche=niche,
+            pain_points=pain_points,
+            utm_source=utm["utm_source"],
+            utm_medium=utm["utm_medium"],
+        )
         await db.finish_session(session_id, session.msg_count, session.report_text)
     else:
         await db.update_msg_count(session_id, session.msg_count)
