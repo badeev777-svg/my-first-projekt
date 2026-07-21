@@ -22,6 +22,7 @@ class ConfirmationBridge:
         self,
         correlation_id: str,
         send_prompt: Callable[[str], Awaitable[None]],
+        on_timeout: Callable[[str], Awaitable[None]] | None = None,
     ) -> bool:
         loop = asyncio.get_running_loop()
         future: asyncio.Future[bool] = loop.create_future()
@@ -30,6 +31,8 @@ class ConfirmationBridge:
             await send_prompt(correlation_id)
             return await asyncio.wait_for(future, timeout=self.timeout_seconds)
         except asyncio.TimeoutError:
+            if on_timeout is not None:
+                await on_timeout(correlation_id)
             return False
         finally:
             self.pending.pop(correlation_id, None)

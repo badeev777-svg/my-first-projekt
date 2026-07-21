@@ -3,19 +3,15 @@ from telegram import Update
 from telegram.error import BadRequest
 from telegram.ext import Application, CallbackQueryHandler, ContextTypes
 
+from app.bot.auth import is_authorized
 from app.config import Settings
 from app.confirmation import ConfirmationBridge
-
-
-def _is_authorized(update: Update, allowed_user_id: int) -> bool:
-    user = update.effective_user
-    return user is not None and user.id == allowed_user_id
 
 
 async def on_confirmation_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     settings: Settings = context.bot_data["settings"]
-    if not _is_authorized(update, settings.allowed_user_id):
+    if not is_authorized(update, settings.allowed_user_id):
         await query.answer()
         return
 
