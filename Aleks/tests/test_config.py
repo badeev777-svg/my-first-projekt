@@ -28,6 +28,15 @@ def test_settings_raises_when_required_fields_missing(monkeypatch) -> None:
         Settings(_env_file=None)
 
 
+def test_settings_raises_when_allowed_user_id_not_positive(monkeypatch) -> None:
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "test-token")
+    monkeypatch.setenv("ALLOWED_USER_ID", "0")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-test")
+
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None)
+
+
 def test_settings_defaults_apply_when_only_required_fields_set(monkeypatch) -> None:
     monkeypatch.delenv("PROJECTS", raising=False)
     monkeypatch.delenv("CONFIRMATION_TIMEOUT_SECONDS", raising=False)
