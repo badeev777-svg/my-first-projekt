@@ -1,4 +1,5 @@
 # app/agent_runner.py
+import os
 import uuid
 from collections.abc import Awaitable, Callable
 
@@ -19,6 +20,27 @@ from app.risk import is_risky
 SendConfirmationPrompt = Callable[[str, str, dict], Awaitable[None]]
 OnText = Callable[[str], Awaitable[None]]
 OnConfirmationTimeout = Callable[[], Awaitable[None]]
+
+# Env vars to keep out of the Claude Code CLI subprocess (and therefore out
+# of any Bash tool call the agent makes -- its output streams straight into
+# the Telegram chat via on_text).
+#
+# ANTHROPIC_API_KEY is deliberately NOT in this set. The installed SDK's
+# SubprocessCLITransport builds the child env as
+# {**inherited_env, ..., **options.env} where inherited_env is a full copy
+# of *this* process's real os.environ, so merely omitting a key from
+# options.env does not remove it -- the real value still flows through
+# from inherited_env. The only way to truly remove a key is to override it
+# in options.env, but that same CLI subprocess is what authenticates to
+# the Anthropic API using ANTHROPIC_API_KEY, and this deployment has no
+# other credential configured (see app/main.py). Blanking it here would
+# break the bot entirely, so it cannot be scrubbed without a larger change
+# (e.g. never exporting it into this process's os.environ at all).
+_SUBPROCESS_ENV_BLOCKLIST = {"TELEGRAM_BOT_TOKEN"}
+
+
+def _subprocess_env() -> dict[str, str]:
+    return {k: v for k, v in os.environ.items() if k not in _SUBPROCESS_ENV_BLOCKLIST}
 
 
 def make_can_use_tool(
@@ -80,6 +102,7 @@ async def run_turn(
         # -- silently bypassing Telegram confirmation. can_use_tool must be
         # the sole gate for every tool call, always.
         setting_sources=[],
+        env=_subprocess_env(),
     )
 
     new_session_id: str | None = session_id

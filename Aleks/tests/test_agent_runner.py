@@ -170,6 +170,76 @@ async def test_run_turn_disables_filesystem_setting_sources(monkeypatch) -> None
 
 
 @pytest.mark.asyncio
+async def test_run_turn_scrubs_telegram_token_from_subprocess_env(monkeypatch) -> None:
+    """TELEGRAM_BOT_TOKEN is never needed by the Claude Code CLI subprocess
+    (it only talks to the Anthropic API and runs project tools), so it must
+    not be exposed to Bash tool calls the agent makes.
+
+    NOTE: ANTHROPIC_API_KEY is deliberately NOT scrubbed here. The installed
+    claude_agent_sdk's SubprocessCLITransport.connect() (see
+    _internal/transport/subprocess_cli.py) builds the child process env as
+    ``{**inherited_env, ..., **options.env, ...}`` where inherited_env is a
+    full copy of this process's *real* os.environ -- so omitting a key from
+    options.env is a no-op (the real value still flows through from
+    inherited_env) and the only way to actually remove a key is to
+    override it in options.env. But the same CLI subprocess is what
+    authenticates outbound to the Anthropic API using ANTHROPIC_API_KEY
+    (see _internal/session_resume.py's ``opt_env.get("ANTHROPIC_API_KEY")
+    or os.environ.get(...)`` fallback), and this deployment has no
+    alternative credential (no CLAUDE_CODE_OAUTH_TOKEN, no keychain --
+    app/main.py's only auth path is the env var). Overriding it to blank
+    would break the bot's ability to call Claude at all, so it cannot be
+    scrubbed with the SDK version installed here without a larger
+    architecture change (e.g. never putting it in this process's os.environ
+    in the first place). TELEGRAM_BOT_TOKEN has no such conflict.
+    """
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "secret-tg-token")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "secret-anthropic-key")
+    monkeypatch.setenv("SOME_OTHER_VAR", "keep-me")
+
+    fake_messages = _FakeMessages(
+        [
+            ResultMessage(
+                subtype="success",
+                duration_ms=100,
+                duration_api_ms=90,
+                is_error=False,
+                num_turns=1,
+                session_id="new-session-id",
+            ),
+        ]
+    )
+
+    captured_options = {}
+
+    def fake_query(*, prompt, options):
+        captured_options["options"] = options
+        return fake_messages
+
+    monkeypatch.setattr("app.agent_runner.query", fake_query)
+
+    async def on_text(text: str) -> None:
+        pass
+
+    async def send_confirmation_prompt(correlation_id, tool_name, tool_input) -> None:
+        raise AssertionError("no risky tool call expected in this test")
+
+    bridge = ConfirmationBridge(timeout_seconds=5)
+    await run_turn(
+        prompt="почини баг",
+        project_path="/root/projects/Aleks",
+        session_id=None,
+        confirmation_bridge=bridge,
+        send_confirmation_prompt=send_confirmation_prompt,
+        on_text=on_text,
+    )
+
+    env = captured_options["options"].env
+    assert "TELEGRAM_BOT_TOKEN" not in env
+    assert env["SOME_OTHER_VAR"] == "keep-me"
+
+
+@pytest.mark.asyncio
 async def test_run_turn_returns_none_when_no_result_message(monkeypatch) -> None:
     fake_messages = _FakeMessages(
         [
