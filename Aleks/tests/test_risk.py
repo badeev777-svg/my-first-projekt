@@ -19,6 +19,8 @@ from app.risk import is_risky
         ("Write", {"file_path": "/root/projects/Aleks/.env"}, True),
         ("Write", {"file_path": "/root/projects/Aleks/credentials.json"}, True),
         ("Edit", {"file_path": "/root/projects/Aleks/secrets/token.pem"}, True),
+        ("MultiEdit", {"file_path": "/root/projects/Aleks/.env"}, True),
+        ("MultiEdit", {"file_path": "/root/projects/Aleks/app/main.py"}, False),
         ("Write", {"file_path": "/root/projects/Aleks/app/main.py"}, False),
         ("Read", {"file_path": "/root/projects/Aleks/.env"}, False),
         ("Glob", {"pattern": "**/*.py"}, False),
