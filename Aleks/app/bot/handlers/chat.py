@@ -81,8 +81,14 @@ async def on_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                     chat_id=chat_id, text=text[i : i + TELEGRAM_MESSAGE_LIMIT]
                 )
 
+        project_path = settings.projects.get(project)
+        if project_path is None:
+            await update.message.reply_text(
+                "Проект больше не настроен, выбери заново: /projects"
+            )
+            return
+
         session_id = await state.get_session_id(project)
-        project_path = settings.projects[project]
 
         try:
             new_session_id = await run_turn(
