@@ -120,3 +120,38 @@ async def test_run_turn_streams_text_and_returns_session_id(monkeypatch) -> None
 
     assert seen_text == ["Готово, запушил."]
     assert session_id == "new-session-id"
+
+
+@pytest.mark.asyncio
+async def test_run_turn_returns_none_when_no_result_message(monkeypatch) -> None:
+    fake_messages = _FakeMessages(
+        [
+            AssistantMessage(content=[TextBlock(text="Работаю...")], model="claude"),
+        ]
+    )
+
+    def fake_query(*, prompt, options):
+        return fake_messages
+
+    monkeypatch.setattr("app.agent_runner.query", fake_query)
+
+    seen_text: list[str] = []
+
+    async def on_text(text: str) -> None:
+        seen_text.append(text)
+
+    async def send_confirmation_prompt(correlation_id, tool_name, tool_input) -> None:
+        raise AssertionError("no risky tool call expected in this test")
+
+    bridge = ConfirmationBridge(timeout_seconds=5)
+    session_id = await run_turn(
+        prompt="запушь исправление",
+        project_path="/root/projects/Aleks",
+        session_id=None,
+        confirmation_bridge=bridge,
+        send_confirmation_prompt=send_confirmation_prompt,
+        on_text=on_text,
+    )
+
+    assert seen_text == ["Работаю..."]
+    assert session_id is None
