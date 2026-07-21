@@ -1,0 +1,54 @@
+# app/main.py
+import logging
+import os
+
+from telegram.ext import Application
+
+from app.bot.handlers import chat as chat_handler
+from app.bot.handlers import confirm as confirm_handler
+from app.bot.handlers import project as project_handler
+from app.config import get_settings
+from app.confirmation import ConfirmationBridge
+from app.state import StateStore
+
+
+def setup_logging(level: str) -> None:
+    logging.basicConfig(
+        level=level.upper(),
+        format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
+
+
+def main() -> None:
+    settings = get_settings()
+    setup_logging(settings.log_level)
+    log = logging.getLogger(__name__)
+
+    # claude_agent_sdk reads ANTHROPIC_API_KEY from the process environment.
+    os.environ.setdefault("ANTHROPIC_API_KEY", settings.anthropic_api_key)
+
+    state = StateStore(settings.db_path)
+    confirmation_bridge = ConfirmationBridge(timeout_seconds=settings.confirmation_timeout_seconds)
+
+    async def post_init(application: Application) -> None:
+        await state.init()
+
+    app = Application.builder().token(settings.telegram_bot_token).post_init(post_init).build()
+    app.bot_data["settings"] = settings
+    app.bot_data["state"] = state
+    app.bot_data["confirmation_bridge"] = confirmation_bridge
+    app.bot_data["project_locks"] = {}
+
+    project_handler.register(app)
+    confirm_handler.register(app)
+    chat_handler.register(app)
+
+    log.info("Aleks agent bot is running. Press Ctrl+C to stop.")
+    app.run_polling(allowed_updates=["message", "callback_query"])
+
+
+if __name__ == "__main__":
+    main()
