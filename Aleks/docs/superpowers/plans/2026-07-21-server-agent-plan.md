@@ -15,7 +15,7 @@
 ## File Structure
 
 ```
-Akeks/
+Aleks/
   pyproject.toml
   .env.example
   app/
@@ -43,7 +43,7 @@ Akeks/
     test_bot_confirm_handler.py
     test_bot_chat_handler.py
   deploy/
-    akeks-agent.service            # systemd unit
+    aleks-agent.service            # systemd unit
 ```
 
 Each module has one responsibility: `risk.py` never touches Telegram or the SDK; `confirmation.py` never touches Telegram directly (it takes a `send_prompt` callback); `agent_runner.py` never touches Telegram; `bot/handlers/*.py` never talk to the SDK directly — they call `agent_runner.run_turn`. This keeps everything except the three handler modules testable without mocking Telegram or Anthropic's API at all.
@@ -64,7 +64,7 @@ Each module has one responsibility: `risk.py` never touches Telegram or the SDK;
 
 ```toml
 [project]
-name = "akeks-agent"
+name = "aleks-agent"
 version = "0.1.0"
 description = "Личный coding-агент на VPS, управляемый через Telegram (Claude Agent SDK)"
 readme = "README.md"
@@ -105,7 +105,7 @@ packages = ["app"]
 TELEGRAM_BOT_TOKEN=123456:your-bot-father-token
 ALLOWED_USER_ID=123456789
 ANTHROPIC_API_KEY=sk-ant-your-key
-PROJECTS={"akeks": "/root/projects/Akeks", "content-agent-bot": "/root/projects/content-agent-bot"}
+PROJECTS={"aleks": "/root/projects/Aleks", "content-agent-bot": "/root/projects/content-agent-bot"}
 CONFIRMATION_TIMEOUT_SECONDS=600
 DB_PATH=state.db
 LOG_LEVEL=INFO
@@ -127,7 +127,7 @@ Expected: dependencies resolve without error.
 
 ```bash
 git add pyproject.toml .env.example app/__init__.py app/bot/__init__.py app/bot/handlers/__init__.py tests/__init__.py
-git commit -m "chore: scaffold akeks-agent project"
+git commit -m "chore: scaffold aleks-agent project"
 ```
 
 ---
@@ -159,11 +159,11 @@ from app.risk import is_risky
         ("Bash", {"command": "git diff"}, False),
         ("Bash", {"command": "git commit -m 'wip'"}, False),
         ("Bash", {"command": "ls -la"}, False),
-        ("Write", {"file_path": "/root/projects/Akeks/.env"}, True),
-        ("Write", {"file_path": "/root/projects/Akeks/credentials.json"}, True),
-        ("Edit", {"file_path": "/root/projects/Akeks/secrets/token.pem"}, True),
-        ("Write", {"file_path": "/root/projects/Akeks/app/main.py"}, False),
-        ("Read", {"file_path": "/root/projects/Akeks/.env"}, False),
+        ("Write", {"file_path": "/root/projects/Aleks/.env"}, True),
+        ("Write", {"file_path": "/root/projects/Aleks/credentials.json"}, True),
+        ("Edit", {"file_path": "/root/projects/Aleks/secrets/token.pem"}, True),
+        ("Write", {"file_path": "/root/projects/Aleks/app/main.py"}, False),
+        ("Read", {"file_path": "/root/projects/Aleks/.env"}, False),
         ("Glob", {"pattern": "**/*.py"}, False),
     ],
 )
@@ -244,13 +244,13 @@ def test_settings_parses_projects_mapping_from_env(monkeypatch) -> None:
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "test-token")
     monkeypatch.setenv("ALLOWED_USER_ID", "42")
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-test")
-    monkeypatch.setenv("PROJECTS", '{"akeks": "/root/projects/Akeks"}')
+    monkeypatch.setenv("PROJECTS", '{"aleks": "/root/projects/Aleks"}')
 
     settings = Settings(_env_file=None)
 
     assert settings.telegram_bot_token == "test-token"
     assert settings.allowed_user_id == 42
-    assert settings.projects == {"akeks": "/root/projects/Akeks"}
+    assert settings.projects == {"aleks": "/root/projects/Aleks"}
     assert settings.confirmation_timeout_seconds == 600.0
     assert settings.db_path == "state.db"
 ```
@@ -331,8 +331,8 @@ async def test_active_project_roundtrip(tmp_path) -> None:
 
     assert await store.get_active_project(user_id=1) is None
 
-    await store.set_active_project(user_id=1, project="akeks")
-    assert await store.get_active_project(user_id=1) == "akeks"
+    await store.set_active_project(user_id=1, project="aleks")
+    assert await store.get_active_project(user_id=1) == "aleks"
 
     await store.set_active_project(user_id=1, project="lead-parser")
     assert await store.get_active_project(user_id=1) == "lead-parser"
@@ -343,13 +343,13 @@ async def test_session_id_roundtrip(tmp_path) -> None:
     store = StateStore(str(tmp_path / "state.db"))
     await store.init()
 
-    assert await store.get_session_id("akeks") is None
+    assert await store.get_session_id("aleks") is None
 
-    await store.set_session_id("akeks", "session-a")
-    assert await store.get_session_id("akeks") == "session-a"
+    await store.set_session_id("aleks", "session-a")
+    assert await store.get_session_id("aleks") == "session-a"
 
-    await store.set_session_id("akeks", "session-b")
-    assert await store.get_session_id("akeks") == "session-b"
+    await store.set_session_id("aleks", "session-b")
+    assert await store.get_session_id("aleks") == "session-b"
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -764,7 +764,7 @@ async def test_run_turn_streams_text_and_returns_session_id(monkeypatch) -> None
     bridge = ConfirmationBridge(timeout_seconds=5)
     session_id = await run_turn(
         prompt="запушь исправление",
-        project_path="/root/projects/Akeks",
+        project_path="/root/projects/Aleks",
         session_id=None,
         confirmation_bridge=bridge,
         send_confirmation_prompt=send_confirmation_prompt,
@@ -824,7 +824,7 @@ def _settings() -> Settings:
         telegram_bot_token="t",
         allowed_user_id=42,
         anthropic_api_key="k",
-        projects={"akeks": "/root/projects/Akeks", "lead-parser": "/root/projects/lead-parser"},
+        projects={"aleks": "/root/projects/Aleks", "lead-parser": "/root/projects/lead-parser"},
         _env_file=None,
     )
 
@@ -846,7 +846,7 @@ async def test_cmd_projects_lists_configured_projects() -> None:
     await cmd_projects(update, context)
 
     text = update.message.reply_text.call_args.args[0]
-    assert "akeks" in text
+    assert "aleks" in text
     assert "lead-parser" in text
 
 
@@ -866,19 +866,19 @@ async def test_cmd_project_rejects_unknown_name() -> None:
     await cmd_project(update, context)
 
     text = update.message.reply_text.call_args.args[0]
-    assert "akeks" in text
+    assert "aleks" in text
     context.bot_data["state"].set_active_project.assert_not_called()
 
 
 @pytest.mark.asyncio
 async def test_cmd_project_sets_active_project() -> None:
-    update, context = _update(user_id=42, args=["akeks"])
+    update, context = _update(user_id=42, args=["aleks"])
 
     await cmd_project(update, context)
 
-    context.bot_data["state"].set_active_project.assert_awaited_once_with(42, "akeks")
+    context.bot_data["state"].set_active_project.assert_awaited_once_with(42, "aleks")
     text = update.message.reply_text.call_args.args[0]
-    assert "akeks" in text
+    assert "aleks" in text
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -1059,7 +1059,7 @@ def _settings() -> Settings:
         telegram_bot_token="t",
         allowed_user_id=42,
         anthropic_api_key="k",
-        projects={"akeks": "/root/projects/Akeks"},
+        projects={"aleks": "/root/projects/Aleks"},
         _env_file=None,
     )
 
@@ -1074,7 +1074,7 @@ def _update_and_context(text: str = "почини баг", user_id: int = 42):
     context = MagicMock()
     context.bot.send_message = AsyncMock()
     state = AsyncMock()
-    state.get_active_project.return_value = "akeks"
+    state.get_active_project.return_value = "aleks"
     state.get_session_id.return_value = None
     context.bot_data = {
         "settings": _settings(),
@@ -1110,7 +1110,7 @@ async def test_replies_busy_when_project_locked() -> None:
     update, context, _ = _update_and_context()
     lock = asyncio.Lock()
     await lock.acquire()
-    context.bot_data["project_locks"]["akeks"] = lock
+    context.bot_data["project_locks"]["aleks"] = lock
 
     await chat_module.on_text_message(update, context)
 
@@ -1131,7 +1131,7 @@ async def test_happy_path_runs_turn_and_saves_session_id(monkeypatch) -> None:
     await chat_module.on_text_message(update, context)
 
     context.bot.send_message.assert_awaited_once_with(chat_id=100, text="Готово")
-    state.set_session_id.assert_awaited_once_with("akeks", "session-xyz")
+    state.set_session_id.assert_awaited_once_with("aleks", "session-xyz")
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
@@ -1311,7 +1311,7 @@ def main() -> None:
     confirm_handler.register(app)
     chat_handler.register(app)
 
-    log.info("Akeks agent bot is running. Press Ctrl+C to stop.")
+    log.info("Aleks agent bot is running. Press Ctrl+C to stop.")
     app.run_polling(allowed_updates=["message", "callback_query"])
 
 
@@ -1336,23 +1336,23 @@ git commit -m "feat: add entrypoint wiring bot handlers, state and confirmation 
 ## Task 9: Deployment (systemd) + manual smoke test
 
 **Files:**
-- Create: `deploy/akeks-agent.service`
+- Create: `deploy/aleks-agent.service`
 
 - [ ] **Step 1: Write the systemd unit**
 
 ```ini
-# deploy/akeks-agent.service
+# deploy/aleks-agent.service
 [Unit]
-Description=Akeks personal coding agent (Telegram bot)
+Description=Aleks personal coding agent (Telegram bot)
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/root/projects/Akeks
-EnvironmentFile=/root/projects/Akeks/.env
-ExecStart=/root/projects/Akeks/.venv/bin/python -m app.main
+WorkingDirectory=/root/projects/Aleks
+EnvironmentFile=/root/projects/Aleks/.env
+ExecStart=/root/projects/Aleks/.venv/bin/python -m app.main
 Restart=always
 RestartSec=5
 
@@ -1363,7 +1363,7 @@ WantedBy=multi-user.target
 - [ ] **Step 2: Commit**
 
 ```bash
-git add deploy/akeks-agent.service
+git add deploy/aleks-agent.service
 git commit -m "chore: add systemd unit for VPS deployment"
 ```
 
@@ -1371,29 +1371,29 @@ git commit -m "chore: add systemd unit for VPS deployment"
 
 ```bash
 # on the VPS, as root
-git clone <repo> /root/projects/Akeks   # or scp/rsync if not pushed yet
-cd /root/projects/Akeks
+git clone <repo> /root/projects/Aleks   # or scp/rsync if not pushed yet
+cd /root/projects/Aleks
 python3 -m venv .venv
 .venv/bin/pip install -e .
 cp .env.example .env   # then fill in real TELEGRAM_BOT_TOKEN, ALLOWED_USER_ID, ANTHROPIC_API_KEY, PROJECTS
-cp deploy/akeks-agent.service /etc/systemd/system/
+cp deploy/aleks-agent.service /etc/systemd/system/
 systemctl daemon-reload
-systemctl enable --now akeks-agent
-journalctl -u akeks-agent -f
+systemctl enable --now aleks-agent
+journalctl -u aleks-agent -f
 ```
 
 - [ ] **Step 4: Run the manual smoke-test checklist from the spec**
 
 From the phone's Telegram app, talk to the bot and verify each:
 1. `/projects` → lists configured projects.
-2. `/project akeks` → "Активный проект: akeks".
+2. `/project aleks` → "Активный проект: aleks".
 3. Send a safe message (e.g. "покажи содержимое README") → agent responds, no confirmation prompt appears.
 4. Send a message that makes the agent run a risky command (e.g. "закоммить и запушь изменение") → ✅/❌ buttons appear; tapping ✅ lets it proceed, tapping ❌ makes the agent explain it couldn't push.
 5. Trigger a risky action and don't tap anything for the configured timeout → agent reports the action was cancelled by timeout.
-6. `systemctl restart akeks-agent` mid-conversation, then send another message in the same project → agent responds with context from before the restart (via `resume`).
-7. `/project lead-parser` then send a message → agent operates in `lead-parser`'s directory, `/project akeks` again → still remembers `akeks`'s prior session.
+6. `systemctl restart aleks-agent` mid-conversation, then send another message in the same project → agent responds with context from before the restart (via `resume`).
+7. `/project lead-parser` then send a message → agent operates in `lead-parser`'s directory, `/project aleks` again → still remembers `aleks`'s prior session.
 
-Expected: all 7 checks pass. Any failure should be diagnosed against `journalctl -u akeks-agent` before touching code further.
+Expected: all 7 checks pass. Any failure should be diagnosed against `journalctl -u aleks-agent` before touching code further.
 
 ---
 
