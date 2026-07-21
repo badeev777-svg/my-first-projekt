@@ -139,3 +139,20 @@ async def test_lock_released_after_successful_turn(monkeypatch) -> None:
     await chat_module.on_text_message(update, context)
 
     assert context.bot_data["project_locks"]["aleks"].locked() is False
+
+
+@pytest.mark.asyncio
+async def test_confirmation_timeout_sends_notice(monkeypatch) -> None:
+    update, context, _ = _update_and_context()
+
+    async def fake_run_turn(**kwargs):
+        await kwargs["on_confirmation_timeout"]()
+        return "session-xyz"
+
+    monkeypatch.setattr(chat_module, "run_turn", fake_run_turn)
+
+    await chat_module.on_text_message(update, context)
+
+    context.bot.send_message.assert_awaited_once_with(
+        chat_id=100, text="Действие отменено по таймауту ожидания подтверждения."
+    )

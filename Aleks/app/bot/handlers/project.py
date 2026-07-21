@@ -2,13 +2,9 @@
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
+from app.bot.auth import is_authorized
 from app.config import Settings
 from app.state import StateStore
-
-
-def _is_authorized(update: Update, allowed_user_id: int) -> bool:
-    user = update.effective_user
-    return user is not None and user.id == allowed_user_id
 
 
 def _project_list_text(settings: Settings) -> str:
@@ -18,14 +14,14 @@ def _project_list_text(settings: Settings) -> str:
 
 async def cmd_projects(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     settings: Settings = context.bot_data["settings"]
-    if not _is_authorized(update, settings.allowed_user_id):
+    if not is_authorized(update, settings.allowed_user_id):
         return
     await update.message.reply_text(_project_list_text(settings))
 
 
 async def cmd_project(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     settings: Settings = context.bot_data["settings"]
-    if not _is_authorized(update, settings.allowed_user_id):
+    if not is_authorized(update, settings.allowed_user_id):
         return
 
     args = context.args

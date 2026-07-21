@@ -6,6 +6,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import Application, ContextTypes, MessageHandler, filters
 
 from app.agent_runner import run_turn
+from app.bot.auth import is_authorized
 from app.config import Settings
 from app.confirmation import ConfirmationBridge
 from app.state import StateStore
@@ -25,9 +26,9 @@ def _describe_tool(tool_name: str, tool_input: dict) -> str:
 
 async def on_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     settings: Settings = context.bot_data["settings"]
-    user = update.effective_user
-    if user is None or update.message is None or user.id != settings.allowed_user_id:
+    if update.message is None or not is_authorized(update, settings.allowed_user_id):
         return
+    user = update.effective_user
 
     state: StateStore = context.bot_data["state"]
     project = await state.get_active_project(user.id)
@@ -68,6 +69,12 @@ async def on_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 reply_markup=keyboard,
             )
 
+        async def on_confirmation_timeout() -> None:
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text="Действие отменено по таймауту ожидания подтверждения.",
+            )
+
         async def on_text(text: str) -> None:
             for i in range(0, len(text), TELEGRAM_MESSAGE_LIMIT):
                 await context.bot.send_message(
@@ -85,6 +92,7 @@ async def on_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 confirmation_bridge=bridge,
                 send_confirmation_prompt=send_confirmation_prompt,
                 on_text=on_text,
+                on_confirmation_timeout=on_confirmation_timeout,
             )
         except Exception:
             log.exception("agent turn failed for project %s", project)

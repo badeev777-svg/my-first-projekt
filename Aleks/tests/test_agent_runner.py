@@ -155,3 +155,47 @@ async def test_run_turn_returns_none_when_no_result_message(monkeypatch) -> None
 
     assert seen_text == ["Работаю..."]
     assert session_id is None
+
+
+@pytest.mark.asyncio
+async def test_risky_tool_timeout_returns_distinct_deny_message_and_notifies() -> None:
+    bridge = ConfirmationBridge(timeout_seconds=0.05)
+    notified = False
+
+    async def send_prompt(correlation_id: str, tool_name: str, tool_input: dict) -> None:
+        return None  # user never answers -> bridge times out
+
+    async def on_confirmation_timeout() -> None:
+        nonlocal notified
+        notified = True
+
+    can_use_tool = make_can_use_tool(bridge, send_prompt, on_confirmation_timeout)
+    result = await can_use_tool(
+        "Bash", {"command": "git push"}, ToolPermissionContext(tool_use_id="t4")
+    )
+
+    assert isinstance(result, PermissionResultDeny)
+    assert "таймаут" in result.message.lower()
+    assert notified is True
+
+
+@pytest.mark.asyncio
+async def test_risky_tool_explicit_rejection_keeps_original_deny_message() -> None:
+    bridge = ConfirmationBridge(timeout_seconds=5)
+    notified = False
+
+    async def send_prompt(correlation_id: str, tool_name: str, tool_input: dict) -> None:
+        bridge.resolve(correlation_id, False)
+
+    async def on_confirmation_timeout() -> None:
+        nonlocal notified
+        notified = True
+
+    can_use_tool = make_can_use_tool(bridge, send_prompt, on_confirmation_timeout)
+    result = await can_use_tool(
+        "Bash", {"command": "git push"}, ToolPermissionContext(tool_use_id="t5")
+    )
+
+    assert isinstance(result, PermissionResultDeny)
+    assert result.message == "Отклонено пользователем в Telegram"
+    assert notified is False
