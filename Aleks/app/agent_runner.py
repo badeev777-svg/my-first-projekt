@@ -21,26 +21,30 @@ SendConfirmationPrompt = Callable[[str, str, dict], Awaitable[None]]
 OnText = Callable[[str], Awaitable[None]]
 OnConfirmationTimeout = Callable[[], Awaitable[None]]
 
-# Env vars to keep out of the Claude Code CLI subprocess (and therefore out
-# of any Bash tool call the agent makes -- its output streams straight into
-# the Telegram chat via on_text).
+# Env vars to blank out of the Claude Code CLI subprocess (and therefore
+# out of any Bash tool call the agent makes -- its output streams straight
+# into the Telegram chat via on_text).
 #
-# ANTHROPIC_API_KEY is deliberately NOT in this set. The installed SDK's
-# SubprocessCLITransport builds the child env as
-# {**inherited_env, ..., **options.env} where inherited_env is a full copy
-# of *this* process's real os.environ, so merely omitting a key from
-# options.env does not remove it -- the real value still flows through
-# from inherited_env. The only way to truly remove a key is to override it
-# in options.env, but that same CLI subprocess is what authenticates to
-# the Anthropic API using ANTHROPIC_API_KEY, and this deployment has no
-# other credential configured (see app/main.py). Blanking it here would
-# break the bot entirely, so it cannot be scrubbed without a larger change
-# (e.g. never exporting it into this process's os.environ at all).
-_SUBPROCESS_ENV_BLOCKLIST = {"TELEGRAM_BOT_TOKEN"}
+# IMPORTANT: the installed SDK's SubprocessCLITransport builds the child
+# env as {**inherited_env, ..., **options.env} where inherited_env is a
+# full *independent copy* of *this* process's real os.environ. That means
+# merely omitting a key from options.env is a no-op -- the real value
+# still flows through from inherited_env unchanged. The only way to
+# actually remove a key from the child's env is to override it in
+# options.env with a replacement value (here, an empty string), so it wins
+# the later `**options.env` spread.
+#
+# ANTHROPIC_API_KEY is deliberately NOT in this set. That same CLI
+# subprocess is what authenticates to the Anthropic API using
+# ANTHROPIC_API_KEY, and this deployment has no other credential
+# configured (see app/main.py). Blanking it here would break the bot
+# entirely, so it cannot be scrubbed without a larger change (e.g. never
+# exporting it into this process's os.environ at all).
+_SUBPROCESS_ENV_OVERRIDES = {"TELEGRAM_BOT_TOKEN": ""}
 
 
 def _subprocess_env() -> dict[str, str]:
-    return {k: v for k, v in os.environ.items() if k not in _SUBPROCESS_ENV_BLOCKLIST}
+    return {**os.environ, **_SUBPROCESS_ENV_OVERRIDES}
 
 
 def make_can_use_tool(
