@@ -1,5 +1,5 @@
 [project]
-name = "akeks-agent"
+name = "aleks-agent"
 version = "0.1.0"
 description = "Личный coding-агент на VPS, управляемый через Telegram (Claude Agent SDK)"
 readme = "README.md"
