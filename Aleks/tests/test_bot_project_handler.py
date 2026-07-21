@@ -68,3 +68,13 @@ async def test_cmd_project_sets_active_project() -> None:
     context.bot_data["state"].set_active_project.assert_awaited_once_with(42, "aleks")
     text = update.message.reply_text.call_args.args[0]
     assert "aleks" in text
+
+
+@pytest.mark.asyncio
+async def test_cmd_project_ignores_unauthorized_user() -> None:
+    update, context = _update(user_id=999, args=["aleks"])
+
+    await cmd_project(update, context)
+
+    update.message.reply_text.assert_not_called()
+    context.bot_data["state"].set_active_project.assert_not_called()
