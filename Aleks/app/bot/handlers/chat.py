@@ -58,9 +58,13 @@ async def on_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                     ]
                 ]
             )
+            text = f"Подтверди действие:\n{_describe_tool(tool_name, tool_input)}"
+            if len(text) > TELEGRAM_MESSAGE_LIMIT:
+                suffix = "...(обрезано)"
+                text = text[: TELEGRAM_MESSAGE_LIMIT - len(suffix)] + suffix
             await context.bot.send_message(
                 chat_id=chat_id,
-                text=f"Подтверди действие:\n{_describe_tool(tool_name, tool_input)}",
+                text=text,
                 reply_markup=keyboard,
             )
 
