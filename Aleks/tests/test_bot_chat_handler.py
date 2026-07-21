@@ -61,6 +61,22 @@ async def test_prompts_to_pick_project_when_none_active() -> None:
 
 
 @pytest.mark.asyncio
+async def test_replies_gracefully_when_active_project_config_missing() -> None:
+    """The stored active_project can point at a project that no longer
+    exists in settings.projects (renamed/removed from config). This must
+    not raise an unhandled KeyError inside `async with lock:` -- the user
+    should get a message telling them to pick a project again."""
+    update, context, state = _update_and_context()
+    state.get_active_project.return_value = "renamed-or-gone"
+
+    await chat_module.on_text_message(update, context)
+
+    update.message.reply_text.assert_awaited_once()
+    assert "/projects" in update.message.reply_text.call_args.args[0]
+    assert context.bot_data["project_locks"]["renamed-or-gone"].locked() is False
+
+
+@pytest.mark.asyncio
 async def test_replies_busy_when_project_locked() -> None:
     update, context, _ = _update_and_context()
     lock = asyncio.Lock()
