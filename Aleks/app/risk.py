@@ -7,7 +7,7 @@ _RISKY_BASH_PATTERNS = [
     re.compile(r"\bsudo\b"),
     re.compile(r"\bdocker\b"),
     re.compile(r"\bsystemctl\s+(restart|stop)\b"),
-    re.compile(r"deploy"),
+    re.compile(r"\bdeploy\S*\.(sh|py)\b"),
 ]
 
 _COMMAND_SEPARATORS = re.compile(r"[;&|]+")
