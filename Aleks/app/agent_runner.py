@@ -50,7 +50,7 @@ async def run_turn(
     confirmation_bridge: ConfirmationBridge,
     send_confirmation_prompt: SendConfirmationPrompt,
     on_text: OnText,
-) -> str:
+) -> str | None:
     """Runs exactly one query() turn against a project and returns the
     session_id to persist for the next call's resume=."""
     options = ClaudeAgentOptions(
@@ -60,7 +60,7 @@ async def run_turn(
         can_use_tool=make_can_use_tool(confirmation_bridge, send_confirmation_prompt),
     )
 
-    new_session_id = session_id or ""
+    new_session_id: str | None = session_id
     async for message in query(prompt=prompt, options=options):
         if isinstance(message, AssistantMessage):
             for block in message.content:
