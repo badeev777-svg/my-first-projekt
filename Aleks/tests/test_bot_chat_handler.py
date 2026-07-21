@@ -123,6 +123,52 @@ async def test_exception_from_run_turn_replies_error_and_releases_lock(monkeypat
 
 
 @pytest.mark.asyncio
+async def test_run_turn_retries_on_transient_failure_then_succeeds(monkeypatch) -> None:
+    update, context, state = _update_and_context()
+    attempts = 0
+
+    async def flaky_run_turn(**kwargs):
+        nonlocal attempts
+        attempts += 1
+        if attempts < 2:
+            raise RuntimeError("transient network error")
+        await kwargs["on_text"]("Готово")
+        return "session-xyz"
+
+    monkeypatch.setattr(chat_module, "run_turn", flaky_run_turn)
+    monkeypatch.setattr(chat_module, "_RETRY_WAIT_SECONDS", 0)
+
+    await chat_module.on_text_message(update, context)
+
+    assert attempts == 2
+    context.bot.send_message.assert_awaited_once_with(chat_id=100, text="Готово")
+    state.set_session_id.assert_awaited_once_with("aleks", "session-xyz")
+    update.message.reply_text.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_run_turn_gives_up_after_max_attempts(monkeypatch) -> None:
+    update, context, _ = _update_and_context()
+    attempts = 0
+
+    async def always_fails(**kwargs):
+        nonlocal attempts
+        attempts += 1
+        raise RuntimeError("still broken")
+
+    monkeypatch.setattr(chat_module, "run_turn", always_fails)
+    monkeypatch.setattr(chat_module, "_RETRY_WAIT_SECONDS", 0)
+
+    await chat_module.on_text_message(update, context)
+
+    assert attempts == chat_module._RETRY_ATTEMPTS
+    update.message.reply_text.assert_awaited_once_with(
+        "Не получилось выполнить запрос, попробуй позже."
+    )
+    assert context.bot_data["project_locks"]["aleks"].locked() is False
+
+
+@pytest.mark.asyncio
 async def test_send_confirmation_prompt_builds_keyboard_with_correlation_id(monkeypatch) -> None:
     update, context, _ = _update_and_context()
 
