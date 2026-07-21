@@ -18,7 +18,7 @@ _RISKY_PATH_PATTERNS = [
     re.compile(r"\.pem$"),
 ]
 
-_RISKY_WRITE_TOOLS = {"Write", "Edit"}
+_RISKY_WRITE_TOOLS = {"Write", "Edit", "MultiEdit"}
 
 
 def is_risky(tool_name: str, tool_input: dict) -> bool:
