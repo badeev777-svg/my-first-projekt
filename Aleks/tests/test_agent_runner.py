@@ -175,23 +175,35 @@ async def test_run_turn_scrubs_telegram_token_from_subprocess_env(monkeypatch) -
     (it only talks to the Anthropic API and runs project tools), so it must
     not be exposed to Bash tool calls the agent makes.
 
-    NOTE: ANTHROPIC_API_KEY is deliberately NOT scrubbed here. The installed
-    claude_agent_sdk's SubprocessCLITransport.connect() (see
-    _internal/transport/subprocess_cli.py) builds the child process env as
-    ``{**inherited_env, ..., **options.env, ...}`` where inherited_env is a
-    full copy of this process's *real* os.environ -- so omitting a key from
-    options.env is a no-op (the real value still flows through from
-    inherited_env) and the only way to actually remove a key is to
-    override it in options.env. But the same CLI subprocess is what
-    authenticates outbound to the Anthropic API using ANTHROPIC_API_KEY
-    (see _internal/session_resume.py's ``opt_env.get("ANTHROPIC_API_KEY")
-    or os.environ.get(...)`` fallback), and this deployment has no
-    alternative credential (no CLAUDE_CODE_OAUTH_TOKEN, no keychain --
-    app/main.py's only auth path is the env var). Overriding it to blank
-    would break the bot's ability to call Claude at all, so it cannot be
-    scrubbed with the SDK version installed here without a larger
-    architecture change (e.g. never putting it in this process's os.environ
-    in the first place). TELEGRAM_BOT_TOKEN has no such conflict.
+    The installed claude_agent_sdk's SubprocessCLITransport.connect() (see
+    _internal/transport/subprocess_cli.py, ~line 689) builds the child
+    process env as::
+
+        inherited_env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
+        process_env = {**inherited_env, "CLAUDE_CODE_ENTRYPOINT": "sdk-py",
+                        **self._options.env, "CLAUDE_AGENT_SDK_VERSION": __version__}
+
+    ``inherited_env`` is a full *independent copy* of this process's real
+    os.environ, so merely omitting a key from ``options.env`` does nothing
+    -- the real value still flows through from ``inherited_env`` unchanged.
+    The only way to actually remove a key from the child's env is to
+    override it in ``options.env`` with a replacement value. This test
+    proves both halves: that ``options.env`` carries an explicit override,
+    and -- by replaying the SDK's own merge formula against a fake
+    os.environ containing the real secret -- that the resulting child env
+    does NOT contain the real token value.
+
+    NOTE: ANTHROPIC_API_KEY is deliberately NOT scrubbed here. That same
+    CLI subprocess authenticates outbound to the Anthropic API using
+    ANTHROPIC_API_KEY (see _internal/session_resume.py's
+    ``opt_env.get("ANTHROPIC_API_KEY") or os.environ.get(...)`` fallback),
+    and this deployment has no alternative credential (no
+    CLAUDE_CODE_OAUTH_TOKEN, no keychain -- app/main.py's only auth path is
+    the env var). Overriding it to blank would break the bot's ability to
+    call Claude at all, so it cannot be scrubbed with the SDK version
+    installed here without a larger architecture change (e.g. never
+    putting it in this process's os.environ in the first place).
+    TELEGRAM_BOT_TOKEN has no such conflict.
     """
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "secret-tg-token")
     monkeypatch.setenv("ANTHROPIC_API_KEY", "secret-anthropic-key")
@@ -235,8 +247,32 @@ async def test_run_turn_scrubs_telegram_token_from_subprocess_env(monkeypatch) -
     )
 
     env = captured_options["options"].env
-    assert "TELEGRAM_BOT_TOKEN" not in env
+
+    # options.env must carry an *explicit override*, not merely omit the
+    # key -- omission is a no-op against the SDK's inherited_env copy.
+    assert env["TELEGRAM_BOT_TOKEN"] == ""
     assert env["SOME_OTHER_VAR"] == "keep-me"
+
+    # Replay the SDK's own merge algebra (subprocess_cli.py ~line 689)
+    # against a fake os.environ holding the real secret, to prove the
+    # override actually wins in the real merge -- not just that our dict
+    # looks right in isolation.
+    fake_os_environ = {
+        "TELEGRAM_BOT_TOKEN": "secret-tg-token",
+        "ANTHROPIC_API_KEY": "secret-anthropic-key",
+        "SOME_OTHER_VAR": "keep-me",
+        "CLAUDECODE": "1",
+    }
+    inherited_env = {k: v for k, v in fake_os_environ.items() if k != "CLAUDECODE"}
+    process_env = {
+        **inherited_env,
+        "CLAUDE_CODE_ENTRYPOINT": "sdk-py",
+        **env,
+        "CLAUDE_AGENT_SDK_VERSION": "0.0.0",
+    }
+
+    assert process_env["TELEGRAM_BOT_TOKEN"] != "secret-tg-token"
+    assert "secret-tg-token" not in process_env.values()
 
 
 @pytest.mark.asyncio
