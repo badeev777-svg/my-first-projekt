@@ -87,3 +87,55 @@ async def test_happy_path_runs_turn_and_saves_session_id(monkeypatch) -> None:
 
     context.bot.send_message.assert_awaited_once_with(chat_id=100, text="Готово")
     state.set_session_id.assert_awaited_once_with("aleks", "session-xyz")
+
+
+@pytest.mark.asyncio
+async def test_exception_from_run_turn_replies_error_and_releases_lock(monkeypatch) -> None:
+    update, context, _ = _update_and_context()
+
+    async def fake_run_turn(**kwargs):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(chat_module, "run_turn", fake_run_turn)
+
+    await chat_module.on_text_message(update, context)
+
+    update.message.reply_text.assert_awaited_once_with(
+        "Не получилось выполнить запрос, попробуй позже."
+    )
+    assert context.bot_data["project_locks"]["aleks"].locked() is False
+
+
+@pytest.mark.asyncio
+async def test_send_confirmation_prompt_builds_keyboard_with_correlation_id(monkeypatch) -> None:
+    update, context, _ = _update_and_context()
+
+    async def fake_run_turn(**kwargs):
+        await kwargs["send_confirmation_prompt"]("corr-1", "Bash", {"command": "git push"})
+        return "session-xyz"
+
+    monkeypatch.setattr(chat_module, "run_turn", fake_run_turn)
+
+    await chat_module.on_text_message(update, context)
+
+    context.bot.send_message.assert_awaited_once()
+    call_kwargs = context.bot.send_message.call_args.kwargs
+    assert call_kwargs["chat_id"] == 100
+    buttons = call_kwargs["reply_markup"].inline_keyboard[0]
+    assert buttons[0].callback_data == "corr-1:yes"
+    assert buttons[1].callback_data == "corr-1:no"
+
+
+@pytest.mark.asyncio
+async def test_lock_released_after_successful_turn(monkeypatch) -> None:
+    update, context, _ = _update_and_context()
+
+    async def fake_run_turn(**kwargs):
+        await kwargs["on_text"]("Готово")
+        return "session-xyz"
+
+    monkeypatch.setattr(chat_module, "run_turn", fake_run_turn)
+
+    await chat_module.on_text_message(update, context)
+
+    assert context.bot_data["project_locks"]["aleks"].locked() is False
