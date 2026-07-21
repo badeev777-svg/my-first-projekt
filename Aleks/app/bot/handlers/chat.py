@@ -2,6 +2,7 @@
 import asyncio
 import logging
 
+import tenacity
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import Application, ContextTypes, MessageHandler, filters
 
@@ -14,6 +15,14 @@ from app.state import StateStore
 log = logging.getLogger(__name__)
 
 TELEGRAM_MESSAGE_LIMIT = 4096
+
+# Retry a run_turn() call a few times with exponential backoff before
+# falling back to the user-facing error message. Covers transient
+# Anthropic API errors (rate limits, network blips) per the spec. Module
+# attributes (not baked into a module-level Retrying instance) so tests can
+# monkeypatch them to keep test runs fast.
+_RETRY_ATTEMPTS = 3
+_RETRY_WAIT_SECONDS = 1.0
 
 
 def _describe_tool(tool_name: str, tool_input: dict) -> str:
@@ -90,8 +99,15 @@ async def on_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
         session_id = await state.get_session_id(project)
 
+        retrying = tenacity.AsyncRetrying(
+            stop=tenacity.stop_after_attempt(_RETRY_ATTEMPTS),
+            wait=tenacity.wait_exponential(multiplier=_RETRY_WAIT_SECONDS, max=10),
+            reraise=True,
+        )
+
         try:
-            new_session_id = await run_turn(
+            new_session_id = await retrying(
+                run_turn,
                 prompt=update.message.text,
                 project_path=project_path,
                 session_id=session_id,
