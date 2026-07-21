@@ -1,6 +1,7 @@
 # app/main.py
 import logging
 import os
+from logging.handlers import RotatingFileHandler
 
 from telegram.ext import Application
 
@@ -11,12 +12,28 @@ from app.config import get_settings
 from app.confirmation import ConfirmationBridge
 from app.state import StateStore
 
+LOG_FILE_PATH = os.environ.get("ALEKS_LOG_FILE", "aleks-agent.log")
+LOG_FILE_MAX_BYTES = 5 * 1024 * 1024  # 5 MB
+LOG_FILE_BACKUP_COUNT = 3
+
 
 def setup_logging(level: str) -> None:
+    log_format = "%(asctime)s %(levelname)s [%(name)s] %(message)s"
+    date_format = "%Y-%m-%d %H:%M:%S"
+
+    file_handler = RotatingFileHandler(
+        LOG_FILE_PATH,
+        maxBytes=LOG_FILE_MAX_BYTES,
+        backupCount=LOG_FILE_BACKUP_COUNT,
+        encoding="utf-8",
+    )
+    file_handler.setFormatter(logging.Formatter(log_format, datefmt=date_format))
+
     logging.basicConfig(
         level=level.upper(),
-        format="%(asctime)s %(levelname)s [%(name)s] %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
+        format=log_format,
+        datefmt=date_format,
+        handlers=[logging.StreamHandler(), file_handler],
     )
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("httpcore").setLevel(logging.WARNING)
