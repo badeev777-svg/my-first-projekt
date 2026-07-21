@@ -123,6 +123,53 @@ async def test_run_turn_streams_text_and_returns_session_id(monkeypatch) -> None
 
 
 @pytest.mark.asyncio
+async def test_run_turn_disables_filesystem_setting_sources(monkeypatch) -> None:
+    """Regression test: without setting_sources=[], the SDK loads on-disk
+    .claude/settings*.json from the target project dir, and can_use_tool is
+    NOT invoked for tool calls already permitted by a permissions.allow rule
+    there -- silently bypassing Telegram confirmation. Pinning
+    setting_sources=[] makes can_use_tool the sole gate, always."""
+    fake_messages = _FakeMessages(
+        [
+            ResultMessage(
+                subtype="success",
+                duration_ms=100,
+                duration_api_ms=90,
+                is_error=False,
+                num_turns=1,
+                session_id="new-session-id",
+            ),
+        ]
+    )
+
+    captured_options = {}
+
+    def fake_query(*, prompt, options):
+        captured_options["options"] = options
+        return fake_messages
+
+    monkeypatch.setattr("app.agent_runner.query", fake_query)
+
+    async def on_text(text: str) -> None:
+        pass
+
+    async def send_confirmation_prompt(correlation_id, tool_name, tool_input) -> None:
+        raise AssertionError("no risky tool call expected in this test")
+
+    bridge = ConfirmationBridge(timeout_seconds=5)
+    await run_turn(
+        prompt="почини баг",
+        project_path="/root/projects/Aleks",
+        session_id=None,
+        confirmation_bridge=bridge,
+        send_confirmation_prompt=send_confirmation_prompt,
+        on_text=on_text,
+    )
+
+    assert captured_options["options"].setting_sources == []
+
+
+@pytest.mark.asyncio
 async def test_run_turn_returns_none_when_no_result_message(monkeypatch) -> None:
     fake_messages = _FakeMessages(
         [

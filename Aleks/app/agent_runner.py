@@ -74,6 +74,12 @@ async def run_turn(
         can_use_tool=make_can_use_tool(
             confirmation_bridge, send_confirmation_prompt, on_confirmation_timeout
         ),
+        # Never load on-disk .claude/settings*.json from the target project.
+        # If unset, the SDK loads those files and skips can_use_tool entirely
+        # for tool calls already permitted by a permissions.allow rule there
+        # -- silently bypassing Telegram confirmation. can_use_tool must be
+        # the sole gate for every tool call, always.
+        setting_sources=[],
     )
 
     new_session_id: str | None = session_id
