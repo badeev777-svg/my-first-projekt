@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     )
 
     telegram_bot_token: str = Field(..., description="Token from @BotFather")
-    allowed_user_id: int = Field(..., description="Telegram user id of the owner")
+    allowed_user_id: int = Field(..., ge=1, description="Telegram user id of the owner")
     anthropic_api_key: str = Field(..., description="Anthropic API key for Claude Agent SDK")
     projects: dict[str, str] = Field(
         default_factory=dict,
