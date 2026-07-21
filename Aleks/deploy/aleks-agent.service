@@ -1,0 +1,17 @@
+# deploy/aleks-agent.service
+[Unit]
+Description=Aleks personal coding agent (Telegram bot)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/projects/Aleks
+EnvironmentFile=/root/projects/Aleks/.env
+ExecStart=/root/projects/Aleks/.venv/bin/python -m app.main
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
