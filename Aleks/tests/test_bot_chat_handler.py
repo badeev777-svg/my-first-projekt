@@ -1,0 +1,89 @@
+# tests/test_bot_chat_handler.py
+import asyncio
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+
+from app.bot.handlers import chat as chat_module
+from app.config import Settings
+from app.confirmation import ConfirmationBridge
+
+
+def _settings() -> Settings:
+    return Settings(
+        telegram_bot_token="t",
+        allowed_user_id=42,
+        anthropic_api_key="k",
+        projects={"aleks": "/root/projects/Aleks"},
+        _env_file=None,
+    )
+
+
+def _update_and_context(text: str = "почини баг", user_id: int = 42):
+    update = MagicMock()
+    update.effective_user.id = user_id
+    update.effective_chat.id = 100
+    update.message.text = text
+    update.message.reply_text = AsyncMock()
+
+    context = MagicMock()
+    context.bot.send_message = AsyncMock()
+    state = AsyncMock()
+    state.get_active_project.return_value = "aleks"
+    state.get_session_id.return_value = None
+    context.bot_data = {
+        "settings": _settings(),
+        "state": state,
+        "confirmation_bridge": ConfirmationBridge(timeout_seconds=5),
+        "project_locks": {},
+    }
+    return update, context, state
+
+
+@pytest.mark.asyncio
+async def test_ignores_unauthorized_user() -> None:
+    update, context, _ = _update_and_context(user_id=999)
+
+    await chat_module.on_text_message(update, context)
+
+    update.message.reply_text.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_prompts_to_pick_project_when_none_active() -> None:
+    update, context, state = _update_and_context()
+    state.get_active_project.return_value = None
+
+    await chat_module.on_text_message(update, context)
+
+    update.message.reply_text.assert_awaited_once()
+    assert "/projects" in update.message.reply_text.call_args.args[0]
+
+
+@pytest.mark.asyncio
+async def test_replies_busy_when_project_locked() -> None:
+    update, context, _ = _update_and_context()
+    lock = asyncio.Lock()
+    await lock.acquire()
+    context.bot_data["project_locks"]["aleks"] = lock
+
+    await chat_module.on_text_message(update, context)
+
+    text = update.message.reply_text.call_args.args[0]
+    assert "ещё работаю" in text.lower()
+
+
+@pytest.mark.asyncio
+async def test_happy_path_runs_turn_and_saves_session_id(monkeypatch) -> None:
+    update, context, state = _update_and_context()
+
+    async def fake_run_turn(**kwargs):
+        await kwargs["on_text"]("Готово")
+        return "session-xyz"
+
+    monkeypatch.setattr(chat_module, "run_turn", fake_run_turn)
+
+    await chat_module.on_text_message(update, context)
+
+    context.bot.send_message.assert_awaited_once_with(chat_id=100, text="Готово")
+    state.set_session_id.assert_awaited_once_with("aleks", "session-xyz")
