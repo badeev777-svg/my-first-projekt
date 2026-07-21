@@ -11,7 +11,7 @@
 
 - Движок: **Claude Agent SDK** (Python) — built-in инструменты (Read/Write/Edit/Bash/Glob/Grep) + полный agent loop, `canUseTool` hook для перехвата рискованных вызовов.
 - Хостинг: новая, изолированная VPS (не используемый сейчас Beget-хостинг).
-- Доступ: ко всем проектам пользователя (Akeks, content-agent-bot, lead-parser, Custom_Neuro_Marketolog1.0 и т.д.) с переключением командой.
+- Доступ: ко всем проектам пользователя (Aleks, content-agent-bot, lead-parser, Custom_Neuro_Marketolog1.0 и т.д.) с переключением командой.
 - Интерфейс: Telegram-бот, единственный авторизованный пользователь.
 - Подтверждение рискованных действий: inline-кнопки ✅/❌ в Telegram, блокирующие выполнение через `canUseTool`.
 
