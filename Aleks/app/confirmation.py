@@ -6,7 +6,13 @@ from collections.abc import Awaitable, Callable
 class ConfirmationBridge:
     """Bridges canUseTool's synchronous-looking wait to an async Telegram
     button press. `send_prompt` is responsible for actually delivering the
-    confirmation message; this class only tracks the pending Future."""
+    confirmation message; this class only tracks the pending Future.
+
+    `correlation_id` must be unique among currently in-flight requests
+    (e.g. generate it with `uuid.uuid4()`); reusing an ID while a prior
+    request for that ID is still pending will silently overwrite the first
+    request's future and cause it to hang until timeout with no way to be
+    resolved."""
 
     def __init__(self, timeout_seconds: float) -> None:
         self.timeout_seconds = timeout_seconds
