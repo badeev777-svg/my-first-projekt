@@ -1,4 +1,11 @@
 # tests/test_new_project.py
+import os
+from unittest.mock import AsyncMock
+
+import pytest
+
+from app.config import Settings
+from app.new_project import handle_new_project
 from app.new_project import slugify
 from app.new_project import parse_new_project_trigger
 
@@ -70,3 +77,92 @@ def test_trigger_rejects_inflected_word_after_proekt() -> None:
 
 def test_trigger_allows_irregular_whitespace() -> None:
     assert parse_new_project_trigger("новый  проект часы") == "часы"
+
+
+def _settings(tmp_path, **overrides) -> Settings:
+    return Settings(
+        telegram_bot_token="t",
+        allowed_user_id=42,
+        anthropic_api_key="k",
+        projects={"aleks": "/root/projects/Aleks"},
+        projects_root=str(tmp_path / "user-projects"),
+        _env_file=None,
+        **overrides,
+    )
+
+
+def _state(existing: dict[str, str] | None = None) -> AsyncMock:
+    state = AsyncMock()
+    state.list_all_projects.return_value = dict(existing or {})
+    return state
+
+
+@pytest.mark.asyncio
+async def test_handle_new_project_creates_folder_and_activates(tmp_path) -> None:
+    settings = _settings(tmp_path)
+    state = _state()
+
+    reply = await handle_new_project("Эпоксидка Лендинг", user_id=42, settings=settings, state=state)
+
+    expected_path = os.path.join(settings.projects_root, "epoksidka-lending")
+    assert os.path.isdir(expected_path)
+    state.add_dynamic_project.assert_awaited_once_with("epoksidka-lending", expected_path)
+    state.set_active_project.assert_awaited_once_with(42, "epoksidka-lending")
+    assert "epoksidka-lending" in reply
+    assert expected_path in reply
+
+
+@pytest.mark.asyncio
+async def test_handle_new_project_empty_name_replies_with_prompt(tmp_path) -> None:
+    settings = _settings(tmp_path)
+    state = _state()
+
+    reply = await handle_new_project("   ", user_id=42, settings=settings, state=state)
+
+    assert "название" in reply.lower()
+    state.add_dynamic_project.assert_not_awaited()
+    state.set_active_project.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_handle_new_project_static_name_collision_rejected(tmp_path) -> None:
+    settings = _settings(tmp_path)
+    state = _state()
+
+    reply = await handle_new_project("aleks", user_id=42, settings=settings, state=state)
+
+    assert "занято" in reply.lower()
+    state.add_dynamic_project.assert_not_awaited()
+    state.set_active_project.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_handle_new_project_existing_dynamic_switches_without_recreating(tmp_path) -> None:
+    settings = _settings(tmp_path)
+    existing_path = str(tmp_path / "user-projects" / "epoksidka")
+    state = _state(existing={"epoksidka": existing_path})
+
+    reply = await handle_new_project("эпоксидка", user_id=42, settings=settings, state=state)
+
+    assert "уже существует" in reply.lower()
+    state.add_dynamic_project.assert_not_awaited()
+    state.set_active_project.assert_awaited_once_with(42, "epoksidka")
+
+
+@pytest.mark.asyncio
+async def test_handle_new_project_makedirs_failure_reports_error_and_registers_nothing(
+    tmp_path, monkeypatch
+) -> None:
+    settings = _settings(tmp_path)
+    state = _state()
+
+    def boom(*args, **kwargs):
+        raise OSError("disk full")
+
+    monkeypatch.setattr("app.new_project.os.makedirs", boom)
+
+    reply = await handle_new_project("часы", user_id=42, settings=settings, state=state)
+
+    assert "не получилось" in reply.lower()
+    state.add_dynamic_project.assert_not_awaited()
+    state.set_active_project.assert_not_awaited()
