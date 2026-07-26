@@ -1,4 +1,6 @@
 # app/state.py
+from datetime import datetime, timezone
+
 import aiosqlite
 
 
@@ -18,6 +20,10 @@ class StateStore:
             await db.execute(
                 "CREATE TABLE IF NOT EXISTS project_session ("
                 "project TEXT PRIMARY KEY, session_id TEXT NOT NULL)"
+            )
+            await db.execute(
+                "CREATE TABLE IF NOT EXISTS dynamic_projects ("
+                "name TEXT PRIMARY KEY, path TEXT NOT NULL, created_at TEXT NOT NULL)"
             )
             await db.commit()
 
@@ -54,3 +60,20 @@ class StateStore:
                 (project, session_id),
             )
             await db.commit()
+
+    async def add_dynamic_project(self, name: str, path: str) -> None:
+        async with aiosqlite.connect(self._db_path) as db:
+            await db.execute(
+                "INSERT INTO dynamic_projects (name, path, created_at) VALUES (?, ?, ?)",
+                (name, path, datetime.now(timezone.utc).isoformat()),
+            )
+            await db.commit()
+
+    async def list_all_projects(self, static_projects: dict[str, str]) -> dict[str, str]:
+        async with aiosqlite.connect(self._db_path) as db:
+            cursor = await db.execute("SELECT name, path FROM dynamic_projects")
+            rows = await cursor.fetchall()
+        merged = dict(static_projects)
+        for name, path in rows:
+            merged.setdefault(name, path)
+        return merged
