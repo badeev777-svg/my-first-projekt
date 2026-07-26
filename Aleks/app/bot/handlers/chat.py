@@ -44,7 +44,12 @@ async def on_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     new_project_name = parse_new_project_trigger(update.message.text)
     if new_project_name is not None:
-        reply = await handle_new_project(new_project_name, user.id, settings, state)
+        try:
+            reply = await handle_new_project(new_project_name, user.id, settings, state)
+        except Exception:
+            log.exception("new-project trigger failed for user %s", user.id)
+            await update.message.reply_text("Не получилось выполнить запрос, попробуй позже.")
+            return
         await update.message.reply_text(reply)
         return
 
