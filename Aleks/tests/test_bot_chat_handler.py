@@ -31,6 +31,7 @@ def _update_and_context(text: str = "почини баг", user_id: int = 42):
     state = AsyncMock()
     state.get_active_project.return_value = "aleks"
     state.get_session_id.return_value = None
+    state.list_all_projects.return_value = {"aleks": "/root/projects/Aleks"}
     context.bot_data = {
         "settings": _settings(),
         "state": state,
@@ -269,3 +270,55 @@ async def test_confirmation_timeout_sends_notice(monkeypatch) -> None:
     context.bot.send_message.assert_awaited_once_with(
         chat_id=100, text="Действие отменено по таймауту ожидания подтверждения."
     )
+
+
+@pytest.mark.asyncio
+async def test_new_project_trigger_short_circuits_before_run_turn(monkeypatch, tmp_path) -> None:
+    update, context, state = _update_and_context(text="новый проект эпоксидка")
+    context.bot_data["settings"].projects_root = str(tmp_path)
+    state.list_all_projects.return_value = {}
+
+    called = False
+
+    async def fake_run_turn(**kwargs):
+        nonlocal called
+        called = True
+        return "session-xyz"
+
+    monkeypatch.setattr(chat_module, "run_turn", fake_run_turn)
+
+    await chat_module.on_text_message(update, context)
+
+    assert called is False
+    state.add_dynamic_project.assert_awaited_once()
+    state.set_active_project.assert_awaited_once_with(42, "epoksidka")
+    update.message.reply_text.assert_awaited_once()
+    assert "epoksidka" in update.message.reply_text.call_args.args[0]
+
+
+@pytest.mark.asyncio
+async def test_new_project_trigger_works_even_with_no_active_project(monkeypatch, tmp_path) -> None:
+    update, context, state = _update_and_context(text="создай новый проект часы")
+    context.bot_data["settings"].projects_root = str(tmp_path)
+    state.get_active_project.return_value = None
+    state.list_all_projects.return_value = {}
+
+    await chat_module.on_text_message(update, context)
+
+    state.set_active_project.assert_awaited_once_with(42, "chasy")
+
+
+@pytest.mark.asyncio
+async def test_non_trigger_message_uses_merged_project_path(monkeypatch) -> None:
+    update, context, state = _update_and_context()
+    state.list_all_projects.return_value = {"aleks": "/root/projects/Aleks"}
+
+    async def fake_run_turn(**kwargs):
+        assert kwargs["project_path"] == "/root/projects/Aleks"
+        return "session-xyz"
+
+    monkeypatch.setattr(chat_module, "run_turn", fake_run_turn)
+
+    await chat_module.on_text_message(update, context)
+
+    state.list_all_projects.assert_awaited_once_with({"aleks": "/root/projects/Aleks"})
