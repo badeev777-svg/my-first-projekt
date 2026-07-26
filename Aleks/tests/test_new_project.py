@@ -157,7 +157,7 @@ async def test_handle_new_project_makedirs_failure_reports_error_and_registers_n
     state = _state()
 
     def boom(*args, **kwargs):
-        raise OSError("disk full")
+        raise OSError(13, "Permission denied", "/root/user-projects/chasy")
 
     monkeypatch.setattr("app.new_project.os.makedirs", boom)
 
@@ -166,3 +166,24 @@ async def test_handle_new_project_makedirs_failure_reports_error_and_registers_n
     assert "не получилось" in reply.lower()
     state.add_dynamic_project.assert_not_awaited()
     state.set_active_project.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_handle_new_project_makedirs_failure_does_not_leak_details_and_logs(
+    tmp_path, monkeypatch, caplog
+) -> None:
+    settings = _settings(tmp_path)
+    state = _state()
+
+    def boom(*args, **kwargs):
+        raise OSError(13, "Permission denied", "/root/user-projects/chasy")
+
+    monkeypatch.setattr("app.new_project.os.makedirs", boom)
+
+    with caplog.at_level("ERROR", logger="app.new_project"):
+        reply = await handle_new_project("часы", user_id=42, settings=settings, state=state)
+
+    assert "/root/user-projects/chasy" not in reply
+    assert "Permission denied" not in reply
+    assert "13" not in reply
+    assert any(record.exc_info for record in caplog.records)
