@@ -79,7 +79,8 @@ async def run_collection() -> int:
                         source=data["source"],
                         title=data.get("title"),
                         text=data["text"],
-                        budget=data.get("budget")
+                        budget=data.get("budget"),
+                        url=data.get("url"),
                     )
                     if analysis:
                         lead.relevance_score = analysis.get("relevance_score")

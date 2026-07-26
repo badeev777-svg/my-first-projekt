@@ -31,10 +31,11 @@ async def notify_new_lead(lead: dict, relevance_score: int = None) -> None:
     title = lead.get("title") or lead["text"][:80]
     url = lead.get("source_url", "")
 
-    relevance_bar = ""
     if relevance_score is not None:
         bar_len = relevance_score // 10
         relevance_bar = f"\n📊 Релевантность: {'█' * bar_len}{'░' * (10 - bar_len)} {relevance_score}%"
+    else:
+        relevance_bar = "\n⚠️ Анализ недоступен (без фильтра)"
 
     text = (
         f"🔔 <b>Новая заявка</b> — {source}"

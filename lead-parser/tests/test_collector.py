@@ -21,14 +21,19 @@ async def session_factory():
 def patch_collector(monkeypatch, session_factory):
     monkeypatch.setattr(collector, "SessionLocal", session_factory)
 
-    async def noop_notify(_lead):
+    async def noop_notify(_lead, **kwargs):
         return None
 
     monkeypatch.setattr(collector, "notify_new_lead", noop_notify)
 
+    async def noop_analyze(**kwargs):
+        return {}
+
+    monkeypatch.setattr(collector, "analyze_lead", noop_analyze)
+
 
 @pytest.mark.asyncio
-async def test_run_collection_saves_fl_habr_and_telegram_leads(monkeypatch):
+async def test_run_collection_saves_leads(monkeypatch):
     async def fake_fl_leads():
         return [
             {
@@ -42,12 +47,12 @@ async def test_run_collection_saves_fl_habr_and_telegram_leads(monkeypatch):
             }
         ]
 
-    async def fake_habr_leads():
+    async def fake_kwork_leads():
         return [
             {
-                "source": "habr",
-                "source_url": "https://freelance.habr.com/tasks/1",
-                "title": "Habr lead",
+                "source": "kwork",
+                "source_url": "https://kwork.ru/projects/1",
+                "title": "Kwork lead",
                 "text": "Создание лендинга с бюджетом 20 тыс руб",
                 "budget": 20000,
                 "contact": None,
@@ -55,22 +60,28 @@ async def test_run_collection_saves_fl_habr_and_telegram_leads(monkeypatch):
             }
         ]
 
-    async def fake_tg_leads():
+    async def fake_profi_leads():
         return [
             {
-                "source": "telegram",
-                "source_url": "https://t.me/example/1",
-                "title": "Telegram lead",
+                "source": "profi",
+                "source_url": "https://profi.ru/order/1",
+                "title": "Profi lead",
                 "text": "Требуется разработка сайта, бюджет 30 тыс руб",
                 "budget": 30000,
-                "contact": "@user",
+                "contact": None,
                 "created_at": datetime.now(timezone.utc),
             }
         ]
 
+    async def no_leads():
+        return []
+
     monkeypatch.setattr(collector, "fetch_fl_leads", fake_fl_leads)
-    monkeypatch.setattr(collector, "fetch_habr_leads", fake_habr_leads)
-    monkeypatch.setattr(collector, "fetch_telegram_leads", fake_tg_leads)
+    monkeypatch.setattr(collector, "fetch_kwork_leads", fake_kwork_leads)
+    monkeypatch.setattr(collector, "fetch_profi_leads", fake_profi_leads)
+    monkeypatch.setattr(collector, "fetch_vk_leads", no_leads)
+    monkeypatch.setattr(collector, "fetch_freelance_ru_leads", no_leads)
+    monkeypatch.setattr(collector, "fetch_workzilla_leads", no_leads)
 
     saved = await collector.run_collection()
     assert saved == 3
