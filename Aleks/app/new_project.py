@@ -19,3 +19,16 @@ def slugify(text: str, max_length: int = SLUG_MAX_LENGTH) -> str:
     transliterated = "".join(_TRANSLIT.get(ch, ch) for ch in lowered)
     slug = _NON_SLUG_CHARS.sub("-", transliterated).strip("-")
     return slug[:max_length].strip("-")
+
+
+_TRIGGER_RE = re.compile(
+    r"^(?:делаем|создай|создать|начн[её]м)?\s*новый проект[:\s]*(.*)$",
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def parse_new_project_trigger(text: str) -> str | None:
+    match = _TRIGGER_RE.match(text.strip())
+    if match is None:
+        return None
+    return match.group(1).strip()
