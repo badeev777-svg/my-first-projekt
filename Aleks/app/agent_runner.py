@@ -22,6 +22,17 @@ OnText = Callable[[str], Awaitable[None]]
 OnConfirmationTimeout = Callable[[], Awaitable[None]]
 OnSessionId = Callable[[str], Awaitable[None]]
 
+
+async def _prompt_stream(text: str):
+    """Wraps a single user message as the AsyncIterable the SDK requires
+    when can_use_tool is set -- passing a plain str raises ValueError
+    ("can_use_tool callback requires streaming mode")."""
+    yield {
+        "type": "user",
+        "message": {"role": "user", "content": text},
+        "parent_tool_use_id": None,
+    }
+
 # Env vars to blank out of the Claude Code CLI subprocess (and therefore
 # out of any Bash tool call the agent makes -- its output streams straight
 # into the Telegram chat via on_text).
@@ -92,6 +103,7 @@ async def run_turn(
     on_text: OnText,
     on_confirmation_timeout: OnConfirmationTimeout | None = None,
     on_session_id: OnSessionId | None = None,
+    model: str = "sonnet",
 ) -> str | None:
     """Runs exactly one query() turn against a project and returns the
     session_id to persist for the next call's resume=.
@@ -103,6 +115,7 @@ async def run_turn(
     options = ClaudeAgentOptions(
         cwd=project_path,
         resume=session_id,
+        model=model,
         system_prompt={"type": "preset", "preset": "claude_code"},
         can_use_tool=make_can_use_tool(
             confirmation_bridge, send_confirmation_prompt, on_confirmation_timeout
@@ -125,7 +138,7 @@ async def run_turn(
             if on_session_id is not None:
                 await on_session_id(candidate)
 
-    async for message in query(prompt=prompt, options=options):
+    async for message in query(prompt=_prompt_stream(prompt), options=options):
         if isinstance(message, AssistantMessage):
             await _note_session_id(message.session_id)
             for block in message.content:

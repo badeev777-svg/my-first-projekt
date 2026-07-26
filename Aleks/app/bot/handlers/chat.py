@@ -17,6 +17,21 @@ log = logging.getLogger(__name__)
 
 TELEGRAM_MESSAGE_LIMIT = 4096
 
+# Prepended to the first message of a fresh session only (session_id is None).
+# The deployed agent runs with setting_sources=[] (see agent_runner.py), so it
+# never sees the local Superpowers skills (brainstorming/writing-plans/etc.) --
+# this inlines their gist as plain prompt text instead of wiring up real skill
+# discovery, which would require reintroducing settings-file loading and
+# re-auditing the can_use_tool confirmation bypass risk that setting_sources=[]
+# exists to avoid.
+NEW_SESSION_PREAMBLE = (
+    "Прежде чем писать код: если задача про новый проект/фичу и цель или объём "
+    "неочевидны -- сначала кратко уточни их вопросом, не начинай сразу кодить. "
+    "Затем набросай короткий план шагов и покажи его. После этого реализуй план "
+    "шаг за шагом. Перед тем как сказать, что готово -- проверь результат "
+    "(тесты/запуск), а не просто заяви об успехе.\n\n---\n\n"
+)
+
 # Retry a run_turn() call a few times with exponential backoff before
 # falling back to the user-facing error message. Covers transient
 # Anthropic API errors (rate limits, network blips) per the spec. Module
@@ -24,6 +39,18 @@ TELEGRAM_MESSAGE_LIMIT = 4096
 # monkeypatch them to keep test runs fast.
 _RETRY_ATTEMPTS = 3
 _RETRY_WAIT_SECONDS = 1.0
+
+# Billing/insufficient-funds errors (e.g. Polza.ai's "402 Недостаточно
+# средств") are not transient -- retrying them just re-bills the same
+# failing call up to _RETRY_ATTEMPTS times for no benefit. Matched by
+# substring against str(exc) since the SDK surfaces these as generic
+# Exceptions, not a dedicated billing error type.
+_BILLING_ERROR_MARKERS = ("402", "insufficient", "недостаточно средств")
+
+
+def _is_billing_error(exc: BaseException) -> bool:
+    text = str(exc).lower()
+    return any(marker.lower() in text for marker in _BILLING_ERROR_MARKERS)
 
 
 def _describe_tool(tool_name: str, tool_input: dict) -> str:
@@ -112,6 +139,9 @@ async def on_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             return
 
         session_id = await state.get_session_id(project)
+        prompt = update.message.text
+        if session_id is None:
+            prompt = NEW_SESSION_PREAMBLE + prompt
 
         async def on_session_id(new_session_id: str) -> None:
             nonlocal session_id
@@ -121,23 +151,28 @@ async def on_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         retrying = tenacity.AsyncRetrying(
             stop=tenacity.stop_after_attempt(_RETRY_ATTEMPTS),
             wait=tenacity.wait_exponential(multiplier=_RETRY_WAIT_SECONDS, max=10),
+            retry=tenacity.retry_if_exception(lambda exc: not _is_billing_error(exc)),
             reraise=True,
         )
 
-        async def _run_turn() -> str | None:
-            return await run_turn(
-                prompt=update.message.text,
-                project_path=project_path,
-                session_id=session_id,
-                confirmation_bridge=bridge,
-                send_confirmation_prompt=send_confirmation_prompt,
-                on_text=on_text,
-                on_confirmation_timeout=on_confirmation_timeout,
-                on_session_id=on_session_id,
+        async def _run_turn_with_timeout() -> str | None:
+            return await asyncio.wait_for(
+                run_turn(
+                    prompt=prompt,
+                    project_path=project_path,
+                    session_id=session_id,
+                    confirmation_bridge=bridge,
+                    send_confirmation_prompt=send_confirmation_prompt,
+                    on_text=on_text,
+                    on_confirmation_timeout=on_confirmation_timeout,
+                    on_session_id=on_session_id,
+                    model=settings.model,
+                ),
+                timeout=settings.run_turn_timeout_seconds,
             )
 
         try:
-            new_session_id = await retrying(_run_turn)
+            new_session_id = await retrying(_run_turn_with_timeout)
         except Exception:
             log.exception("agent turn failed for project %s", project)
             await update.message.reply_text("Не получилось выполнить запрос, попробуй позже.")
