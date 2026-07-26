@@ -169,6 +169,57 @@ async def test_run_turn_gives_up_after_max_attempts(monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_session_id_persisted_immediately_when_learned_mid_turn(monkeypatch) -> None:
+    """If run_turn learns a session_id (via on_session_id) but then raises
+    before returning, that session_id must be persisted right away -- not
+    only after the whole retrying block succeeds -- so a subsequent retry
+    (or the next message, if retries are exhausted) can resume instead of
+    restarting the conversation from scratch."""
+    update, context, state = _update_and_context()
+
+    async def fake_run_turn(**kwargs):
+        await kwargs["on_session_id"]("sess-mid-turn")
+        raise RuntimeError("Stream closed")
+
+    monkeypatch.setattr(chat_module, "run_turn", fake_run_turn)
+    monkeypatch.setattr(chat_module, "_RETRY_WAIT_SECONDS", 0)
+
+    await chat_module.on_text_message(update, context)
+
+    state.set_session_id.assert_any_await("aleks", "sess-mid-turn")
+
+
+@pytest.mark.asyncio
+async def test_retry_resumes_from_session_id_learned_in_earlier_attempt(monkeypatch) -> None:
+    """Regression test for the actual incident: session_id used to be read
+    once from StateStore before the tenacity retry loop started and passed
+    as a fixed kwarg, so every retry attempt reused the same (stale) value
+    even after an earlier attempt had already learned a fresh one --
+    forcing each retry to re-explore the whole project from scratch."""
+    update, context, state = _update_and_context()
+    seen_session_ids: list[str | None] = []
+    attempts = 0
+
+    async def flaky_run_turn(**kwargs):
+        nonlocal attempts
+        attempts += 1
+        seen_session_ids.append(kwargs["session_id"])
+        if attempts == 1:
+            await kwargs["on_session_id"]("sess-mid-turn")
+            raise RuntimeError("transient network error")
+        await kwargs["on_text"]("Готово")
+        return "sess-final"
+
+    monkeypatch.setattr(chat_module, "run_turn", flaky_run_turn)
+    monkeypatch.setattr(chat_module, "_RETRY_WAIT_SECONDS", 0)
+
+    await chat_module.on_text_message(update, context)
+
+    assert seen_session_ids == [None, "sess-mid-turn"]
+    state.set_session_id.assert_awaited_with("aleks", "sess-final")
+
+
+@pytest.mark.asyncio
 async def test_send_confirmation_prompt_builds_keyboard_with_correlation_id(monkeypatch) -> None:
     update, context, _ = _update_and_context()
 
