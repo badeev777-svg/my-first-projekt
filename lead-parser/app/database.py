@@ -21,6 +21,7 @@ class Source(str, Enum):
     kwork = "kwork"
     profi = "profi"
     vk = "vk"
+    youdo = "youdo"
 
 
 class Status(str, Enum):
