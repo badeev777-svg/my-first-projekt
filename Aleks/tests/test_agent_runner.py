@@ -311,6 +311,104 @@ async def test_run_turn_returns_none_when_no_result_message(monkeypatch) -> None
 
 
 @pytest.mark.asyncio
+async def test_run_turn_reports_session_id_as_soon_as_known(monkeypatch) -> None:
+    """AssistantMessage already carries session_id (per the installed SDK's
+    types.py), not just the terminal ResultMessage. If the stream dies
+    mid-turn (SDK issue #1088, "Stream closed"), a session_id seen on an
+    earlier AssistantMessage must still reach the caller via on_session_id
+    -- not be silently discarded, forcing the next attempt to restart the
+    whole conversation from scratch."""
+    fake_messages = _FakeMessages(
+        [
+            AssistantMessage(
+                content=[TextBlock(text="Работаю...")],
+                model="claude",
+                session_id="mid-turn-session-id",
+            ),
+        ]
+    )
+
+    def fake_query(*, prompt, options):
+        return fake_messages
+
+    monkeypatch.setattr("app.agent_runner.query", fake_query)
+
+    seen_ids: list[str] = []
+
+    async def on_session_id(session_id: str) -> None:
+        seen_ids.append(session_id)
+
+    async def on_text(text: str) -> None:
+        pass
+
+    async def send_confirmation_prompt(correlation_id, tool_name, tool_input) -> None:
+        raise AssertionError("no risky tool call expected in this test")
+
+    bridge = ConfirmationBridge(timeout_seconds=5)
+    await run_turn(
+        prompt="почини баг",
+        project_path="/root/projects/Aleks",
+        session_id=None,
+        confirmation_bridge=bridge,
+        send_confirmation_prompt=send_confirmation_prompt,
+        on_text=on_text,
+        on_session_id=on_session_id,
+    )
+
+    assert seen_ids == ["mid-turn-session-id"]
+
+
+@pytest.mark.asyncio
+async def test_run_turn_reports_session_id_before_stream_error(monkeypatch) -> None:
+    """Proves on_session_id fires *before* an in-stream exception propagates
+    -- the caller learns the session_id even though run_turn() itself never
+    returns a value on this path."""
+
+    class _FailingMessages:
+        def __aiter__(self):
+            return self._gen()
+
+        async def _gen(self):
+            yield AssistantMessage(
+                content=[TextBlock(text="Работаю...")],
+                model="claude",
+                session_id="mid-turn-session-id",
+            )
+            raise RuntimeError("Stream closed")
+            yield  # pragma: no cover - unreachable, makes this a generator
+
+    def fake_query(*, prompt, options):
+        return _FailingMessages()
+
+    monkeypatch.setattr("app.agent_runner.query", fake_query)
+
+    seen_ids: list[str] = []
+
+    async def on_session_id(session_id: str) -> None:
+        seen_ids.append(session_id)
+
+    async def on_text(text: str) -> None:
+        pass
+
+    async def send_confirmation_prompt(correlation_id, tool_name, tool_input) -> None:
+        raise AssertionError("no risky tool call expected in this test")
+
+    bridge = ConfirmationBridge(timeout_seconds=5)
+    with pytest.raises(RuntimeError, match="Stream closed"):
+        await run_turn(
+            prompt="почини баг",
+            project_path="/root/projects/Aleks",
+            session_id=None,
+            confirmation_bridge=bridge,
+            send_confirmation_prompt=send_confirmation_prompt,
+            on_text=on_text,
+            on_session_id=on_session_id,
+        )
+
+    assert seen_ids == ["mid-turn-session-id"]
+
+
+@pytest.mark.asyncio
 async def test_risky_tool_timeout_returns_distinct_deny_message_and_notifies() -> None:
     bridge = ConfirmationBridge(timeout_seconds=0.05)
     notified = False

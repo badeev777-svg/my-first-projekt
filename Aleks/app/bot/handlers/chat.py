@@ -99,15 +99,19 @@ async def on_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
         session_id = await state.get_session_id(project)
 
+        async def on_session_id(new_session_id: str) -> None:
+            nonlocal session_id
+            session_id = new_session_id
+            await state.set_session_id(project, new_session_id)
+
         retrying = tenacity.AsyncRetrying(
             stop=tenacity.stop_after_attempt(_RETRY_ATTEMPTS),
             wait=tenacity.wait_exponential(multiplier=_RETRY_WAIT_SECONDS, max=10),
             reraise=True,
         )
 
-        try:
-            new_session_id = await retrying(
-                run_turn,
+        async def _run_turn() -> str | None:
+            return await run_turn(
                 prompt=update.message.text,
                 project_path=project_path,
                 session_id=session_id,
@@ -115,7 +119,11 @@ async def on_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 send_confirmation_prompt=send_confirmation_prompt,
                 on_text=on_text,
                 on_confirmation_timeout=on_confirmation_timeout,
+                on_session_id=on_session_id,
             )
+
+        try:
+            new_session_id = await retrying(_run_turn)
         except Exception:
             log.exception("agent turn failed for project %s", project)
             await update.message.reply_text("Не получилось выполнить запрос, попробуй позже.")
