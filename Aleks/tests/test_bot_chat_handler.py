@@ -221,6 +221,49 @@ async def test_retry_resumes_from_session_id_learned_in_earlier_attempt(monkeypa
 
 
 @pytest.mark.asyncio
+async def test_billing_error_is_not_retried(monkeypatch) -> None:
+    update, context, _ = _update_and_context()
+    attempts = 0
+
+    async def billing_failure(**kwargs):
+        nonlocal attempts
+        attempts += 1
+        raise RuntimeError("API Error: 402 Недостаточно средств")
+
+    monkeypatch.setattr(chat_module, "run_turn", billing_failure)
+    monkeypatch.setattr(chat_module, "_RETRY_WAIT_SECONDS", 0)
+
+    await chat_module.on_text_message(update, context)
+
+    assert attempts == 1
+    update.message.reply_text.assert_awaited_once_with(
+        "Не получилось выполнить запрос, попробуй позже."
+    )
+
+
+@pytest.mark.asyncio
+async def test_hung_run_turn_times_out_and_gives_up(monkeypatch) -> None:
+    update, context, _ = _update_and_context()
+    context.bot_data["settings"].run_turn_timeout_seconds = 0.01
+    attempts = 0
+
+    async def hangs_forever(**kwargs):
+        nonlocal attempts
+        attempts += 1
+        await asyncio.sleep(10)
+
+    monkeypatch.setattr(chat_module, "run_turn", hangs_forever)
+    monkeypatch.setattr(chat_module, "_RETRY_WAIT_SECONDS", 0)
+
+    await chat_module.on_text_message(update, context)
+
+    assert attempts == chat_module._RETRY_ATTEMPTS
+    update.message.reply_text.assert_awaited_once_with(
+        "Не получилось выполнить запрос, попробуй позже."
+    )
+
+
+@pytest.mark.asyncio
 async def test_send_confirmation_prompt_builds_keyboard_with_correlation_id(monkeypatch) -> None:
     update, context, _ = _update_and_context()
 
