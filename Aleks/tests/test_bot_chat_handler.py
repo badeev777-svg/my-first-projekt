@@ -309,6 +309,20 @@ async def test_new_project_trigger_works_even_with_no_active_project(monkeypatch
 
 
 @pytest.mark.asyncio
+async def test_new_project_trigger_failure_replies_gracefully(monkeypatch, tmp_path) -> None:
+    update, context, state = _update_and_context(text="новый проект часы")
+    context.bot_data["settings"].projects_root = str(tmp_path)
+    state.list_all_projects.return_value = {}
+    state.add_dynamic_project.side_effect = RuntimeError("db locked")
+
+    await chat_module.on_text_message(update, context)
+
+    update.message.reply_text.assert_awaited_once_with(
+        "Не получилось выполнить запрос, попробуй позже."
+    )
+
+
+@pytest.mark.asyncio
 async def test_non_trigger_message_uses_merged_project_path(monkeypatch) -> None:
     update, context, state = _update_and_context()
     state.list_all_projects.return_value = {"aleks": "/root/projects/Aleks"}
