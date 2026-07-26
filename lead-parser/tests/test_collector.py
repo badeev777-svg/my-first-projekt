@@ -82,6 +82,7 @@ async def test_run_collection_saves_leads(monkeypatch):
     monkeypatch.setattr(collector, "fetch_vk_leads", no_leads)
     monkeypatch.setattr(collector, "fetch_freelance_ru_leads", no_leads)
     monkeypatch.setattr(collector, "fetch_workzilla_leads", no_leads)
+    monkeypatch.setattr(collector, "fetch_youdo_leads", no_leads)
 
     saved = await collector.run_collection()
     assert saved == 3

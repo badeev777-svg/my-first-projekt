@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from app.analyzer import analyze_lead
+from app.config import MIN_RELEVANCE_SCORE
 from app.database import SessionLocal, Lead
 from app.notifier import notify_new_lead
 from app.scrapers.fl_rss import fetch_fl_leads
@@ -14,6 +15,7 @@ from app.scrapers.profi import fetch_profi_leads
 from app.scrapers.vk import fetch_vk_leads
 from app.scrapers.freelance_ru import fetch_freelance_ru_leads
 from app.scrapers.workzilla import fetch_workzilla_leads
+from app.scrapers.youdo import fetch_youdo_leads
 
 log = logging.getLogger(__name__)
 
@@ -43,6 +45,9 @@ async def run_collection() -> int:
 
     workzilla_leads = await fetch_workzilla_leads()
     raw.extend(workzilla_leads)
+
+    youdo_leads = await fetch_youdo_leads()
+    raw.extend(youdo_leads)
 
     log.info(f"Total raw leads collected: {len(raw)}")
     saved = 0
@@ -90,7 +95,10 @@ async def run_collection() -> int:
                         lead.processed = True
                         await session.commit()
                         log.info(f"Analyzed lead #{lead.id}, relevance={lead.relevance_score}")
-                        await notify_new_lead(data, relevance_score=lead.relevance_score)
+                        if lead.relevance_score is not None and lead.relevance_score >= MIN_RELEVANCE_SCORE:
+                            await notify_new_lead(data, relevance_score=lead.relevance_score)
+                        else:
+                            log.info(f"Lead #{lead.id} below relevance threshold ({MIN_RELEVANCE_SCORE}%), skipping notification")
                     else:
                         log.warning(f"Analysis returned None for lead #{lead.id}")
                         await notify_new_lead(data)
