@@ -7,7 +7,7 @@ import os
 HOST = "155.212.208.194"
 USER = "root"
 PASSWORD = "j84sYBm*XODl"
-APP_DIR = "/root/lead-parser"
+APP_DIR = "/root/lead-parser/lead-parser"
 
 def run_ssh(client, cmd):
     """Run SSH command."""

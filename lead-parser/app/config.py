@@ -30,7 +30,7 @@ POLL_INTERVAL_MINUTES: int = int(os.getenv("POLL_INTERVAL_MINUTES") or "10")
 
 DEMO_MODE: bool = os.getenv("DEMO_MODE", "false").lower() == "true"
 
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
+POLZA_API_KEY = os.getenv("POLZA_API_KEY", "")
 
 VK_TOKEN = os.getenv("VK_TOKEN", "")
 VK_GROUPS: list[str] = _list(

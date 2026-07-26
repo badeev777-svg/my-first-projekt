@@ -16,6 +16,7 @@ SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 class Source(str, Enum):
     telegram = "telegram"
     fl = "fl"
+    freelance_ru = "freelance_ru"
     habr = "habr"
     kwork = "kwork"
     profi = "profi"
