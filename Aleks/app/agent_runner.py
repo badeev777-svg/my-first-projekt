@@ -20,6 +20,7 @@ from app.risk import is_risky
 SendConfirmationPrompt = Callable[[str, str, dict], Awaitable[None]]
 OnText = Callable[[str], Awaitable[None]]
 OnConfirmationTimeout = Callable[[], Awaitable[None]]
+OnSessionId = Callable[[str], Awaitable[None]]
 
 # Env vars to blank out of the Claude Code CLI subprocess (and therefore
 # out of any Bash tool call the agent makes -- its output streams straight
@@ -90,9 +91,15 @@ async def run_turn(
     send_confirmation_prompt: SendConfirmationPrompt,
     on_text: OnText,
     on_confirmation_timeout: OnConfirmationTimeout | None = None,
+    on_session_id: OnSessionId | None = None,
 ) -> str | None:
     """Runs exactly one query() turn against a project and returns the
-    session_id to persist for the next call's resume=."""
+    session_id to persist for the next call's resume=.
+
+    on_session_id, if given, fires as soon as a session_id becomes known --
+    from the first AssistantMessage, not only the terminal ResultMessage --
+    so a caller can persist it even if the stream then dies mid-turn
+    (SDK issue #1088, "Stream closed") before returning normally."""
     options = ClaudeAgentOptions(
         cwd=project_path,
         resume=session_id,
@@ -110,11 +117,20 @@ async def run_turn(
     )
 
     new_session_id: str | None = session_id
+
+    async def _note_session_id(candidate: str | None) -> None:
+        nonlocal new_session_id
+        if candidate is not None and candidate != new_session_id:
+            new_session_id = candidate
+            if on_session_id is not None:
+                await on_session_id(candidate)
+
     async for message in query(prompt=prompt, options=options):
         if isinstance(message, AssistantMessage):
+            await _note_session_id(message.session_id)
             for block in message.content:
                 if isinstance(block, TextBlock):
                     await on_text(block.text)
         elif isinstance(message, ResultMessage):
-            new_session_id = message.session_id
+            await _note_session_id(message.session_id)
     return new_session_id
