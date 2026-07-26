@@ -1,20 +1,31 @@
-"""Analyzes leads using OpenRouter API (Claude via OpenAI-compatible endpoint)."""
+"""Analyzes leads using Polza.ai API (Claude via OpenAI-compatible endpoint)."""
 import json
 import logging
 from typing import Optional
 
 import httpx
 
-from app.config import OPENROUTER_API_KEY
+from app.config import POLZA_API_KEY
 
 log = logging.getLogger(__name__)
 
-OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-MODEL = "anthropic/claude-3.5-haiku"
+POLZA_URL = "https://polza.ai/api/v1/chat/completions"
+MODEL = "anthropic/claude-haiku-4.5"
 
 SYSTEM_PROMPT = """Ты эксперт в анализе фриланс-заявок для веб-разработчика.
 Анализируй заявку и возвращай структурированный JSON.
 Будь лаконичен и точен."""
+
+TEXT_LIMIT = 1500
+
+
+def _truncate(text: str, limit: int = TEXT_LIMIT) -> str:
+    if len(text) <= limit:
+        return text
+    cut = text[:limit]
+    last_space = cut.rfind(" ")
+    return cut[:last_space] if last_space > limit * 0.8 else cut
+
 
 ANALYSIS_PROMPT = """Проанализируй заявку на фриланс-работу и верни JSON с результатами:
 
@@ -22,6 +33,7 @@ ANALYSIS_PROMPT = """Проанализируй заявку на фриланс
 ---
 Источник: {source}
 Название: {title}
+Ссылка: {url}
 Описание: {text}
 Указанный бюджет: {budget}
 ---
@@ -48,25 +60,27 @@ async def analyze_lead(
     source: str,
     title: Optional[str],
     text: str,
-    budget: Optional[int]
+    budget: Optional[int],
+    url: Optional[str] = None,
 ) -> dict:
-    if not OPENROUTER_API_KEY:
-        log.warning("OPENROUTER_API_KEY not set, skipping analysis")
+    if not POLZA_API_KEY:
+        log.warning("POLZA_API_KEY not set, skipping analysis")
         return {}
 
     prompt = ANALYSIS_PROMPT.format(
         source=source,
         title=title or "Без названия",
-        text=text[:1500],
+        url=url or "Не указана",
+        text=_truncate(text),
         budget=budget or "Не указан",
     )
 
     try:
         async with httpx.AsyncClient(timeout=30) as client:
             resp = await client.post(
-                OPENROUTER_URL,
+                POLZA_URL,
                 headers={
-                    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                    "Authorization": f"Bearer {POLZA_API_KEY}",
                     "Content-Type": "application/json",
                 },
                 json={
@@ -92,8 +106,13 @@ async def analyze_lead(
 
         result = json.loads(content)
 
+        score = result.get("relevance_score")
+        if not isinstance(score, (int, float)) or not (0 <= score <= 100):
+            log.warning(f"Invalid relevance_score from LLM: {score!r}, defaulting to 0")
+            score = 0
+
         analysis = {
-            "relevance_score": result.get("relevance_score"),
+            "relevance_score": score,
             "tags": ",".join(result.get("tags", [])) if result.get("tags") else None,
             "summary": result.get("summary"),
             "estimated_budget": result.get("estimated_budget"),
