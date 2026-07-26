@@ -37,6 +37,13 @@ def setup_logging(level: str) -> None:
     )
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("httpcore").setLevel(logging.WARNING)
+    # Deliberately more verbose than the app-wide level: this is the only
+    # place that logs the SDK's internal control-channel state (e.g. the
+    # stdin-closed-with-tasks-in-flight race behind "Stream closed" tool
+    # errors, upstream issue #1088). At the default INFO level those
+    # logger.debug() calls are silently dropped, so an incident leaves no
+    # trace in aleks-agent.log even though the failure is real.
+    logging.getLogger("claude_agent_sdk").setLevel(logging.DEBUG)
 
 
 def main() -> None:
@@ -44,8 +51,15 @@ def main() -> None:
     setup_logging(settings.log_level)
     log = logging.getLogger(__name__)
 
-    # claude_agent_sdk reads ANTHROPIC_API_KEY from the process environment.
-    os.environ.setdefault("ANTHROPIC_API_KEY", settings.anthropic_api_key)
+    # claude_agent_sdk reads ANTHROPIC_API_KEY / ANTHROPIC_BASE_URL / ANTHROPIC_AUTH_TOKEN
+    # from the process environment. When a proxy (e.g. Polza.ai) is configured via
+    # anthropic_base_url, ANTHROPIC_API_KEY must be blanked or the CLI tries direct Anthropic.
+    if settings.anthropic_base_url:
+        os.environ.setdefault("ANTHROPIC_BASE_URL", settings.anthropic_base_url)
+        os.environ.setdefault("ANTHROPIC_AUTH_TOKEN", settings.anthropic_auth_token)
+        os.environ["ANTHROPIC_API_KEY"] = ""
+    else:
+        os.environ.setdefault("ANTHROPIC_API_KEY", settings.anthropic_api_key)
 
     state = StateStore(settings.db_path)
     confirmation_bridge = ConfirmationBridge(timeout_seconds=settings.confirmation_timeout_seconds)
