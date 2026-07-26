@@ -22,7 +22,7 @@ def slugify(text: str, max_length: int = SLUG_MAX_LENGTH) -> str:
 
 
 _TRIGGER_RE = re.compile(
-    r"^(?:делаем|создай|создать|начн[её]м)?\s*новый проект[:\s]*(.*)$",
+    r"^(?:(?:делаем|создай|создать|начн[её]м)\s+)?новый\s+проект\b[:\s]*(.*)$",
     re.IGNORECASE | re.DOTALL,
 )
 

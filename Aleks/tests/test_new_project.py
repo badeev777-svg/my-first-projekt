@@ -60,3 +60,13 @@ def test_trigger_no_match_returns_none() -> None:
 
 def test_trigger_phrase_without_name_returns_empty_string() -> None:
     assert parse_new_project_trigger("новый проект") == ""
+
+
+def test_trigger_rejects_inflected_word_after_proekt() -> None:
+    assert parse_new_project_trigger("новый проекты появились") is None
+    assert parse_new_project_trigger("новый проектах пусто") is None
+    assert parse_new_project_trigger("Новый проектище") is None
+
+
+def test_trigger_allows_irregular_whitespace() -> None:
+    assert parse_new_project_trigger("новый  проект часы") == "часы"
