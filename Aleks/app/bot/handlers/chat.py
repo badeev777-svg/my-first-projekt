@@ -10,6 +10,7 @@ from app.agent_runner import run_turn
 from app.bot.auth import is_authorized
 from app.config import Settings
 from app.confirmation import ConfirmationBridge
+from app.new_project import handle_new_project, parse_new_project_trigger
 from app.state import StateStore
 
 log = logging.getLogger(__name__)
@@ -40,6 +41,13 @@ async def on_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     user = update.effective_user
 
     state: StateStore = context.bot_data["state"]
+
+    new_project_name = parse_new_project_trigger(update.message.text)
+    if new_project_name is not None:
+        reply = await handle_new_project(new_project_name, user.id, settings, state)
+        await update.message.reply_text(reply)
+        return
+
     project = await state.get_active_project(user.id)
     if project is None:
         await update.message.reply_text("Сначала выбери проект: /projects")
@@ -90,7 +98,8 @@ async def on_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                     chat_id=chat_id, text=text[i : i + TELEGRAM_MESSAGE_LIMIT]
                 )
 
-        project_path = settings.projects.get(project)
+        merged_projects = await state.list_all_projects(settings.projects)
+        project_path = merged_projects.get(project)
         if project_path is None:
             await update.message.reply_text(
                 "Проект больше не настроен, выбери заново: /projects"
