@@ -1,11 +1,12 @@
 # app/new_project.py
+import logging
 import os
 import re
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from app.config import Settings
-    from app.state import StateStore
+from app.config import Settings
+from app.state import StateStore
+
+log = logging.getLogger(__name__)
 
 _TRANSLIT = {
     "а": "a", "б": "b", "в": "v", "г": "g", "д": "d", "е": "e", "ё": "e",
@@ -41,7 +42,7 @@ def parse_new_project_trigger(text: str) -> str | None:
 
 
 async def handle_new_project(
-    raw_name: str, user_id: int, settings: "Settings", state: "StateStore"
+    raw_name: str, user_id: int, settings: Settings, state: StateStore
 ) -> str:
     slug = slugify(raw_name)
     if not slug:
@@ -59,8 +60,9 @@ async def handle_new_project(
     try:
         os.makedirs(settings.projects_root, exist_ok=True)
         os.makedirs(project_path, exist_ok=False)
-    except OSError as exc:
-        return f"Не получилось создать проект: {exc}"
+    except OSError:
+        log.exception("failed to create project directory for slug %s", slug)
+        return "Не получилось создать проект, попробуй позже"
 
     await state.add_dynamic_project(slug, project_path)
     await state.set_active_project(user_id, slug)
