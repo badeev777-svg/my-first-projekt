@@ -26,6 +26,7 @@ KEYWORDS: list[str] = _list(
 KEYWORDS = [k.lower() for k in KEYWORDS]
 
 MIN_BUDGET: int = int(os.getenv("MIN_BUDGET") or "0")
+MIN_RELEVANCE_SCORE: int = int(os.getenv("MIN_RELEVANCE_SCORE") or "80")
 POLL_INTERVAL_MINUTES: int = int(os.getenv("POLL_INTERVAL_MINUTES") or "10")
 
 DEMO_MODE: bool = os.getenv("DEMO_MODE", "false").lower() == "true"
@@ -37,3 +38,6 @@ VK_GROUPS: list[str] = _list(
     "VK_GROUPS",
     "freelance_pro,web_zakazy,seo_zakazy,it_freelance",
 )
+
+YOUDO_LOGIN = os.getenv("YOUDO_LOGIN", "")
+YOUDO_PASSWORD = os.getenv("YOUDO_PASSWORD", "")
