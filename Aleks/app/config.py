@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     )
     confirmation_timeout_seconds: float = Field(default=600.0, ge=1)
     db_path: str = Field(default="state.db")
+    projects_root: str = Field(
+        default="/root/user-projects",
+        description="Filesystem root under which dynamically-created projects "
+        "(via the 'новый проект' chat trigger) get their own subfolder.",
+    )
     log_level: str = Field(default="INFO")
 
 
