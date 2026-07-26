@@ -1,5 +1,11 @@
 # app/new_project.py
+import os
 import re
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.config import Settings
+    from app.state import StateStore
 
 _TRANSLIT = {
     "а": "a", "б": "b", "в": "v", "г": "g", "д": "d", "е": "e", "ё": "e",
@@ -32,3 +38,30 @@ def parse_new_project_trigger(text: str) -> str | None:
     if match is None:
         return None
     return match.group(1).strip()
+
+
+async def handle_new_project(
+    raw_name: str, user_id: int, settings: "Settings", state: "StateStore"
+) -> str:
+    slug = slugify(raw_name)
+    if not slug:
+        return "Укажи название проекта в этом же сообщении: «новый проект <название>»"
+
+    if slug in settings.projects:
+        return f"Имя «{slug}» занято системным проектом, выбери другое"
+
+    existing = await state.list_all_projects(settings.projects)
+    if slug in existing:
+        await state.set_active_project(user_id, slug)
+        return f"Проект «{slug}» уже существует, переключился на него"
+
+    project_path = os.path.join(settings.projects_root, slug)
+    try:
+        os.makedirs(settings.projects_root, exist_ok=True)
+        os.makedirs(project_path, exist_ok=False)
+    except OSError as exc:
+        return f"Не получилось создать проект: {exc}"
+
+    await state.add_dynamic_project(slug, project_path)
+    await state.set_active_project(user_id, slug)
+    return f"Новый проект «{slug}» создан: {project_path}\nАктивный проект переключён на него."
