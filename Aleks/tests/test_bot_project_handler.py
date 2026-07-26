@@ -24,7 +24,10 @@ def _update(user_id: int, args: list[str] | None = None):
     update.message.reply_text = AsyncMock()
     context = MagicMock()
     context.args = args or []
-    context.bot_data = {"settings": _settings(), "state": AsyncMock(spec=StateStore)}
+    settings = _settings()
+    state = AsyncMock(spec=StateStore)
+    state.list_all_projects.return_value = dict(settings.projects)
+    context.bot_data = {"settings": settings, "state": state}
     return update, context
 
 
@@ -78,3 +81,31 @@ async def test_cmd_project_ignores_unauthorized_user() -> None:
 
     update.message.reply_text.assert_not_called()
     context.bot_data["state"].set_active_project.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_cmd_projects_lists_dynamic_projects_too() -> None:
+    update, context = _update(user_id=42)
+    context.bot_data["state"].list_all_projects.return_value = {
+        "aleks": "/root/projects/Aleks",
+        "epoksidka": "/root/user-projects/epoksidka",
+    }
+
+    await cmd_projects(update, context)
+
+    text = update.message.reply_text.call_args.args[0]
+    assert "aleks" in text
+    assert "epoksidka" in text
+
+
+@pytest.mark.asyncio
+async def test_cmd_project_switches_to_dynamic_project() -> None:
+    update, context = _update(user_id=42, args=["epoksidka"])
+    context.bot_data["state"].list_all_projects.return_value = {
+        "aleks": "/root/projects/Aleks",
+        "epoksidka": "/root/user-projects/epoksidka",
+    }
+
+    await cmd_project(update, context)
+
+    context.bot_data["state"].set_active_project.assert_awaited_once_with(42, "epoksidka")
