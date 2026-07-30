@@ -1,4 +1,5 @@
 # app/agent_runner.py
+import logging
 import os
 import uuid
 from collections.abc import Awaitable, Callable
@@ -21,6 +22,8 @@ SendConfirmationPrompt = Callable[[str, str, dict], Awaitable[None]]
 OnText = Callable[[str], Awaitable[None]]
 OnConfirmationTimeout = Callable[[], Awaitable[None]]
 OnSessionId = Callable[[str], Awaitable[None]]
+
+log = logging.getLogger(__name__)
 
 
 async def _prompt_stream(text: str):
@@ -116,10 +119,25 @@ async def run_turn(
         cwd=project_path,
         resume=session_id,
         model=model,
-        system_prompt={"type": "preset", "preset": "claude_code"},
+        # A short custom prompt instead of the "claude_code" preset -- that
+        # preset carries the full interactive-CLI system prompt (IDE
+        # workflow guidance, skill-discovery preamble, etc.), none of which
+        # applies to a one-shot Telegram turn, and it is billed on every
+        # single run_turn() call.
+        system_prompt=(
+            "You are a coding assistant working directly in a user's project "
+            "directory on behalf of a Telegram bot. Make the requested code "
+            "changes yourself using your tools, then reply with a concise "
+            "summary of what you did in Russian. Don't ask clarifying "
+            "questions unless you are genuinely blocked."
+        ),
         can_use_tool=make_can_use_tool(
             confirmation_bridge, send_confirmation_prompt, on_confirmation_timeout
         ),
+        # Task (subagents) and NotebookEdit are irrelevant to this bot's
+        # one-shot code-edit turns and their tool schemas cost tokens on
+        # every call for no benefit here.
+        disallowed_tools=["Task", "NotebookEdit"],
         # Never load on-disk .claude/settings*.json from the target project.
         # If unset, the SDK loads those files and skips can_use_tool entirely
         # for tool calls already permitted by a permissions.allow rule there
@@ -127,6 +145,14 @@ async def run_turn(
         # the sole gate for every tool call, always.
         setting_sources=[],
         env=_subprocess_env(),
+    )
+
+    log.info(
+        "run_turn started: project=%s model=%s session_id=%s prompt_len=%s",
+        project_path,
+        model,
+        session_id,
+        len(prompt),
     )
 
     new_session_id: str | None = session_id
@@ -146,4 +172,12 @@ async def run_turn(
                     await on_text(block.text)
         elif isinstance(message, ResultMessage):
             await _note_session_id(message.session_id)
+            log.info(
+                "run_turn cost: project=%s model=%s cost_usd=%s num_turns=%s usage=%s",
+                project_path,
+                model,
+                message.total_cost_usd,
+                message.num_turns,
+                message.usage,
+            )
     return new_session_id
