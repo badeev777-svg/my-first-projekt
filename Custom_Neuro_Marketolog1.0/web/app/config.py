@@ -29,9 +29,9 @@ class Settings(BaseSettings):
     MAX_BOT_TOKEN: str = ""
     MAX_USER_ID: int = 0
 
-    # Admin dashboard
-    ADMIN_LOGIN: str = "admin"
-    ADMIN_PASSWORD: str = "changeme"
+    # Admin dashboard — обязательны, дефолтов намеренно нет (см. security review)
+    ADMIN_LOGIN: str
+    ADMIN_PASSWORD: str
     ADMIN_URL: str = "http://localhost:8001/admin"
 
     def get_valid_tokens(self) -> set[str]:

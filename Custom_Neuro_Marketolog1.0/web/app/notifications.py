@@ -72,8 +72,10 @@ async def _send_telegram(client: httpx.AsyncClient, text: str) -> None:
             },
         )
         r.raise_for_status()
-    except Exception as e:
-        logger.error("Telegram notify failed: %s", e)
+    except httpx.HTTPStatusError as e:
+        logger.error("Telegram notify failed: HTTP %s", e.response.status_code)
+    except Exception:
+        logger.error("Telegram notify failed: request error")
 
 
 async def _send_max(client: httpx.AsyncClient, text: str) -> None:
@@ -87,5 +89,7 @@ async def _send_max(client: httpx.AsyncClient, text: str) -> None:
             },
         )
         r.raise_for_status()
-    except Exception as e:
-        logger.error("MAX notify failed: %s", e)
+    except httpx.HTTPStatusError as e:
+        logger.error("MAX notify failed: HTTP %s", e.response.status_code)
+    except Exception:
+        logger.error("MAX notify failed: request error")

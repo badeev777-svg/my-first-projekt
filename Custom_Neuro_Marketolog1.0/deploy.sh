@@ -45,6 +45,13 @@ read -rp "OpenRouter API Key (sk-or-...): " OPENROUTER_KEY
 echo ""
 read -rp "Контактная ссылка клиента (https://t.me/username): " CONTACT_LINK
 echo ""
+read -rp "Логин админ-панели (НЕ 'admin'): " ADMIN_LOGIN
+while [ -z "$ADMIN_LOGIN" ] || [ "$ADMIN_LOGIN" = "admin" ]; do
+  read -rp "Логин не должен быть пустым или 'admin'. Введите ещё раз: " ADMIN_LOGIN
+done
+ADMIN_PASSWORD="$(openssl rand -base64 18)"
+echo -e "  Сгенерирован пароль админ-панели: ${GREEN}${ADMIN_PASSWORD}${NC} (сохраните его — он не хранится больше нигде)"
+echo ""
 read -rp "Имя агента [Нейро-Маркетолог]: " AGENT_NAME
 AGENT_NAME="${AGENT_NAME:-Нейро-Маркетолог}"
 
@@ -110,6 +117,10 @@ CONTACT_LINK=$CONTACT_LINK
 MAX_LINK=$MAX_LINK
 CHAT_ONLY_MODE=$CHAT_ONLY_MODE
 
+ADMIN_LOGIN=$ADMIN_LOGIN
+ADMIN_PASSWORD=$ADMIN_PASSWORD
+ADMIN_URL=https://$DOMAIN/admin
+
 TG_BOT_TOKEN=
 TG_CHAT_ID=
 MAX_BOT_TOKEN=
@@ -170,6 +181,16 @@ server {
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 
     location /api/ {
+        limit_req zone=${SERVICE_NAME}_api burst=5 nodelay;
+        limit_req_status 429;
+        proxy_pass http://127.0.0.1:$PORT;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_read_timeout 120s;
+    }
+
+    location /admin/ {
         limit_req zone=${SERVICE_NAME}_api burst=5 nodelay;
         limit_req_status 429;
         proxy_pass http://127.0.0.1:$PORT;

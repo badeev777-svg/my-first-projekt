@@ -1,10 +1,11 @@
 import re
 import uuid
 
-from fastapi import APIRouter, Cookie, HTTPException, Query, Request, Response
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Query, Request, Response
 from pydantic import BaseModel
 
 from app.agent import store, REPORT_MARKER, PAID_SPLIT
+from app.auth import check_auth
 from app.config import settings
 from app.ip_limiter import is_allowed
 from app.notifications import notify_all, notify_contact
@@ -84,7 +85,7 @@ async def start_session(
 
     if not session_id:
         session_id = str(uuid.uuid4())
-        response.set_cookie("session_id", session_id, max_age=86400 * 7, httponly=True)
+        response.set_cookie("session_id", session_id, max_age=86400 * 7, httponly=True, secure=True, samesite="lax")
 
     reply = await store.start(session_id)
     session = store.get_or_create(session_id)
@@ -102,7 +103,7 @@ async def chat(
 ):
     if not session_id:
         session_id = str(uuid.uuid4())
-        response.set_cookie("session_id", session_id, max_age=86400 * 7, httponly=True)
+        response.set_cookie("session_id", session_id, max_age=86400 * 7, httponly=True, secure=True, samesite="lax")
 
     if len(body.text) > _MAX_INPUT_LEN:
         raise HTTPException(status_code=400, detail="Message too long")
@@ -165,7 +166,7 @@ async def unlock(body: UnlockIn, response: Response):
     valid = settings.get_valid_tokens()
     if not valid or body.token.strip() not in valid:
         raise HTTPException(status_code=403, detail="Неверный токен доступа")
-    response.set_cookie("nm_unlocked", "1", max_age=86400 * 30, samesite="lax")
+    response.set_cookie("nm_unlocked", "1", max_age=86400 * 30, httponly=True, secure=True, samesite="lax")
     return {"ok": True}
 
 
@@ -175,7 +176,7 @@ async def unlock_status(nm_unlocked: str = Cookie(default="")):
 
 
 @router.get("/stats")
-async def stats():
+async def stats(_: str = Depends(check_auth)):
     return await db.get_stats()
 
 
