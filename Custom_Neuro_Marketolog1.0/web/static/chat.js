@@ -177,7 +177,7 @@ async function sendMessage() {
     updateProgress(data.progress);
 
     if (data.finished) {
-      renderReport(data.reply);
+      renderReport(data.reply, data.score);
       handleFinish(data.contact_link);
     } else {
       renderAI(data.reply);
@@ -219,7 +219,35 @@ function renderAI(text) {
   setStatus('Онлайн');
 }
 
-function renderReport(rawText) {
+function renderScoreWidget(score) {
+  const widget = document.createElement('div');
+  widget.className = 'score-widget';
+
+  const totalDiv = document.createElement('div');
+  totalDiv.className = 'score-widget__total';
+  totalDiv.innerHTML = `
+    <span class="score-widget__num">${score.total}</span><span class="score-widget__max">/100</span>
+  `;
+  widget.appendChild(totalDiv);
+
+  const barsDiv = document.createElement('div');
+  barsDiv.className = 'score-widget__bars';
+  score.categories.forEach(cat => {
+    const pct = Math.round((cat.score / cat.max) * 100);
+    const row = document.createElement('div');
+    row.className = 'score-bar';
+    row.innerHTML = `
+      <div class="score-bar__label">${cat.name}</div>
+      <div class="score-bar__track"><div class="score-bar__fill" style="width:${pct}%"></div></div>
+    `;
+    barsDiv.appendChild(row);
+  });
+  widget.appendChild(barsDiv);
+
+  return widget;
+}
+
+function renderReport(rawText, score) {
   // Strip the completion marker
   const cleaned = rawText.replace(REPORT_MARKER, '').trim();
 
@@ -230,6 +258,10 @@ function renderReport(rawText) {
 
   const wrap = document.createElement('div');
   wrap.className = 'msg msg--ai msg--report';
+
+  if (score) {
+    wrap.appendChild(renderScoreWidget(score));
+  }
 
   // Free sections
   const freeDiv = document.createElement('div');
