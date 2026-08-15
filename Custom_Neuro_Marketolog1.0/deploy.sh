@@ -41,7 +41,7 @@ echo -e "${YELLOW}Введите параметры установки:${NC}\n"
 read -rp "Домен сайта (например: ai.client-domain.ru): " DOMAIN
 read -rp "Email для SSL-сертификата (Let's Encrypt): " SSL_EMAIL
 echo ""
-read -rp "OpenRouter API Key (sk-or-...): " OPENROUTER_KEY
+read -rp "cloud.ru Foundation Models API Key: " CLOUD_RU_KEY
 echo ""
 read -rp "Контактная ссылка клиента (https://t.me/username): " CONTACT_LINK
 echo ""
@@ -105,9 +105,9 @@ python3 -m venv "$INSTALL_DIR/venv"
 
 echo -e "${YELLOW}[4/6] Создаю .env...${NC}"
 cat > "$INSTALL_DIR/web/.env" <<EOF
-OPENROUTER_API_KEY=$OPENROUTER_KEY
-MODEL=anthropic/claude-sonnet-4-6
-MAX_TOKENS=2000
+CLOUD_RU_API_KEY=$CLOUD_RU_KEY
+MODEL=ai-sage/GigaChat3.5-432B-A28B
+MAX_TOKENS=14000
 
 AGENT_NAME=$AGENT_NAME
 AGENT_INITIALS=$AGENT_INITIALS
