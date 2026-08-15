@@ -27,6 +27,8 @@ const statusDot  = document.getElementById('statusDot');
 const undoBtn    = document.getElementById('undoBtn');
 const resetBtn   = document.getElementById('resetBtn');
 const startBtn   = document.getElementById('startBtn');
+const progressBar     = document.getElementById('progressBar');
+const progressBarFill = document.getElementById('progressBarFill');
 const chatSection = document.getElementById('chatSection');
 const unlockModal = document.getElementById('unlockModal');
 const modalClose  = document.getElementById('modalClose');
@@ -50,6 +52,7 @@ resetBtn.addEventListener('click', async () => {
   if (!confirm('Начать диагностику заново?')) return;
   await fetch('/api/reset', { method: 'POST' });
   messagesEl.innerHTML = '';
+  updateProgress(0);
   isFinished = false;
   chatStarted = false;
   undoBtn.style.display = 'none';
@@ -126,6 +129,7 @@ async function startChat() {
       return;
     }
     const data = await res.json();
+    updateProgress(data.progress);
     renderAI(data.reply);
     if (!data.finished) enableInput();
     else handleFinish(data.contact_link);
@@ -170,6 +174,7 @@ async function sendMessage() {
     const data = await res.json();
     clearTimeout(typingTimer);
     hideTyping();
+    updateProgress(data.progress);
 
     if (data.finished) {
       renderReport(data.reply);
@@ -329,6 +334,17 @@ function setStatus(text) {
 
 function scrollToBottom() {
   messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function updateProgress(percent) {
+  if (!progressBar || !progressBarFill) return;
+  if (percent <= 0) {
+    progressBar.style.display = 'none';
+    progressBarFill.style.width = '0%';
+    return;
+  }
+  progressBar.style.display = 'block';
+  progressBarFill.style.width = `${percent}%`;
 }
 
 function showTyping(label) {
