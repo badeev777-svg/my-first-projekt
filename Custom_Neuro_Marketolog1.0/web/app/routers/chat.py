@@ -74,10 +74,8 @@ def _extract_score(report: str) -> dict | None:
 
     categories = []
     for name, score, max_score in _SCORE_ROW_RE.findall(section):
-        name = name.strip()
-        if name in ("Категория", "-----------"):
-            continue
-        categories.append({"name": name, "score": int(score), "max": int(max_score)})
+        # header/separator rows never match (regex requires digit columns), no filter needed
+        categories.append({"name": name.strip(), "score": int(score), "max": int(max_score)})
 
     if not categories:
         return None
