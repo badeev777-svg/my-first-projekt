@@ -107,6 +107,8 @@ async def run_turn(
     on_confirmation_timeout: OnConfirmationTimeout | None = None,
     on_session_id: OnSessionId | None = None,
     model: str = "sonnet",
+    effort: str | None = None,
+    max_budget_usd: float | None = None,
 ) -> str | None:
     """Runs exactly one query() turn against a project and returns the
     session_id to persist for the next call's resume=.
@@ -134,10 +136,15 @@ async def run_turn(
         can_use_tool=make_can_use_tool(
             confirmation_bridge, send_confirmation_prompt, on_confirmation_timeout
         ),
-        # Task (subagents) and NotebookEdit are irrelevant to this bot's
-        # one-shot code-edit turns and their tool schemas cost tokens on
-        # every call for no benefit here.
-        disallowed_tools=["Task", "NotebookEdit"],
+        # None of these are needed for this bot's one-shot code-edit turns
+        # from Telegram, and their tool schemas cost tokens on every single
+        # call for no benefit here: Task spawns subagents, NotebookEdit
+        # targets .ipynb files, WebSearch/WebFetch fetch external content,
+        # TodoWrite tracks multi-step plans across turns this bot doesn't
+        # keep visible to the user anyway.
+        disallowed_tools=["Task", "NotebookEdit", "WebSearch", "WebFetch", "TodoWrite"],
+        effort=effort,
+        max_budget_usd=max_budget_usd,
         # Never load on-disk .claude/settings*.json from the target project.
         # If unset, the SDK loads those files and skips can_use_tool entirely
         # for tool calls already permitted by a permissions.allow rule there
