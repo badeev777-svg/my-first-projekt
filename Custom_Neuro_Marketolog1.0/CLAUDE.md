@@ -22,7 +22,7 @@
 | Слой | Технология |
 |------|-----------|
 | Backend | FastAPI + uvicorn |
-| LLM | OpenRouter → claude-sonnet-4-6 |
+| LLM | cloud.ru Foundation Models → GigaChat3.5-432B-A28B |
 | Telegram | aiogram 3.x |
 | Frontend | Vanilla HTML/CSS/JS (тёмная тема, Inter font) |
 | Сессии | Cookie UUID, in-memory dict |
@@ -36,7 +36,7 @@
 ## Запуск (web)
 ```bash
 cd web
-cp .env.example .env  # вставить OPENROUTER_API_KEY
+cp .env.example .env  # вставить CLOUD_RU_API_KEY
 pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8001
 ```
@@ -44,7 +44,7 @@ uvicorn app.main:app --reload --port 8001
 ## Запуск (bot)
 ```bash
 cd bot
-cp .env.example .env  # BOT_TOKEN + OPENROUTER_API_KEY
+cp .env.example .env  # BOT_TOKEN + CLOUD_RU_API_KEY
 pip install -r requirements.txt
 python main.py
 ```

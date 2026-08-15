@@ -2,8 +2,9 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    OPENROUTER_API_KEY: str
-    MODEL: str = "anthropic/claude-sonnet-4-6"
+    CLOUD_RU_API_KEY: str
+    MODEL: str = "ai-sage/GigaChat3.5-432B-A28B"
+    CLOUD_RU_API_URL: str = "https://foundation-models.api.cloud.ru/v1/chat/completions"
     MAX_TOKENS: int = 14000
 
     # Branding — override in .env for white-label deployments
