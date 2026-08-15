@@ -13,6 +13,10 @@ REPORT_MARKER = "МАРКЕТИНГОВЫЙ_АНАЛИЗ_ЗАВЕРШЁН"
 PAID_SPLIT = "[PAID_START]"
 
 
+class LLMUnavailableError(Exception):
+    """Raised when the upstream LLM provider can't be reached (e.g. geo-block, outage)."""
+
+
 def _build_system_prompt() -> str:
     instructions = _INSTRUCTIONS.read_text(encoding="utf-8")
     blocks = []
@@ -82,7 +86,16 @@ class AgentStore:
             session.history.append({"role": "assistant", "content": reply})
             return reply
 
-        reply = await _call_llm(session.history)
+        try:
+            reply = await _call_llm(session.history)
+        except LLMUnavailableError:
+            session.msg_count -= 1
+            session.history.pop()
+            return (
+                "Сервис временно недоступен — уже разбираемся. "
+                f"Чтобы не терять время, напишите напрямую: {settings.CONTACT_LINK}"
+            )
+
         session.history.append({"role": "assistant", "content": reply})
 
         if REPORT_MARKER in reply:
@@ -112,22 +125,28 @@ store = AgentStore()
 
 
 async def _call_llm(messages: list[dict]) -> str:
-    async with httpx.AsyncClient(timeout=120) as client:
-        r = await client.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": settings.MODEL,
-                "messages": [
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    *messages,
-                ],
-                "max_tokens": settings.MAX_TOKENS,
-                "temperature": 0.7,
-            },
-        )
-        r.raise_for_status()
-        return r.json()["choices"][0]["message"]["content"]
+    try:
+        async with httpx.AsyncClient(timeout=120) as client:
+            r = await client.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": settings.MODEL,
+                    "messages": [
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        *messages,
+                    ],
+                    "max_tokens": settings.MAX_TOKENS,
+                    "temperature": 0.7,
+                },
+            )
+            r.raise_for_status()
+            data = r.json()
+            return data["choices"][0]["message"]["content"]
+    except (httpx.HTTPStatusError, httpx.RequestError) as e:
+        raise LLMUnavailableError(str(e)) from e
+    except (KeyError, IndexError, ValueError) as e:
+        raise LLMUnavailableError(f"unexpected LLM response shape: {e}") from e
