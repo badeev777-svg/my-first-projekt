@@ -61,6 +61,11 @@ class StateStore:
             )
             await db.commit()
 
+    async def delete_session_id(self, project: str) -> None:
+        async with aiosqlite.connect(self._db_path) as db:
+            await db.execute("DELETE FROM project_session WHERE project = ?", (project,))
+            await db.commit()
+
     async def add_dynamic_project(self, name: str, path: str) -> None:
         async with aiosqlite.connect(self._db_path) as db:
             await db.execute(

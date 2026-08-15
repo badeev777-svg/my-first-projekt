@@ -71,3 +71,27 @@ def test_projects_root_overridable_via_env(monkeypatch) -> None:
     settings = Settings(_env_file=None)
 
     assert settings.projects_root == "/srv/user-projects"
+
+
+def test_agent_effort_and_max_turn_budget_default_to_unset(monkeypatch) -> None:
+    monkeypatch.delenv("AGENT_EFFORT", raising=False)
+    monkeypatch.delenv("MAX_TURN_BUDGET_USD", raising=False)
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "t")
+    monkeypatch.setenv("ALLOWED_USER_ID", "42")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-test")
+    settings = Settings(_env_file=None)
+
+    assert settings.agent_effort is None
+    assert settings.max_turn_budget_usd is None
+
+
+def test_agent_effort_and_max_turn_budget_overridable_via_env(monkeypatch) -> None:
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "t")
+    monkeypatch.setenv("ALLOWED_USER_ID", "42")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-test")
+    monkeypatch.setenv("AGENT_EFFORT", "low")
+    monkeypatch.setenv("MAX_TURN_BUDGET_USD", "1.5")
+    settings = Settings(_env_file=None)
+
+    assert settings.agent_effort == "low"
+    assert settings.max_turn_budget_usd == 1.5
