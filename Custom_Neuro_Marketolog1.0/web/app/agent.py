@@ -55,6 +55,7 @@ class Session:
     report_text: str | None = None
     finished: bool = False
     msg_count: int = 0
+    turn_starts: list[int] = field(default_factory=list)
 
     def progress(self) -> int:
         if self.finished:
@@ -109,6 +110,7 @@ class AgentStore:
         if scripted_idx < len(_SCRIPTED_QUESTIONS):
             reply = f"**{_SCRIPTED_QUESTIONS[scripted_idx]}**"
             session.history.append({"role": "assistant", "content": reply})
+            session.turn_starts.append(history_len_before)
             return reply
 
         try:
@@ -122,6 +124,7 @@ class AgentStore:
             )
 
         session.history.append({"role": "assistant", "content": reply})
+        session.turn_starts.append(history_len_before)
 
         if REPORT_MARKER in reply:
             session.report_text = reply
@@ -131,10 +134,10 @@ class AgentStore:
 
     def undo(self, session_id: str) -> str | None:
         session = self.get_or_create(session_id)
-        if session.finished or len(session.history) < 4:
+        if session.finished or not session.turn_starts:
             return None
-        session.history.pop()
-        session.history.pop()
+        start = session.turn_starts.pop()
+        del session.history[start:]
         session.msg_count = max(0, session.msg_count - 1)
         return next(
             (m["content"] for m in reversed(session.history) if m["role"] == "assistant"),
