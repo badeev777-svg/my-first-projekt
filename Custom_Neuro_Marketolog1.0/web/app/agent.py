@@ -135,9 +135,9 @@ async def _call_llm(messages: list[dict]) -> str:
     try:
         async with httpx.AsyncClient(timeout=120) as client:
             r = await client.post(
-                "https://openrouter.ai/api/v1/chat/completions",
+                settings.CLOUD_RU_API_URL,
                 headers={
-                    "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
+                    "Authorization": f"Bearer {settings.CLOUD_RU_API_KEY}",
                     "Content-Type": "application/json",
                 },
                 json={
