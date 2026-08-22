@@ -167,6 +167,8 @@ async def on_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                     on_confirmation_timeout=on_confirmation_timeout,
                     on_session_id=on_session_id,
                     model=settings.model,
+                    effort=settings.agent_effort,
+                    max_budget_usd=settings.max_turn_budget_usd,
                 ),
                 timeout=settings.run_turn_timeout_seconds,
             )
