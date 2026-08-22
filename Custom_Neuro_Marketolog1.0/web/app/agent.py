@@ -12,6 +12,8 @@ _KNOWLEDGE_DIR = _BASE / "knowledge"
 REPORT_MARKER = "МАРКЕТИНГОВЫЙ_АНАЛИЗ_ЗАВЕРШЁН"
 PAID_SPLIT = "[PAID_START]"
 
+TOTAL_QUESTIONS = 12
+
 
 class LLMUnavailableError(Exception):
     """Raised when the upstream LLM provider can't be reached (e.g. geo-block, outage)."""
@@ -49,6 +51,11 @@ class Session:
     report_text: str | None = None
     finished: bool = False
     msg_count: int = 0
+
+    def progress(self) -> int:
+        if self.finished:
+            return 100
+        return min(95, round(self.msg_count / TOTAL_QUESTIONS * 100))
 
 
 class AgentStore:

@@ -27,6 +27,8 @@ const statusDot  = document.getElementById('statusDot');
 const undoBtn    = document.getElementById('undoBtn');
 const resetBtn   = document.getElementById('resetBtn');
 const startBtn   = document.getElementById('startBtn');
+const progressBar     = document.getElementById('progressBar');
+const progressBarFill = document.getElementById('progressBarFill');
 const chatSection = document.getElementById('chatSection');
 const unlockModal = document.getElementById('unlockModal');
 const modalClose  = document.getElementById('modalClose');
@@ -50,6 +52,7 @@ resetBtn.addEventListener('click', async () => {
   if (!confirm('Начать диагностику заново?')) return;
   await fetch('/api/reset', { method: 'POST' });
   messagesEl.innerHTML = '';
+  updateProgress(0);
   isFinished = false;
   chatStarted = false;
   undoBtn.style.display = 'none';
@@ -126,6 +129,7 @@ async function startChat() {
       return;
     }
     const data = await res.json();
+    updateProgress(data.progress);
     renderAI(data.reply);
     if (!data.finished) enableInput();
     else handleFinish(data.contact_link);
@@ -170,9 +174,10 @@ async function sendMessage() {
     const data = await res.json();
     clearTimeout(typingTimer);
     hideTyping();
+    updateProgress(data.progress);
 
     if (data.finished) {
-      renderReport(data.reply);
+      renderReport(data.reply, data.score);
       handleFinish(data.contact_link);
     } else {
       renderAI(data.reply);
@@ -214,7 +219,50 @@ function renderAI(text) {
   setStatus('Онлайн');
 }
 
-function renderReport(rawText) {
+function renderScoreWidget(score) {
+  const widget = document.createElement('div');
+  widget.className = 'score-widget';
+
+  const totalDiv = document.createElement('div');
+  totalDiv.className = 'score-widget__total';
+  const numSpan = document.createElement('span');
+  numSpan.className = 'score-widget__num';
+  numSpan.textContent = score.total;
+  const maxSpan = document.createElement('span');
+  maxSpan.className = 'score-widget__max';
+  maxSpan.textContent = '/100';
+  totalDiv.appendChild(numSpan);
+  totalDiv.appendChild(maxSpan);
+  widget.appendChild(totalDiv);
+
+  const barsDiv = document.createElement('div');
+  barsDiv.className = 'score-widget__bars';
+  score.categories.forEach(cat => {
+    const pct = Math.max(0, Math.min(100, Math.round((cat.score / cat.max) * 100) || 0));
+    const row = document.createElement('div');
+    row.className = 'score-bar';
+
+    const label = document.createElement('div');
+    label.className = 'score-bar__label';
+    label.textContent = cat.name;
+
+    const track = document.createElement('div');
+    track.className = 'score-bar__track';
+    const fill = document.createElement('div');
+    fill.className = 'score-bar__fill';
+    fill.style.width = `${pct}%`;
+    track.appendChild(fill);
+
+    row.appendChild(label);
+    row.appendChild(track);
+    barsDiv.appendChild(row);
+  });
+  widget.appendChild(barsDiv);
+
+  return widget;
+}
+
+function renderReport(rawText, score) {
   // Strip the completion marker
   const cleaned = rawText.replace(REPORT_MARKER, '').trim();
 
@@ -225,6 +273,10 @@ function renderReport(rawText) {
 
   const wrap = document.createElement('div');
   wrap.className = 'msg msg--ai msg--report';
+
+  if (score) {
+    wrap.appendChild(renderScoreWidget(score));
+  }
 
   // Free sections
   const freeDiv = document.createElement('div');
@@ -329,6 +381,17 @@ function setStatus(text) {
 
 function scrollToBottom() {
   messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function updateProgress(percent) {
+  if (!progressBar || !progressBarFill) return;
+  if (percent <= 0) {
+    progressBar.style.display = 'none';
+    progressBarFill.style.width = '0%';
+    return;
+  }
+  progressBar.style.display = 'block';
+  progressBarFill.style.width = `${percent}%`;
 }
 
 function showTyping(label) {
