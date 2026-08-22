@@ -43,6 +43,18 @@ class Settings(BaseSettings):
         "(via the 'новый проект' chat trigger) get their own subfolder.",
     )
     log_level: str = Field(default="INFO")
+    agent_effort: str | None = Field(
+        default=None,
+        description="Claude Agent SDK 'effort' level (low/medium/high/xhigh/max). "
+        "Left unset the SDK/CLI default applies. Lowering it trims reasoning "
+        "tokens on the quick one-shot edits typical of Telegram/phone usage.",
+    )
+    max_turn_budget_usd: float | None = Field(
+        default=None,
+        description="Hard USD ceiling per run_turn() call (SDK's max_budget_usd). "
+        "Left unset there is no cap, so a runaway turn (e.g. the agent looping "
+        "on tool calls) can run up an unbounded bill.",
+    )
 
 
 @lru_cache

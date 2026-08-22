@@ -39,8 +39,16 @@ data/sessions.db
 
 # Python venvs
 venv/
+.venv/
 web-venv/
 bot-venv/
 
 # Git worktrees (superpowers)
 Aleks/.worktrees/
+
+# graphify skill output
+graphify-out/
+
+# Claude memory exports (may contain personal data)
+claude-memory.zip
+claude-memory/

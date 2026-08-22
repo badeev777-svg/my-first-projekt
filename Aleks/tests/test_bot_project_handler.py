@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from app.bot.handlers.project import cmd_project, cmd_projects
+from app.bot.handlers.project import cmd_project, cmd_projects, cmd_reset
 from app.config import Settings
 from app.state import StateStore
 
@@ -109,3 +109,37 @@ async def test_cmd_project_switches_to_dynamic_project() -> None:
     await cmd_project(update, context)
 
     context.bot_data["state"].set_active_project.assert_awaited_once_with(42, "epoksidka")
+
+
+@pytest.mark.asyncio
+async def test_cmd_reset_clears_session_for_active_project() -> None:
+    update, context = _update(user_id=42)
+    context.bot_data["state"].get_active_project.return_value = "aleks"
+
+    await cmd_reset(update, context)
+
+    context.bot_data["state"].delete_session_id.assert_awaited_once_with("aleks")
+    text = update.message.reply_text.call_args.args[0]
+    assert "aleks" in text
+
+
+@pytest.mark.asyncio
+async def test_cmd_reset_prompts_to_pick_project_when_none_active() -> None:
+    update, context = _update(user_id=42)
+    context.bot_data["state"].get_active_project.return_value = None
+
+    await cmd_reset(update, context)
+
+    context.bot_data["state"].delete_session_id.assert_not_called()
+    text = update.message.reply_text.call_args.args[0]
+    assert "/projects" in text
+
+
+@pytest.mark.asyncio
+async def test_cmd_reset_ignores_unauthorized_user() -> None:
+    update, context = _update(user_id=999)
+
+    await cmd_reset(update, context)
+
+    update.message.reply_text.assert_not_called()
+    context.bot_data["state"].delete_session_id.assert_not_called()

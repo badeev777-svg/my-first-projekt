@@ -366,6 +366,25 @@ async def test_new_project_trigger_failure_replies_gracefully(monkeypatch, tmp_p
 
 
 @pytest.mark.asyncio
+async def test_run_turn_receives_effort_and_budget_from_settings(monkeypatch) -> None:
+    update, context, _ = _update_and_context()
+    context.bot_data["settings"].agent_effort = "low"
+    context.bot_data["settings"].max_turn_budget_usd = 1.5
+    captured_kwargs = {}
+
+    async def fake_run_turn(**kwargs):
+        captured_kwargs.update(kwargs)
+        return "session-xyz"
+
+    monkeypatch.setattr(chat_module, "run_turn", fake_run_turn)
+
+    await chat_module.on_text_message(update, context)
+
+    assert captured_kwargs["effort"] == "low"
+    assert captured_kwargs["max_budget_usd"] == 1.5
+
+
+@pytest.mark.asyncio
 async def test_non_trigger_message_uses_merged_project_path(monkeypatch) -> None:
     update, context, state = _update_and_context()
     state.list_all_projects.return_value = {"aleks": "/root/projects/Aleks"}

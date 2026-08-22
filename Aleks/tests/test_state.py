@@ -33,6 +33,27 @@ async def test_session_id_roundtrip(tmp_path) -> None:
 
 
 @pytest.mark.asyncio
+async def test_delete_session_id_clears_stored_session(tmp_path) -> None:
+    store = StateStore(str(tmp_path / "state.db"))
+    await store.init()
+    await store.set_session_id("aleks", "session-a")
+
+    await store.delete_session_id("aleks")
+
+    assert await store.get_session_id("aleks") is None
+
+
+@pytest.mark.asyncio
+async def test_delete_session_id_is_noop_when_no_session(tmp_path) -> None:
+    store = StateStore(str(tmp_path / "state.db"))
+    await store.init()
+
+    await store.delete_session_id("aleks")
+
+    assert await store.get_session_id("aleks") is None
+
+
+@pytest.mark.asyncio
 async def test_add_and_list_dynamic_project(tmp_path) -> None:
     store = StateStore(str(tmp_path / "state.db"))
     await store.init()

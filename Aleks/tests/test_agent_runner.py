@@ -431,6 +431,98 @@ async def test_risky_tool_timeout_returns_distinct_deny_message_and_notifies() -
 
 
 @pytest.mark.asyncio
+async def test_run_turn_disallows_tools_unused_by_one_shot_telegram_turns(monkeypatch) -> None:
+    """WebSearch/WebFetch/TodoWrite add tool-schema tokens to every single
+    turn but this bot never needs them for one-shot code edits from
+    Telegram -- disallowing them cuts per-turn token cost for no loss of
+    capability."""
+    fake_messages = _FakeMessages(
+        [
+            ResultMessage(
+                subtype="success",
+                duration_ms=100,
+                duration_api_ms=90,
+                is_error=False,
+                num_turns=1,
+                session_id="new-session-id",
+            ),
+        ]
+    )
+
+    captured_options = {}
+
+    def fake_query(*, prompt, options):
+        captured_options["options"] = options
+        return fake_messages
+
+    monkeypatch.setattr("app.agent_runner.query", fake_query)
+
+    async def on_text(text: str) -> None:
+        pass
+
+    async def send_confirmation_prompt(correlation_id, tool_name, tool_input) -> None:
+        raise AssertionError("no risky tool call expected in this test")
+
+    bridge = ConfirmationBridge(timeout_seconds=5)
+    await run_turn(
+        prompt="почини баг",
+        project_path="/root/projects/Aleks",
+        session_id=None,
+        confirmation_bridge=bridge,
+        send_confirmation_prompt=send_confirmation_prompt,
+        on_text=on_text,
+    )
+
+    disallowed = set(captured_options["options"].disallowed_tools)
+    assert {"Task", "NotebookEdit", "WebSearch", "WebFetch", "TodoWrite"} <= disallowed
+
+
+@pytest.mark.asyncio
+async def test_run_turn_passes_effort_and_budget_through(monkeypatch) -> None:
+    fake_messages = _FakeMessages(
+        [
+            ResultMessage(
+                subtype="success",
+                duration_ms=100,
+                duration_api_ms=90,
+                is_error=False,
+                num_turns=1,
+                session_id="new-session-id",
+            ),
+        ]
+    )
+
+    captured_options = {}
+
+    def fake_query(*, prompt, options):
+        captured_options["options"] = options
+        return fake_messages
+
+    monkeypatch.setattr("app.agent_runner.query", fake_query)
+
+    async def on_text(text: str) -> None:
+        pass
+
+    async def send_confirmation_prompt(correlation_id, tool_name, tool_input) -> None:
+        raise AssertionError("no risky tool call expected in this test")
+
+    bridge = ConfirmationBridge(timeout_seconds=5)
+    await run_turn(
+        prompt="почини баг",
+        project_path="/root/projects/Aleks",
+        session_id=None,
+        confirmation_bridge=bridge,
+        send_confirmation_prompt=send_confirmation_prompt,
+        on_text=on_text,
+        effort="low",
+        max_budget_usd=1.5,
+    )
+
+    assert captured_options["options"].effort == "low"
+    assert captured_options["options"].max_budget_usd == 1.5
+
+
+@pytest.mark.asyncio
 async def test_risky_tool_explicit_rejection_keeps_original_deny_message() -> None:
     bridge = ConfirmationBridge(timeout_seconds=5)
     notified = False
