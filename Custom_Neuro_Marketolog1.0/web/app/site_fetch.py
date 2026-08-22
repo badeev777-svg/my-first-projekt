@@ -106,7 +106,7 @@ async def _fetch_html(url: str) -> str | None:
     async with httpx.AsyncClient(timeout=settings.SITE_FETCH_TIMEOUT) as client:
         for _ in range(_MAX_REDIRECTS + 1):
             host = urlsplit(current).hostname
-            if not host or _is_private_host(host):
+            if not host or await asyncio.to_thread(_is_private_host, host):
                 return None
 
             async with client.stream("GET", current) as resp:
