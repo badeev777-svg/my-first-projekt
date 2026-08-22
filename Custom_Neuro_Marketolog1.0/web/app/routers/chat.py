@@ -58,6 +58,8 @@ def _extract_lead_info(report: str) -> tuple[str, str, str]:
 
 _SCORE_TOTAL_RE = re.compile(r"Общий балл:\s*(\d+)\s*/\s*100")
 _SCORE_ROW_RE = re.compile(r"\|\s*([^|\n]+?)\s*\|\s*(\d+)\s*\|\s*(\d+)\s*\|")
+_NEXT_HEADING_RE = re.compile(r"\n#{1,3} ")
+_MAX_CATEGORY_SCORE = 25
 
 
 def _extract_score(report: str) -> dict | None:
@@ -65,22 +67,30 @@ def _extract_score(report: str) -> dict | None:
     section_start = report.find("Скоринг зрелости маркетинга")
     if section_start == -1:
         return None
-    section_end = report.find("### 1.", section_start)
-    section = report[section_start: section_end if section_end != -1 else None]
+    # Bound the section by the next markdown heading (not a hardcoded "### 1."),
+    # since the LLM's heading text/numbering isn't guaranteed to match exactly —
+    # otherwise unrelated tables later in the report leak into the score.
+    heading_match = _NEXT_HEADING_RE.search(report, section_start + len("Скоринг зрелости маркетинга"))
+    section = report[section_start: heading_match.start() if heading_match else None]
 
     total_match = _SCORE_TOTAL_RE.search(section)
     if not total_match:
         return None
+    total = int(total_match.group(1))
+    if not (0 <= total <= 100):
+        return None
 
     categories = []
     for name, score, max_score in _SCORE_ROW_RE.findall(section):
-        # header/separator rows never match (regex requires digit columns), no filter needed
-        categories.append({"name": name.strip(), "score": int(score), "max": int(max_score)})
+        score, max_score = int(score), int(max_score)
+        if not (0 <= score <= max_score <= _MAX_CATEGORY_SCORE):
+            continue
+        categories.append({"name": name.strip(), "score": score, "max": max_score})
 
-    if not categories:
+    if len(categories) != 4:
         return None
 
-    return {"total": int(total_match.group(1)), "categories": categories}
+    return {"total": total, "categories": categories}
 
 
 class MessageIn(BaseModel):

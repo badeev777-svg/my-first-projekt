@@ -225,21 +225,36 @@ function renderScoreWidget(score) {
 
   const totalDiv = document.createElement('div');
   totalDiv.className = 'score-widget__total';
-  totalDiv.innerHTML = `
-    <span class="score-widget__num">${score.total}</span><span class="score-widget__max">/100</span>
-  `;
+  const numSpan = document.createElement('span');
+  numSpan.className = 'score-widget__num';
+  numSpan.textContent = score.total;
+  const maxSpan = document.createElement('span');
+  maxSpan.className = 'score-widget__max';
+  maxSpan.textContent = '/100';
+  totalDiv.appendChild(numSpan);
+  totalDiv.appendChild(maxSpan);
   widget.appendChild(totalDiv);
 
   const barsDiv = document.createElement('div');
   barsDiv.className = 'score-widget__bars';
   score.categories.forEach(cat => {
-    const pct = Math.round((cat.score / cat.max) * 100);
+    const pct = Math.max(0, Math.min(100, Math.round((cat.score / cat.max) * 100) || 0));
     const row = document.createElement('div');
     row.className = 'score-bar';
-    row.innerHTML = `
-      <div class="score-bar__label">${cat.name}</div>
-      <div class="score-bar__track"><div class="score-bar__fill" style="width:${pct}%"></div></div>
-    `;
+
+    const label = document.createElement('div');
+    label.className = 'score-bar__label';
+    label.textContent = cat.name;
+
+    const track = document.createElement('div');
+    track.className = 'score-bar__track';
+    const fill = document.createElement('div');
+    fill.className = 'score-bar__fill';
+    fill.style.width = `${pct}%`;
+    track.appendChild(fill);
+
+    row.appendChild(label);
+    row.appendChild(track);
     barsDiv.appendChild(row);
   });
   widget.appendChild(barsDiv);
