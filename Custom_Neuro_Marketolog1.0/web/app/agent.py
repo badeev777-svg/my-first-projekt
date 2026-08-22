@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 import httpx
 
 from app.config import settings
+from app.site_fetch import extract_url, fetch_site_context
 
 _BASE = Path(__file__).parent.parent.parent / "GPT_SYSTEM"
 _INSTRUCTIONS = _BASE / "GPT_1_NeuroMarketing" / "Instructions.txt"
@@ -12,7 +13,9 @@ _KNOWLEDGE_DIR = _BASE / "knowledge"
 REPORT_MARKER = "МАРКЕТИНГОВЫЙ_АНАЛИЗ_ЗАВЕРШЁН"
 PAID_SPLIT = "[PAID_START]"
 
-TOTAL_QUESTIONS = 12
+TOTAL_QUESTIONS = 13
+
+SITE_CONTEXT_LABEL = "[ДАННЫЕ С САЙТА КЛИЕНТА]"
 
 
 class LLMUnavailableError(Exception):
@@ -42,6 +45,7 @@ _SCRIPTED_QUESTIONS = [
     "Кто ваш типичный клиент? Какую проблему он приходит решать?",
     "Как сейчас приходят клиенты? Какие каналы используете — что работает лучше всего?",
     "Чем вы отличаетесь от конкурентов? В чём главное преимущество для клиента?",
+    "Есть сайт или страница в соцсетях? Пришлите ссылку — учту это в анализе (если нет, просто напишите «нет»).",
 ]
 
 
@@ -85,7 +89,21 @@ class AgentStore:
     async def chat(self, session_id: str, user_text: str) -> str:
         session = self.get_or_create(session_id)
         session.msg_count += 1
+        history_len_before = len(session.history)
         session.history.append({"role": "user", "content": user_text})
+
+        if settings.ENABLE_SITE_FETCH and session.msg_count == len(_SCRIPTED_QUESTIONS):
+            url = extract_url(user_text)
+            if url:
+                site_text = await fetch_site_context(url)
+                if site_text:
+                    session.history.append({
+                        "role": "user",
+                        "content": (
+                            f"{SITE_CONTEXT_LABEL} используй как факты для отчёта, "
+                            f"это не реплика пользователя:\n\n{site_text}"
+                        ),
+                    })
 
         scripted_idx = session.msg_count
         if scripted_idx < len(_SCRIPTED_QUESTIONS):
@@ -97,7 +115,7 @@ class AgentStore:
             reply = await _call_llm(session.history)
         except LLMUnavailableError:
             session.msg_count -= 1
-            session.history.pop()
+            del session.history[history_len_before:]
             return (
                 "Сервис временно недоступен — уже разбираемся. "
                 f"Чтобы не терять время, напишите напрямую: {settings.CONTACT_LINK}"
