@@ -56,6 +56,43 @@ def _extract_lead_info(report: str) -> tuple[str, str, str]:
     return business_name[:200], niche[:100], pain_points[:500]
 
 
+_SCORE_TOTAL_RE = re.compile(r"Общий балл:\s*(\d+)\s*/\s*100")
+_SCORE_ROW_RE = re.compile(r"\|\s*([^|\n]+?)\s*\|\s*(\d+)\s*\|\s*(\d+)\s*\|")
+_NEXT_HEADING_RE = re.compile(r"\n#{1,3} ")
+_MAX_CATEGORY_SCORE = 25
+
+
+def _extract_score(report: str) -> dict | None:
+    """Parse the '### 0. Скоринг зрелости маркетинга' section into {total, categories}."""
+    section_start = report.find("Скоринг зрелости маркетинга")
+    if section_start == -1:
+        return None
+    # Bound the section by the next markdown heading (not a hardcoded "### 1."),
+    # since the LLM's heading text/numbering isn't guaranteed to match exactly —
+    # otherwise unrelated tables later in the report leak into the score.
+    heading_match = _NEXT_HEADING_RE.search(report, section_start + len("Скоринг зрелости маркетинга"))
+    section = report[section_start: heading_match.start() if heading_match else None]
+
+    total_match = _SCORE_TOTAL_RE.search(section)
+    if not total_match:
+        return None
+    total = int(total_match.group(1))
+    if not (0 <= total <= 100):
+        return None
+
+    categories = []
+    for name, score, max_score in _SCORE_ROW_RE.findall(section):
+        score, max_score = int(score), int(max_score)
+        if not (0 <= score <= max_score <= _MAX_CATEGORY_SCORE):
+            continue
+        categories.append({"name": name.strip(), "score": score, "max": max_score})
+
+    if len(categories) != 4:
+        return None
+
+    return {"total": total, "categories": categories}
+
+
 class MessageIn(BaseModel):
     text: str
 
@@ -64,6 +101,8 @@ class MessageOut(BaseModel):
     reply: str
     finished: bool
     contact_link: str | None = None
+    progress: int = 0
+    score: dict | None = None
 
 
 class UnlockIn(BaseModel):
@@ -92,7 +131,12 @@ async def start_session(
     await db.create_session(session_id, ip, utm_source, utm_medium, utm_campaign)
 
     contact = settings.CONTACT_LINK if session.finished else None
-    return MessageOut(reply=reply, finished=session.finished, contact_link=contact)
+    return MessageOut(
+        reply=reply,
+        finished=session.finished,
+        contact_link=contact,
+        progress=session.progress(),
+    )
 
 
 @router.post("/chat", response_model=MessageOut)
@@ -116,7 +160,9 @@ async def chat(
     reply = await store.chat(session_id, clean)
     session = store.get_or_create(session_id)
 
+    score = None
     if session.finished and session.report_text:
+        score = _extract_score(session.report_text)
         business_name, niche, pain_points = _extract_lead_info(session.report_text)
         utm = await db.get_session_utm(session_id)
         lead_id = await db.save_lead(
@@ -141,7 +187,13 @@ async def chat(
         await db.update_msg_count(session_id, session.msg_count)
 
     contact = settings.CONTACT_LINK if session.finished else None
-    return MessageOut(reply=reply, finished=session.finished, contact_link=contact)
+    return MessageOut(
+        reply=reply,
+        finished=session.finished,
+        contact_link=contact,
+        progress=session.progress(),
+        score=score,
+    )
 
 
 @router.post("/undo", response_model=MessageOut)
