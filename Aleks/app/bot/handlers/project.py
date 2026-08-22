@@ -41,6 +41,24 @@ async def cmd_project(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     await update.message.reply_text(f"Активный проект: {project}")
 
 
+async def cmd_reset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    settings: Settings = context.bot_data["settings"]
+    if not is_authorized(update, settings.allowed_user_id):
+        return
+
+    state: StateStore = context.bot_data["state"]
+    project = await state.get_active_project(update.effective_user.id)
+    if project is None:
+        await update.message.reply_text("Сначала выбери проект: /projects")
+        return
+
+    await state.delete_session_id(project)
+    await update.message.reply_text(
+        f"Сессия для {project} сброшена. Следующее сообщение начнёт новый разговор."
+    )
+
+
 def register(app: Application) -> None:
     app.add_handler(CommandHandler("projects", cmd_projects))
     app.add_handler(CommandHandler("project", cmd_project))
+    app.add_handler(CommandHandler("reset", cmd_reset))
