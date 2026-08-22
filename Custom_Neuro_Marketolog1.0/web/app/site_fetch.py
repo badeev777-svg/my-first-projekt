@@ -1,12 +1,15 @@
+import asyncio
 import ipaddress
 import re
 import socket
 from html.parser import HTMLParser
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import urljoin, urlsplit, urlunsplit
 
 import httpx
 
 from app.config import settings
+
+_MAX_REDIRECTS = 3
 
 _URL_RE = re.compile(r"https?://\S+", re.IGNORECASE)
 _BARE_DOMAIN_RE = re.compile(
@@ -95,30 +98,33 @@ def _normalize_url(url: str) -> str | None:
     return urlunsplit(parts)
 
 
-async def fetch_site_context(url: str) -> str | None:
-    normalized = _normalize_url(url)
-    if not normalized:
-        return None
+async def _fetch_html(url: str) -> str | None:
+    """Fetch one URL, manually validating and walking redirects (no auto-follow) so every
+    hop — including ones an attacker-controlled site could redirect to — is SSRF-checked
+    before a connection is made to it."""
+    current = url
+    async with httpx.AsyncClient(timeout=settings.SITE_FETCH_TIMEOUT) as client:
+        for _ in range(_MAX_REDIRECTS + 1):
+            host = urlsplit(current).hostname
+            if not host or _is_private_host(host):
+                return None
 
-    host = urlsplit(normalized).hostname
-    if not host or _is_private_host(host):
-        return None
+            async with client.stream("GET", current) as resp:
+                if resp.is_redirect:
+                    location = resp.headers.get("location")
+                    if not location:
+                        return None
+                    current = urljoin(current, location)
+                    normalized = _normalize_url(current)
+                    if not normalized:
+                        return None
+                    current = normalized
+                    continue
 
-    try:
-        async with httpx.AsyncClient(
-            timeout=settings.SITE_FETCH_TIMEOUT,
-            follow_redirects=True,
-            max_redirects=3,
-        ) as client:
-            async with client.stream("GET", normalized) as resp:
                 if resp.status_code != 200:
                     return None
                 content_type = resp.headers.get("content-type", "")
                 if "text/html" not in content_type.lower():
-                    return None
-
-                redirect_host = urlsplit(str(resp.url)).hostname
-                if not redirect_host or _is_private_host(redirect_host):
                     return None
 
                 body = b""
@@ -126,8 +132,23 @@ async def fetch_site_context(url: str) -> str | None:
                     body += chunk
                     if len(body) > settings.SITE_FETCH_MAX_BYTES:
                         break
-                html = body[: settings.SITE_FETCH_MAX_BYTES].decode("utf-8", errors="ignore")
-    except (httpx.HTTPError, OSError):
+                return body[: settings.SITE_FETCH_MAX_BYTES].decode("utf-8", errors="ignore")
+        return None
+
+
+async def fetch_site_context(url: str) -> str | None:
+    normalized = _normalize_url(url)
+    if not normalized:
+        return None
+
+    try:
+        html = await asyncio.wait_for(
+            _fetch_html(normalized), timeout=settings.SITE_FETCH_TIMEOUT
+        )
+    except (httpx.HTTPError, OSError, asyncio.TimeoutError):
+        return None
+
+    if not html:
         return None
 
     text = html_to_text(html)
