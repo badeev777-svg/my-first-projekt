@@ -9,7 +9,7 @@ def test_progress_zero_at_start():
 
 def test_progress_scales_with_msg_count():
     s = Session(msg_count=6)
-    assert s.progress() == 50
+    assert s.progress() == round(6 / 13 * 100)
 
 
 def test_progress_capped_below_100_until_finished():

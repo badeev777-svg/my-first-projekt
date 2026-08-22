@@ -22,6 +22,12 @@ class Settings(BaseSettings):
     # Unlock tokens for paid report sections (comma-separated)
     UNLOCK_TOKENS: str = ""
 
+    # Auto-fetch client site during interview for "live data" context
+    ENABLE_SITE_FETCH: bool = True
+    SITE_FETCH_TIMEOUT: float = 6.0
+    SITE_FETCH_MAX_BYTES: int = 1_000_000
+    SITE_FETCH_MAX_CHARS: int = 4000
+
     # Telegram notifications
     TG_BOT_TOKEN: str = ""
     TG_CHAT_ID: str = ""
