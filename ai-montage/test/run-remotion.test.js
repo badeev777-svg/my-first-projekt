@@ -19,4 +19,8 @@ test('buildRenderCommand не включает shell и передаёт арг�
     '--props=brief.json; rm -rf /',
   ]);
   assert.ok(!options.shell, 'опции spawn не должны включать shell (иначе аргументы могут быть переинтерпретированы им)');
+  assert.ok(
+    options.maxBuffer > 1024 * 1024,
+    'maxBuffer должен быть увеличен сверх дефолтного 1MB, иначе долгий рендер с подробным stdout будет молча убит'
+  );
 });

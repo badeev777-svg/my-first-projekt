@@ -1,6 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const {ensureProjectExists} = require('./lib/project-paths');
+const {ensureProjectExists, assertSafeVersion} = require('./lib/project-paths');
 const {validateEditPlan} = require('./lib/validate-edit-plan');
 const {renderComposition} = require('./lib/run-remotion');
 
@@ -9,6 +9,7 @@ async function runRender(args) {
   if (!id || !version) {
     throw new Error('Использование: render --id <projectId> --version <v01>');
   }
+  assertSafeVersion(version);
   const dir = ensureProjectExists(id);
   const approvedPath = path.join(dir, 'brief', `${version}-approved.json`);
   if (!fs.existsSync(approvedPath)) {
@@ -23,6 +24,9 @@ async function runRender(args) {
   }
 
   const outPath = path.join(dir, 'renders', `${version}.mp4`);
+  if (fs.existsSync(outPath)) {
+    throw new Error(`Рендер версии ${version} уже существует: ${outPath}. Рендеры не перезаписываются — используйте новую версию брифа.`);
+  }
   const result = renderComposition([
     'remotion/src/index.jsx', 'EditPlan', outPath, `--props=${approvedPath}`,
   ]);

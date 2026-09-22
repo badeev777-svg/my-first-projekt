@@ -5,15 +5,20 @@ const {runDemo} = require('../scripts/demo');
 const {getProjectDir, getPublicProjectDir} = require('../scripts/lib/project-paths');
 
 test('полный demo-пайплайн собирает и проверяет итоговый MP4', {timeout: 600000}, async () => {
-  const dir = getProjectDir('demo-01');
-  const publicDir = getPublicProjectDir('demo-01');
-  if (fs.existsSync(dir)) fs.rmSync(dir, {recursive: true, force: true});
-  if (fs.existsSync(publicDir)) fs.rmSync(publicDir, {recursive: true, force: true});
+  const id = 'demo-test-' + Date.now();
+  const dir = getProjectDir(id);
+  const publicDir = getPublicProjectDir(id);
+  const realDemoDir = getProjectDir('demo-01');
+  const realDemoSnapshot = fs.existsSync(realDemoDir);
 
   try {
-    const result = await runDemo();
+    const result = await runDemo(id);
     assert.equal(result.passed, true);
     assert.ok(fs.existsSync(result.finalPath));
+    assert.equal(
+      fs.existsSync(realDemoDir), realDemoSnapshot,
+      'demo.test.js не должен трогать реальный проект demo-01'
+    );
   } finally {
     fs.rmSync(dir, {recursive: true, force: true});
     fs.rmSync(publicDir, {recursive: true, force: true});

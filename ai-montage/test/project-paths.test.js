@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const {createProjectDirs, ensureProjectExists, getProjectDir} = require('../scripts/lib/project-paths');
+const {createProjectDirs, ensureProjectExists, getProjectDir, assertSafeVersion} = require('../scripts/lib/project-paths');
 
 function makeTempRoot() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'ai-montage-test-'));
@@ -34,4 +34,12 @@ test('ensureProjectExists бросает понятную ошибку для н
 test('getProjectDir отказывает для id с попыткой выхода за пределы projects/', () => {
   const root = makeTempRoot();
   assert.throws(() => getProjectDir('../../secret', root), /Недопустимый id/);
+});
+
+test('assertSafeVersion отказывает для версии с попыткой выхода за пределы папки проекта', () => {
+  assert.throws(() => assertSafeVersion('../../secret'), /Недопустимая версия/);
+});
+
+test('assertSafeVersion пропускает обычные версии вида v01', () => {
+  assert.doesNotThrow(() => assertSafeVersion('v01'));
 });

@@ -14,6 +14,12 @@ function assertSafeId(id) {
   }
 }
 
+function assertSafeVersion(version) {
+  if (typeof version !== 'string' || !SAFE_ID_PATTERN.test(version)) {
+    throw new Error(`Недопустимая версия: "${version}". Разрешены только буквы, цифры, "-" и "_".`);
+  }
+}
+
 function getProjectDir(id, projectsRoot = PROJECTS_ROOT) {
   assertSafeId(id);
   return path.join(projectsRoot, id);
@@ -53,4 +59,5 @@ module.exports = {
   getPublicProjectDir,
   ensureProjectExists,
   createProjectDirs,
+  assertSafeVersion,
 };

@@ -3,14 +3,15 @@ const os = require('node:os');
 const path = require('node:path');
 const {spawnSync} = require('node:child_process');
 
-function makeFixtureVideo({duration = 1} = {}) {
+function makeFixtureVideo({duration = 1, withAudio = true} = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ai-montage-fixture-'));
   const file = path.join(dir, 'fixture.mp4');
-  const result = spawnSync('ffmpeg', [
-    '-y', '-f', 'lavfi', '-i', `testsrc=size=320x240:duration=${duration}:rate=25`,
-    '-f', 'lavfi', '-i', 'anullsrc=r=44100:cl=stereo',
-    '-shortest', '-t', String(duration), file,
-  ]);
+  const args = ['-y', '-f', 'lavfi', '-i', `testsrc=size=320x240:duration=${duration}:rate=25`];
+  if (withAudio) {
+    args.push('-f', 'lavfi', '-i', 'anullsrc=r=44100:cl=stereo');
+  }
+  args.push('-shortest', '-t', String(duration), file);
+  const result = spawnSync('ffmpeg', args);
   if (result.status !== 0) {
     throw new Error('Не удалось создать тестовое видео через ffmpeg: ' + result.stderr);
   }

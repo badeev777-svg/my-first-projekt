@@ -1,11 +1,23 @@
-import {AbsoluteFill, Video} from 'remotion';
+import {AbsoluteFill, Img, Video} from 'remotion';
 import {resolveMedia} from '../resolveMedia';
 import {THEME} from '../Theme';
 
+const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.webp', '.gif'];
+
+function isImage(fileName) {
+  const lower = String(fileName).toLowerCase();
+  return IMAGE_EXTENSIONS.some((ext) => lower.endsWith(ext));
+}
+
 export const BRollScene = ({projectId, media, title}) => {
+  const src = resolveMedia(projectId, media);
   return (
     <AbsoluteFill style={{backgroundColor: THEME.colors.background}}>
-      <Video src={resolveMedia(projectId, media)} muted style={{width: '100%', height: '100%', objectFit: 'cover'}} />
+      {isImage(media) ? (
+        <Img src={src} style={{width: '100%', height: '100%', objectFit: 'cover'}} />
+      ) : (
+        <Video src={src} muted style={{width: '100%', height: '100%', objectFit: 'cover'}} />
+      )}
       {title ? (
         <div
           style={{
