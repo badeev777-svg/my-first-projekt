@@ -87,6 +87,7 @@ class SpeakBuddyBot:
         self.application.add_handler(CommandHandler("voice", set_voice_mode))
         self.application.add_handler(CommandHandler("text", set_text_mode))
 
+        self.application.add_error_handler(self._error_handler)
         self.application.add_handler(CallbackQueryHandler(scenario_selected, pattern="^scenario_"))
         self.application.add_handler(MessageHandler(filters.VOICE, handle_voice_message))
         self.application.add_handler(
@@ -94,6 +95,11 @@ class SpeakBuddyBot:
         )
 
         return self.application
+
+    async def _error_handler(self, update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+        logger.error("Exception while handling update:", exc_info=context.error)
+        if isinstance(update, Update) and update.effective_message:
+            await update.effective_message.reply_text(f"❌ Ошибка: {context.error}")
 
     def run(self) -> None:
         """Start the bot with polling."""

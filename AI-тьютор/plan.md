@@ -81,13 +81,42 @@ python -m src.main               # Запустить бота
 
 ---
 
+## Переход на YandexGPT (2026-07-03)
+
+**Цель:** уйти от зарубежных сервисов (OpenRouter → YandexGPT)
+
+### Что сделано
+- [x] `src/config.py` — заменены `OPENROUTER_API_KEY` → `YANDEX_API_KEY` + `YANDEX_FOLDER_ID`
+- [x] `src/services/claude.py` — endpoint и авторизация переключены на YandexGPT (`Api-Key`)
+- [x] `.env.example` — обновлены переменные
+- [x] Оптимизация токенов — история обрезается до последних 8 сообщений (`MAX_HISTORY_MESSAGES = 8`)
+
+### Что нужно сделать
+- [ ] Зайти на [console.yandex.cloud](https://console.yandex.cloud)
+- [ ] Создать сервисный аккаунт → роль `ai.languageModels.user`
+- [ ] Создать API-ключ → скопировать в `.env` как `YANDEX_API_KEY`
+- [ ] Скопировать Folder ID → в `.env` как `YANDEX_FOLDER_ID`
+- [ ] Протестировать бота: `/new` → диалог
+
+### Настройки модели
+```
+# src/config.py
+LLM_MODEL: str = "yandexgpt-lite/latest"   # дешевле
+# или
+LLM_MODEL: str = "yandexgpt/latest"         # качество выше
+```
+
+---
+
 ## 📋 Следующие шаги
 
 - [ ] **Шаг 1** — Создать бота в BotFather
   - Читай: [CREATE_BOTS_GUIDE.md](CREATE_BOTS_GUIDE.md)
   - Сохрани токен в .env как TELEGRAM_TOKEN
 
-- [ ] **Шаг 2** — Запустить и протестировать
+- [ ] **Шаг 2** — Настроить YandexGPT (см. раздел выше)
+
+- [ ] **Шаг 3** — Запустить и протестировать
   - `python -m alembic upgrade head`
   - `python -m src.main`
   - Проверить: /start → выбор аудитории → тест уровня → сценарии
@@ -95,4 +124,4 @@ python -m src.main               # Запустить бота
 ---
 
 **Статус:** 🎉 АРХИТЕКТУРА ГОТОВА (готовимся к тестированию)  
-**Обновлено:** 2026-05-23
+**Обновлено:** 2026-07-03
