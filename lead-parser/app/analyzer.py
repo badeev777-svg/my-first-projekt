@@ -1,16 +1,13 @@
-"""Analyzes leads using Polza.ai API (Claude via OpenAI-compatible endpoint)."""
+"""Analyzes leads using GigaChat via cloud.ru Foundation Models (OpenAI-compatible API)."""
 import json
 import logging
 from typing import Optional
 
 import httpx
 
-from app.config import POLZA_API_KEY
+from app.config import GIGACHAT_API_KEY, GIGACHAT_API_URL, GIGACHAT_MODEL
 
 log = logging.getLogger(__name__)
-
-POLZA_URL = "https://polza.ai/api/v1/chat/completions"
-MODEL = "anthropic/claude-haiku-4.5"
 
 SYSTEM_PROMPT = """Ты эксперт в анализе фриланс-заявок для веб-разработчика.
 Анализируй заявку и возвращай структурированный JSON.
@@ -63,8 +60,8 @@ async def analyze_lead(
     budget: Optional[int],
     url: Optional[str] = None,
 ) -> dict:
-    if not POLZA_API_KEY:
-        log.warning("POLZA_API_KEY not set, skipping analysis")
+    if not GIGACHAT_API_KEY:
+        log.warning("GIGACHAT_API_KEY not set, skipping analysis")
         return {}
 
     prompt = ANALYSIS_PROMPT.format(
@@ -78,13 +75,13 @@ async def analyze_lead(
     try:
         async with httpx.AsyncClient(timeout=30) as client:
             resp = await client.post(
-                POLZA_URL,
+                GIGACHAT_API_URL,
                 headers={
-                    "Authorization": f"Bearer {POLZA_API_KEY}",
+                    "Authorization": f"Bearer {GIGACHAT_API_KEY}",
                     "Content-Type": "application/json",
                 },
                 json={
-                    "model": MODEL,
+                    "model": GIGACHAT_MODEL,
                     "max_tokens": 400,
                     "messages": [
                         {"role": "system", "content": SYSTEM_PROMPT},

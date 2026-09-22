@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m pytest tests/test_collector.py -q)",
+      "Bash(python -c \"import playwright\")",
+      "Bash(python -c ' *)",
+      "Bash(git check-ignore *)",
+      "Bash(python3 -c ' *)",
+      "Bash(python3 deploy.py)",
+      "Bash(rm test_out.txt)",
+      "Bash(python3 -c *)",
+      "PowerShell(Get-Process | Where-Object { $_.ProcessName -match \"python\" } | Select-Object Id, ProcessName, Path)",
+      "PowerShell(Get-CimInstance Win32_Process -Filter \"ProcessId=1084\")",
+      "PowerShell(\\(Get-CimInstance Win32_Process -Filter \"ProcessId=1084\"\\).CommandLine)",
+      "PowerShell(Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match \"main\\\\.py|uvicorn|lead-parser|lead_parser\" } | Select-Object ProcessId, Name, CommandLine)",
+      "Bash(./.venv/Scripts/python.exe -c ' *)",
+      "WebFetch(domain:dev.max.ru)"
+    ]
+  }
+}

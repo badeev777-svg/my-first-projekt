@@ -163,6 +163,67 @@
 
 ---
 
+## 🔄 Миграция AI-анализа: OpenRouter/Claude Haiku → GigaChat (cloud.ru) — 2026-07-31
+
+**Статус:** Код готов, требуется реальный API-ключ и тест на живых данных.
+
+**Причина:** уход от OpenRouter (риск WAF-блокировки с российских IP, как в других проектах) в сторону российского провайдера.
+
+**Что сделано:**
+- [app/analyzer.py](app/analyzer.py) — переписан на cloud.ru Foundation Models API (OpenAI-совместимый Bearer-запрос вместо OpenRouter)
+- [app/config.py](app/config.py) — `GIGACHAT_API_KEY`, `GIGACHAT_MODEL` (default `ai-sage/GigaChat3-10B-A1.8B`), `GIGACHAT_API_URL` (`https://foundation-models.api.cloud.ru/v1/chat/completions`)
+- [.env.example](.env.example) — обновлена инструкция получения ключа
+
+**Как получить ключ:** личный кабинет cloud.ru → Пользователи → Сервисные аккаунты → создать аккаунт → API-ключи → выбрать сервис Foundation Models → сохранить Key Secret (показывается один раз).
+
+**Сделано (2026-07-31):**
+- [x] Создан сервисный аккаунт `lead-parser-gigachat` в cloud.ru (роль `ml_inference_ai_marketplace.apikey-limit.user`, сервис Foundation Models)
+- [x] Получен и вписан `GIGACHAT_API_KEY` в локальный `.env`
+- [x] Пополнен баланс cloud.ru (грант "4000 Б" не покрывает Foundation Models — нужен реальный ₽-баланс)
+- [x] `analyze_lead()` протестирован на реальном лиде: корректный JSON, `relevance_score=85`, теги, кириллица в `summary` без искажений
+
+- [x] `GIGACHAT_API_KEY`/`GIGACHAT_MODEL` вписаны в `.env.local` на production-сервере (155.212.208.194), задеплоен обновлённый код через `deploy.py`, контейнер пересоздан
+- [x] Подтверждено по логам прод-сервера: лиды анализируются через GigaChat (`Analyzed lead #NNN, relevance=...`), ошибок нет
+
+**Статус: миграция завершена ✅ (2026-07-31)**
+
+---
+
+## 🔀 Перенос уведомлений Telegram → MAX (черновой план, 2026-08-11)
+
+**Статус:** Отложено, разбираться позже.
+
+**Причина:** переход на российский мессенджер MAX.
+
+**Что переносится:** только исходящие уведомления из [app/notifier.py](app/notifier.py) (Telegram Bot API → MAX Bot API).
+
+**Что НЕ переносится:** [app/scrapers/telegram_poller.py](app/scrapers/telegram_poller.py) — Telethon-парсинг Telegram-каналов остаётся как есть, это источник данных, физически привязанный к Telegram.
+
+**Найденные детали MAX Bot API (dev.max.ru):**
+1. **Регистрация бота:** @MasterBot в MAX → создать бота (ник оканчивается на `_bot`/`bot`, имя ≤16 символов) → токен из карточки настроек бота
+2. **Базовый URL:** `https://platform-api2.max.ru`
+3. **Отправка сообщения:** `POST /messages`
+4. **Авторизация:** заголовок `Authorization: <token>` (НЕ query-параметр, в отличие от Telegram)
+5. **Тело запроса:** `chat_id`/`user_id` (аналог `BOT_CHAT_ID`), `text`, `format: "html"` или `"markdown"` (аналог `parse_mode`)
+6. **Входящие/webhook:** `POST /subscriptions` (webhook) или `GET /updates` (long polling)
+
+**Открытые вопросы (уточнить перед реализацией):**
+- [ ] Как получить `chat_id`/`user_id` получателя в MAX (в Telegram — через `getUpdates`/`/start`) — в найденной документации явно не описано
+- [ ] Совпадение поддерживаемых HTML/Markdown тегов с Telegram (проверить `<a href>`, `<b>` и т.д.)
+- [ ] Решить: полная замена `BOT_TOKEN`/`BOT_CHAT_ID` или параллельная отправка в Telegram + MAX на переходный период
+
+**Задачи при реализации:**
+- [ ] Зарегистрировать бота через @MasterBot, получить токен
+- [ ] Добавить `MAX_BOT_TOKEN`, `MAX_CHAT_ID` в [app/config.py](app/config.py) и `.env`
+- [ ] Переписать/расширить `notify_new_lead()` в [app/notifier.py](app/notifier.py) под MAX API
+- [ ] Задеплоить, обновить `.env.local` на production-сервере
+
+**Источники:**
+- https://dev.max.ru/docs-api
+- https://dev.max.ru/docs/chatbots/bots-coding/js
+
+---
+
 ## 📝 Примечания
 
 - Система stable и ready for production
