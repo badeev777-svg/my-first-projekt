@@ -31,7 +31,11 @@ POLL_INTERVAL_MINUTES: int = int(os.getenv("POLL_INTERVAL_MINUTES") or "10")
 
 DEMO_MODE: bool = os.getenv("DEMO_MODE", "false").lower() == "true"
 
-POLZA_API_KEY = os.getenv("POLZA_API_KEY", "")
+GIGACHAT_API_KEY = os.getenv("GIGACHAT_API_KEY", "")
+GIGACHAT_MODEL = os.getenv("GIGACHAT_MODEL", "ai-sage/GigaChat3-10B-A1.8B")
+GIGACHAT_API_URL = os.getenv(
+    "GIGACHAT_API_URL", "https://foundation-models.api.cloud.ru/v1/chat/completions"
+)
 
 VK_TOKEN = os.getenv("VK_TOKEN", "")
 VK_GROUPS: list[str] = _list(

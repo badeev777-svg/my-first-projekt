@@ -115,3 +115,6 @@ data/
 
 # Screenshots
 screenshots/
+
+# Scratch debug output (may contain tokens/secrets from live logs)
+scratch_logs.txt
