@@ -8,6 +8,7 @@ from telegram.ext import Application
 from app.bot.handlers import chat as chat_handler
 from app.bot.handlers import confirm as confirm_handler
 from app.bot.handlers import project as project_handler
+from app.bot.handlers import skill_hunter as skill_hunter_handler
 from app.config import get_settings
 from app.confirmation import ConfirmationBridge
 from app.state import StateStore
@@ -76,6 +77,7 @@ def main() -> None:
     project_handler.register(app)
     confirm_handler.register(app)
     chat_handler.register(app)
+    skill_hunter_handler.register(app)
 
     log.info("Aleks agent bot is running. Press Ctrl+C to stop.")
     app.run_polling(allowed_updates=["message", "callback_query"])
