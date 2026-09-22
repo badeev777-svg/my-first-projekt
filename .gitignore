@@ -52,3 +52,7 @@ graphify-out/
 # Claude memory exports (may contain personal data)
 claude-memory.zip
 claude-memory/
+
+# Nested independent git repos (tracked in their own repo, not this one)
+/my-portfolio/
+/content-agent-bot/
