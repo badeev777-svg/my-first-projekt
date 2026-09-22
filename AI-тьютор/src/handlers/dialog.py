@@ -126,46 +126,52 @@ async def _reply(update: Update, user: User, response: str) -> None:
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
 
-    async with AsyncSessionLocal() as session:
-        user = await session.get(User, user_id)
-        if not user:
-            await update.message.reply_text("Please /start first!")
+    try:
+        async with AsyncSessionLocal() as session:
+            user = await session.get(User, user_id)
+            if not user:
+                await update.message.reply_text("Please /start first!")
+                return
+            response, error = await _process_message(session, user, update.message.text)
+
+        if error:
+            await update.message.reply_text(error)
             return
-        response, error = await _process_message(session, user, update.message.text)
 
-    if error:
-        await update.message.reply_text(error)
-        return
-
-    await _reply(update, user, response)
+        await _reply(update, user, response)
+    except Exception as e:
+        await update.message.reply_text(f"❌ Ошибка: {e}")
 
 
 async def handle_voice_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
 
-    voice_file = await context.bot.get_file(update.message.voice.file_id)
-    audio_bytes = await voice_file.download_as_bytearray()
-
     try:
-        user_text = await transcribe_audio(bytes(audio_bytes))
-    except Exception:
-        await update.message.reply_text("❌ Не удалось распознать голос. Попробуй ещё раз.")
-        return
+        voice_file = await context.bot.get_file(update.message.voice.file_id)
+        audio_bytes = await voice_file.download_as_bytearray()
 
-    await update.message.reply_text(f"🎤 _{user_text}_", parse_mode="Markdown")
-
-    async with AsyncSessionLocal() as session:
-        user = await session.get(User, user_id)
-        if not user:
-            await update.message.reply_text("Please /start first!")
+        try:
+            user_text = await transcribe_audio(bytes(audio_bytes))
+        except Exception:
+            await update.message.reply_text("❌ Не удалось распознать голос. Попробуй ещё раз.")
             return
-        response, error = await _process_message(session, user, user_text)
 
-    if error:
-        await update.message.reply_text(error)
-        return
+        await update.message.reply_text(f"🎤 _{user_text}_", parse_mode="Markdown")
 
-    await _reply(update, user, response)
+        async with AsyncSessionLocal() as session:
+            user = await session.get(User, user_id)
+            if not user:
+                await update.message.reply_text("Please /start first!")
+                return
+            response, error = await _process_message(session, user, user_text)
+
+        if error:
+            await update.message.reply_text(error)
+            return
+
+        await _reply(update, user, response)
+    except Exception as e:
+        await update.message.reply_text(f"❌ Ошибка: {e}")
 
 
 async def end_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
