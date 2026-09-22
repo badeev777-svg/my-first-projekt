@@ -15,10 +15,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.Image
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import com.example.calendar.R
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.calendar.domain.Task
@@ -36,19 +41,43 @@ fun MainScreen(
     val tasks by vm.tasks.collectAsStateWithLifecycle()
     val datesWithTasks by vm.datesWithTasks.collectAsStateWithLifecycle()
 
-    Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(onClick = { onAddTask(selectedDate) }) {
-                Icon(Icons.Default.Add, contentDescription = "Добавить")
-            }
-        }
-    ) { padding ->
-        Column(
+    Box(modifier = Modifier.fillMaxSize()) {
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .background(MaterialTheme.colorScheme.background)
-        ) {
+                .background(Color(0xFF050015))
+        )
+        Image(
+            painter = painterResource(R.drawable.rose),
+            contentDescription = null,
+            contentScale = ContentScale.Fit,
+            alignment = androidx.compose.ui.Alignment.BottomEnd,
+            modifier = Modifier
+                .fillMaxHeight(0.5f)
+                .align(androidx.compose.ui.Alignment.BottomEnd)
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(Color(0xDD050015), Color(0x99050015), Color(0x44000000))
+                    )
+                )
+        )
+        Scaffold(
+            containerColor = Color.Transparent,
+            floatingActionButton = {
+                FloatingActionButton(onClick = { onAddTask(selectedDate) }) {
+                    Icon(Icons.Default.Add, contentDescription = "Добавить")
+                }
+            }
+        ) { padding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+            ) {
             MonthHeader(
                 weekStart = weekStart,
                 onPrevious = vm::previousWeek,
@@ -65,6 +94,7 @@ fun MainScreen(
             HorizontalDivider(color = MaterialTheme.colorScheme.outline)
             TaskListHeader(date = selectedDate, count = tasks.size)
             TaskList(tasks = tasks, onToggle = vm::toggleDone, onDelete = vm::deleteTask)
+            }
         }
     }
 }

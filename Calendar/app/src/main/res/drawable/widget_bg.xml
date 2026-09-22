@@ -3,7 +3,7 @@
     <item>
         <bitmap
             android:src="@drawable/rose"
-            android:gravity="fill" />
+            android:gravity="fill_horizontal|center_vertical" />
     </item>
     <item>
         <shape>
