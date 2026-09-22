@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "EditPlan",
+  "type": "object",
+  "required": ["projectId", "fps", "width", "height", "audioTrack", "scenes"],
+  "additionalProperties": false,
+  "properties": {
+    "projectId": {"type": "string", "minLength": 1},
+    "fps": {"type": "integer", "minimum": 1, "maximum": 120},
+    "width": {"type": "integer", "minimum": 2},
+    "height": {"type": "integer", "minimum": 2},
+    "audioTrack": {"type": "string", "minLength": 1},
+    "scenes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/definitions/scene"}
+    }
+  },
+  "definitions": {
+    "scene": {
+      "type": "object",
+      "required": ["type", "start", "end", "audioMode"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {"type": "string", "enum": ["speaker", "title-card", "b-roll"]},
+        "start": {"type": "number", "minimum": 0},
+        "end": {"type": "number", "minimum": 0},
+        "audioMode": {"type": "string", "enum": ["sync", "mute"]},
+        "title": {"type": "string"},
+        "subtitle": {"type": "string"},
+        "media": {"type": "string"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"type": {"const": "title-card"}}},
+          "then": {"required": ["title"]}
+        },
+        {
+          "if": {"properties": {"type": {"const": "b-roll"}}},
+          "then": {"required": ["media"]}
+        }
+      ]
+    }
+  }
+}
