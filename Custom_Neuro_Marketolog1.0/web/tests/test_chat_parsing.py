@@ -1,4 +1,4 @@
-from app.agent import Session
+from app.agent import AgentStore, Session
 from app.routers.chat import _extract_score
 
 
@@ -9,7 +9,7 @@ def test_progress_zero_at_start():
 
 def test_progress_scales_with_msg_count():
     s = Session(msg_count=6)
-    assert s.progress() == 50
+    assert s.progress() == round(6 / 13 * 100)
 
 
 def test_progress_capped_below_100_until_finished():
@@ -130,3 +130,59 @@ def test_extract_score_rejects_when_category_count_is_not_four():
 | Целевая аудитория и каналы | 18 | 25 |
 """
     assert _extract_score(report) is None
+
+
+def test_undo_reverts_normal_two_message_turn():
+    store = AgentStore()
+    session = store.get_or_create("s1")
+    session.history = [
+        {"role": "assistant", "content": "Q1"},
+        {"role": "user", "content": "A1"},
+        {"role": "assistant", "content": "Q2"},
+    ]
+    session.turn_starts = [1]
+    session.msg_count = 1
+
+    result = store.undo("s1")
+
+    assert result == "Q1"
+    assert session.history == [{"role": "assistant", "content": "Q1"}]
+    assert session.msg_count == 0
+    assert session.turn_starts == []
+
+
+def test_undo_reverts_three_message_site_fetch_turn():
+    store = AgentStore()
+    session = store.get_or_create("s1")
+    session.history = [
+        {"role": "assistant", "content": "Q1"},
+        {"role": "user", "content": "A1 с сайтом"},
+        {"role": "user", "content": "[ДАННЫЕ С САЙТА КЛИЕНТА] текст с сайта"},
+        {"role": "assistant", "content": "Q2"},
+    ]
+    session.turn_starts = [1]
+    session.msg_count = 1
+
+    result = store.undo("s1")
+
+    assert result == "Q1"
+    assert session.history == [{"role": "assistant", "content": "Q1"}]
+    assert session.msg_count == 0
+    assert session.turn_starts == []
+
+
+def test_undo_returns_none_when_finished():
+    store = AgentStore()
+    session = store.get_or_create("s1")
+    session.history = [{"role": "assistant", "content": "Q1"}]
+    session.turn_starts = [0]
+    session.finished = True
+
+    assert store.undo("s1") is None
+
+
+def test_undo_returns_none_when_no_turns_recorded():
+    store = AgentStore()
+    store.get_or_create("s1")
+
+    assert store.undo("s1") is None
