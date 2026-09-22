@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const {createProjectDirs, ensureProjectExists} = require('../scripts/lib/project-paths');
+const {createProjectDirs, ensureProjectExists, getProjectDir} = require('../scripts/lib/project-paths');
 
 function makeTempRoot() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'ai-montage-test-'));
@@ -29,4 +29,9 @@ test('createProjectDirs отказывает, если проект уже су�
 test('ensureProjectExists бросает понятную ошибку для несуществующего проекта', () => {
   const root = makeTempRoot();
   assert.throws(() => ensureProjectExists('no-such-project', root), /не найден/);
+});
+
+test('getProjectDir отказывает для id с попыткой выхода за пределы projects/', () => {
+  const root = makeTempRoot();
+  assert.throws(() => getProjectDir('../../secret', root), /Недопустимый id/);
 });
