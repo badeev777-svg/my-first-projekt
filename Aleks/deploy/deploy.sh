@@ -16,6 +16,7 @@ TARBALL="/tmp/aleks-agent-deploy.tar.gz"
 echo "==> Packing local tree"
 tar --exclude='.venv' --exclude='.git' --exclude='__pycache__' \
     --exclude='.pytest_cache' --exclude='.env' --exclude='state.db' \
+    --exclude='skill_hunter_history.json*' \
     -czf "$TARBALL" .
 
 echo "==> Uploading and extracting on $REMOTE_HOST"
@@ -31,5 +32,8 @@ ssh "$REMOTE_HOST" "cd $REMOTE_DIR && .venv/bin/python -m pytest -q"
 
 echo "==> Restarting aleks-agent service"
 ssh "$REMOTE_HOST" "systemctl restart aleks-agent && sleep 1 && systemctl status aleks-agent --no-pager -l | head -10"
+
+echo "==> Installing/enabling skill-hunter timer"
+ssh "$REMOTE_HOST" "cp $REMOTE_DIR/deploy/skill-hunter.service $REMOTE_DIR/deploy/skill-hunter.timer /etc/systemd/system/ && systemctl daemon-reload && systemctl enable --now skill-hunter.timer"
 
 echo "==> Done"

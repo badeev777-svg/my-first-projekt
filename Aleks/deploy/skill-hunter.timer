@@ -1,0 +1,10 @@
+# deploy/skill-hunter.timer
+[Unit]
+Description=Weekly trigger for Aleks skill hunter
+
+[Timer]
+OnCalendar=Mon 09:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

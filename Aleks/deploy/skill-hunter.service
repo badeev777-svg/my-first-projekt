@@ -1,0 +1,12 @@
+# deploy/skill-hunter.service
+[Unit]
+Description=Aleks skill hunter (one-shot weekly skill search)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/root/projects/Aleks
+EnvironmentFile=/root/projects/Aleks/.env
+ExecStart=/root/projects/Aleks/.venv/bin/python -m app.skill_hunter
