@@ -2,12 +2,13 @@ import asyncio
 
 from telegram import Bot
 
-from app.config import get_settings
+from app.config import configure_anthropic_env, get_settings
 from app.skill_hunter.hunter import run
 
 
 async def _main() -> None:
     settings = get_settings()
+    configure_anthropic_env(settings)
     bot = Bot(token=settings.telegram_bot_token)
 
     async def send_message(text: str) -> None:

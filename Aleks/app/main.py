@@ -9,7 +9,7 @@ from app.bot.handlers import chat as chat_handler
 from app.bot.handlers import confirm as confirm_handler
 from app.bot.handlers import project as project_handler
 from app.bot.handlers import skill_hunter as skill_hunter_handler
-from app.config import get_settings
+from app.config import configure_anthropic_env, get_settings
 from app.confirmation import ConfirmationBridge
 from app.state import StateStore
 
@@ -52,15 +52,7 @@ def main() -> None:
     setup_logging(settings.log_level)
     log = logging.getLogger(__name__)
 
-    # claude_agent_sdk reads ANTHROPIC_API_KEY / ANTHROPIC_BASE_URL / ANTHROPIC_AUTH_TOKEN
-    # from the process environment. When a proxy (e.g. Polza.ai) is configured via
-    # anthropic_base_url, ANTHROPIC_API_KEY must be blanked or the CLI tries direct Anthropic.
-    if settings.anthropic_base_url:
-        os.environ.setdefault("ANTHROPIC_BASE_URL", settings.anthropic_base_url)
-        os.environ.setdefault("ANTHROPIC_AUTH_TOKEN", settings.anthropic_auth_token)
-        os.environ["ANTHROPIC_API_KEY"] = ""
-    else:
-        os.environ.setdefault("ANTHROPIC_API_KEY", settings.anthropic_api_key)
+    configure_anthropic_env(settings)
 
     state = StateStore(settings.db_path)
     confirmation_bridge = ConfirmationBridge(timeout_seconds=settings.confirmation_timeout_seconds)

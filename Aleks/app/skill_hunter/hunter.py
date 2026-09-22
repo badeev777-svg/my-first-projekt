@@ -39,5 +39,9 @@ async def run(
         if not fresh:
             continue
 
-        await send_message(_format_message(niche, fresh))
-        await asyncio.to_thread(history.record, history_path, niche, fresh, now_iso)
+        try:
+            await send_message(_format_message(niche, fresh))
+            await asyncio.to_thread(history.record, history_path, niche, fresh, now_iso)
+        except Exception:
+            log.exception("skill_hunter: failed to deliver/record digest for niche=%s", niche)
+            continue
