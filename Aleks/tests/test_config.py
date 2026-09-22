@@ -95,3 +95,41 @@ def test_agent_effort_and_max_turn_budget_overridable_via_env(monkeypatch) -> No
 
     assert settings.agent_effort == "low"
     assert settings.max_turn_budget_usd == 1.5
+
+
+def test_skill_hunter_settings_default_to_empty_niches_and_owner_chat(monkeypatch) -> None:
+    monkeypatch.delenv("SKILL_HUNTER_NICHES", raising=False)
+    monkeypatch.delenv("SKILL_HUNTER_CHAT_ID", raising=False)
+    monkeypatch.delenv("SKILL_HUNTER_HISTORY_PATH", raising=False)
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "t")
+    monkeypatch.setenv("ALLOWED_USER_ID", "42")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-test")
+
+    settings = Settings(_env_file=None)
+
+    assert settings.skill_hunter_niches == []
+    assert settings.skill_hunter_chat_id == 42
+    assert settings.skill_hunter_history_path == "skill_hunter_history.json"
+
+
+def test_skill_hunter_niches_parsed_from_json_env(monkeypatch) -> None:
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "t")
+    monkeypatch.setenv("ALLOWED_USER_ID", "42")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-test")
+    monkeypatch.setenv("SKILL_HUNTER_NICHES", '["Python/FastAPI", "Telegram-боты"]')
+
+    settings = Settings(_env_file=None)
+
+    assert settings.skill_hunter_niches == ["Python/FastAPI", "Telegram-боты"]
+
+
+def test_skill_hunter_chat_id_overridable_independent_of_allowed_user(monkeypatch) -> None:
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "t")
+    monkeypatch.setenv("ALLOWED_USER_ID", "42")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-test")
+    monkeypatch.setenv("SKILL_HUNTER_CHAT_ID", "999")
+
+    settings = Settings(_env_file=None)
+
+    assert settings.skill_hunter_chat_id == 999
+    assert settings.allowed_user_id == 42

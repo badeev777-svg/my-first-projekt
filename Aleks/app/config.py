@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -55,6 +55,23 @@ class Settings(BaseSettings):
         "Left unset there is no cap, so a runaway turn (e.g. the agent looping "
         "on tool calls) can run up an unbounded bill.",
     )
+    skill_hunter_niches: list[str] = Field(
+        default_factory=list,
+        description="Fixed list of niches/topics Skill Hunter searches for new "
+        "Claude skills, e.g. [\"Python/FastAPI\", \"Telegram-боты\"].",
+    )
+    skill_hunter_chat_id: int | None = Field(
+        default=None,
+        description="Telegram chat id Skill Hunter sends digests to. Defaults "
+        "to allowed_user_id when unset.",
+    )
+    skill_hunter_history_path: str = Field(default="skill_hunter_history.json")
+
+    @model_validator(mode="after")
+    def _default_skill_hunter_chat_id(self) -> "Settings":
+        if self.skill_hunter_chat_id is None:
+            self.skill_hunter_chat_id = self.allowed_user_id
+        return self
 
 
 @lru_cache
