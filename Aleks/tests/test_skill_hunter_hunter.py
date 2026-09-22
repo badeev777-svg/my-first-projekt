@@ -72,6 +72,30 @@ async def test_run_continues_after_one_niche_search_fails(tmp_path) -> None:
 
 
 @pytest.mark.asyncio
+async def test_run_continues_after_one_niche_send_message_fails(tmp_path) -> None:
+    history_path = str(tmp_path / "history.json")
+    sent: list[str] = []
+
+    async def send_message(text: str) -> None:
+        if "niche-a" in text:
+            raise RuntimeError("telegram delivery failed")
+        sent.append(text)
+
+    async def fake_find_candidates(niche: str) -> list[SkillCandidate]:
+        return [_candidate(f"https://github.com/x/{niche}")]
+
+    await run(
+        ["niche-a", "niche-b"],
+        history_path,
+        send_message,
+        find_candidates_fn=fake_find_candidates,
+    )
+
+    assert len(sent) == 1
+    assert "niche-b" in sent[0]
+
+
+@pytest.mark.asyncio
 async def test_run_does_not_resend_same_skill_on_second_call(tmp_path) -> None:
     history_path = str(tmp_path / "history.json")
     sent: list[str] = []

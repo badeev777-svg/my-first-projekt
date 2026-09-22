@@ -1,7 +1,9 @@
+import os
+
 import pytest
 from pydantic import ValidationError
 
-from app.config import Settings
+from app.config import Settings, configure_anthropic_env
 
 
 def test_settings_parses_projects_mapping_from_env(monkeypatch) -> None:
@@ -133,3 +135,40 @@ def test_skill_hunter_chat_id_overridable_independent_of_allowed_user(monkeypatc
 
     assert settings.skill_hunter_chat_id == 999
     assert settings.allowed_user_id == 42
+
+
+def test_configure_anthropic_env_blanks_api_key_when_proxy_base_url_set(monkeypatch) -> None:
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("ANTHROPIC_BASE_URL", raising=False)
+    monkeypatch.delenv("ANTHROPIC_AUTH_TOKEN", raising=False)
+    settings = Settings(
+        _env_file=None,
+        telegram_bot_token="t",
+        allowed_user_id=42,
+        anthropic_api_key="sk-ant-direct",
+        anthropic_base_url="https://proxy.polza.ai",
+        anthropic_auth_token="proxy-token",
+    )
+
+    configure_anthropic_env(settings)
+
+    assert os.environ["ANTHROPIC_BASE_URL"] == "https://proxy.polza.ai"
+    assert os.environ["ANTHROPIC_AUTH_TOKEN"] == "proxy-token"
+    assert os.environ["ANTHROPIC_API_KEY"] == ""
+
+
+def test_configure_anthropic_env_uses_direct_key_when_no_proxy(monkeypatch) -> None:
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("ANTHROPIC_BASE_URL", raising=False)
+    settings = Settings(
+        _env_file=None,
+        telegram_bot_token="t",
+        allowed_user_id=42,
+        anthropic_api_key="sk-ant-direct",
+        anthropic_base_url="",
+        anthropic_auth_token="",
+    )
+
+    configure_anthropic_env(settings)
+
+    assert os.environ["ANTHROPIC_API_KEY"] == "sk-ant-direct"

@@ -1,3 +1,4 @@
+import os
 from functools import lru_cache
 
 from pydantic import Field, model_validator
@@ -77,3 +78,19 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+
+
+def configure_anthropic_env(settings: Settings) -> None:
+    """Point claude_agent_sdk at a proxy (e.g. Polza.ai) or direct billing.
+
+    claude_agent_sdk reads ANTHROPIC_API_KEY / ANTHROPIC_BASE_URL /
+    ANTHROPIC_AUTH_TOKEN from the process environment. When a proxy is
+    configured via anthropic_base_url, ANTHROPIC_API_KEY must be blanked
+    or the CLI tries direct Anthropic instead of the proxy.
+    """
+    if settings.anthropic_base_url:
+        os.environ.setdefault("ANTHROPIC_BASE_URL", settings.anthropic_base_url)
+        os.environ.setdefault("ANTHROPIC_AUTH_TOKEN", settings.anthropic_auth_token)
+        os.environ["ANTHROPIC_API_KEY"] = ""
+    else:
+        os.environ.setdefault("ANTHROPIC_API_KEY", settings.anthropic_api_key)

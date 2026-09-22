@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 
@@ -6,6 +7,8 @@ from claude_agent_sdk import AssistantMessage, ClaudeAgentOptions, TextBlock, qu
 from app.skill_hunter.models import SkillCandidate
 
 log = logging.getLogger(__name__)
+
+DEFAULT_TIMEOUT_SECONDS = 180.0
 
 _SYSTEM_PROMPT = (
     "You are a research assistant hunting for Claude Code skills (SKILL.md-based "
@@ -17,7 +20,19 @@ _SYSTEM_PROMPT = (
 )
 
 
-async def find_candidates(niche: str, *, model: str = "sonnet") -> list[SkillCandidate]:
+async def _collect_text(niche: str, options: ClaudeAgentOptions) -> list[str]:
+    text_parts: list[str] = []
+    async for message in query(prompt=niche, options=options):
+        if isinstance(message, AssistantMessage):
+            for block in message.content:
+                if isinstance(block, TextBlock):
+                    text_parts.append(block.text)
+    return text_parts
+
+
+async def find_candidates(
+    niche: str, *, model: str = "sonnet", timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS
+) -> list[SkillCandidate]:
     options = ClaudeAgentOptions(
         system_prompt=_SYSTEM_PROMPT,
         model=model,
@@ -25,13 +40,13 @@ async def find_candidates(niche: str, *, model: str = "sonnet") -> list[SkillCan
         setting_sources=[],
     )
 
-    text_parts: list[str] = []
     try:
-        async for message in query(prompt=niche, options=options):
-            if isinstance(message, AssistantMessage):
-                for block in message.content:
-                    if isinstance(block, TextBlock):
-                        text_parts.append(block.text)
+        text_parts = await asyncio.wait_for(
+            _collect_text(niche, options), timeout=timeout_seconds
+        )
+    except TimeoutError:
+        log.warning("skill_hunter: search timed out for niche=%s", niche)
+        return []
     except Exception:
         log.exception("skill_hunter: search failed for niche=%s", niche)
         return []

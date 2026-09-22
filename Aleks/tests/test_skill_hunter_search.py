@@ -59,6 +59,27 @@ async def test_find_candidates_returns_empty_list_on_non_json_response(monkeypat
 
 
 @pytest.mark.asyncio
+async def test_find_candidates_returns_empty_list_on_timeout(monkeypatch) -> None:
+    import asyncio
+
+    class _HangingMessages:
+        def __aiter__(self):
+            return self._gen()
+
+        async def _gen(self):
+            await asyncio.sleep(10)
+            yield AssistantMessage(content=[TextBlock(text="[]")], model="claude")
+
+    monkeypatch.setattr(
+        "app.skill_hunter.search.query", lambda *, prompt, options: _HangingMessages()
+    )
+
+    candidates = await find_candidates("Python/FastAPI", timeout_seconds=0.05)
+
+    assert candidates == []
+
+
+@pytest.mark.asyncio
 async def test_find_candidates_returns_empty_list_when_query_raises(monkeypatch) -> None:
     def fake_query(*, prompt, options):
         raise RuntimeError("network unavailable")
