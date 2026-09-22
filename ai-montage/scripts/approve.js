@@ -1,6 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const {ensureProjectExists} = require('./lib/project-paths');
+const {ensureProjectExists, assertSafeVersion} = require('./lib/project-paths');
 const {validateEditPlan} = require('./lib/validate-edit-plan');
 
 async function runApprove(args) {
@@ -8,6 +8,7 @@ async function runApprove(args) {
   if (!id || !version) {
     throw new Error('Использование: approve --id <projectId> --version <v01>');
   }
+  assertSafeVersion(version);
   const dir = ensureProjectExists(id);
   const briefPath = path.join(dir, 'brief', `${version}.json`);
   if (!fs.existsSync(briefPath)) {

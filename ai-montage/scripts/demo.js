@@ -26,7 +26,7 @@ function makeDemoSourceVideo() {
   return file;
 }
 
-async function runDemo() {
+async function runDemo(id = DEMO_ID) {
   console.log('=== ai-montage: сборка нейтрального demo ===');
 
   const env = await runCheckEnv();
@@ -34,18 +34,18 @@ async function runDemo() {
     throw new Error('Сначала установите недостающие инструменты (см. вывод check-env выше).');
   }
 
-  const dir = getProjectDir(DEMO_ID);
+  const dir = getProjectDir(id);
   if (fs.existsSync(dir)) {
-    throw new Error(`Проект "${DEMO_ID}" уже существует: ${dir}. Удалите папку вручную, чтобы пересобрать demo.`);
+    throw new Error(`Проект "${id}" уже существует: ${dir}. Удалите папку вручную, чтобы пересобрать demo.`);
   }
 
   const source = makeDemoSourceVideo();
-  await runNewProject({id: DEMO_ID, input: source});
-  await runTranscribe({id: DEMO_ID});
+  await runNewProject({id, input: source});
+  await runTranscribe({id});
 
   const briefPath = path.join(dir, 'brief', 'v01.json');
   const plan = {
-    projectId: DEMO_ID,
+    projectId: id,
     fps: 30,
     width: 1080,
     height: 1920,
@@ -58,9 +58,9 @@ async function runDemo() {
   };
   fs.writeFileSync(briefPath, JSON.stringify(plan, null, 2));
 
-  await runApprove({id: DEMO_ID, version: 'v01'});
-  await runRender({id: DEMO_ID, version: 'v01'});
-  const qaResult = await runQa({id: DEMO_ID, version: 'v01'});
+  await runApprove({id, version: 'v01'});
+  await runRender({id, version: 'v01'});
+  const qaResult = await runQa({id, version: 'v01'});
 
   if (!qaResult.passed) {
     throw new Error('Demo не прошло QA: ' + qaResult.problems.join('; '));
