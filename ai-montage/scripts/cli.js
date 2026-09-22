@@ -45,7 +45,10 @@ async function main() {
   }
   const args = parseArgs(rest);
   const fn = loader();
-  await fn(args);
+  const result = await fn(args);
+  if (result && result.passed === false) {
+    process.exitCode = 1;
+  }
 }
 
 if (require.main === module) {

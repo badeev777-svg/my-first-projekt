@@ -1,10 +1,8 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const {spawnSync} = require('node:child_process');
 const {ensureProjectExists} = require('./lib/project-paths');
 const {validateEditPlan} = require('./lib/validate-edit-plan');
-
-const REPO_ROOT = path.join(__dirname, '..');
+const {renderComposition} = require('./lib/run-remotion');
 
 async function runPreview(args) {
   const {id, brief} = args;
@@ -21,11 +19,9 @@ async function runPreview(args) {
   const briefName = path.basename(brief, '.json');
   const outPath = path.join(dir, 'previews', `${briefName}-preview.mp4`);
 
-  const result = spawnSync(
-    'npx',
-    ['remotion', 'render', 'remotion/src/index.jsx', 'EditPlan', outPath, `--props=${brief}`, '--scale=0.5'],
-    {cwd: REPO_ROOT, encoding: 'utf8', shell: true}
-  );
+  const result = renderComposition([
+    'remotion/src/index.jsx', 'EditPlan', outPath, `--props=${brief}`, '--scale=0.5',
+  ]);
   if (result.status !== 0) {
     throw new Error(`Ошибка Remotion при сборке preview: ${result.stderr}`);
   }

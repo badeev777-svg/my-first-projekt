@@ -1,10 +1,8 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const {spawnSync} = require('node:child_process');
 const {ensureProjectExists} = require('./lib/project-paths');
 const {validateEditPlan} = require('./lib/validate-edit-plan');
-
-const REPO_ROOT = path.join(__dirname, '..');
+const {renderComposition} = require('./lib/run-remotion');
 
 async function runRender(args) {
   const {id, version} = args;
@@ -25,11 +23,9 @@ async function runRender(args) {
   }
 
   const outPath = path.join(dir, 'renders', `${version}.mp4`);
-  const result = spawnSync(
-    'npx',
-    ['remotion', 'render', 'remotion/src/index.jsx', 'EditPlan', outPath, `--props=${approvedPath}`],
-    {cwd: REPO_ROOT, encoding: 'utf8', shell: true}
-  );
+  const result = renderComposition([
+    'remotion/src/index.jsx', 'EditPlan', outPath, `--props=${approvedPath}`,
+  ]);
   if (result.status !== 0) {
     throw new Error(`Ошибка Remotion при финальном рендере: ${result.stderr}`);
   }
