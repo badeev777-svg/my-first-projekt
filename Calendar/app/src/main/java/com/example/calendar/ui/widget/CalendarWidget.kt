@@ -7,6 +7,7 @@ import androidx.compose.ui.unit.sp
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
+import androidx.glance.Image
 import androidx.glance.ImageProvider
 import androidx.glance.action.actionParametersOf
 import androidx.glance.action.clickable
@@ -17,6 +18,8 @@ import androidx.glance.appwidget.provideContent
 import androidx.glance.appwidget.state.getAppWidgetState
 import androidx.glance.background
 import androidx.glance.layout.*
+import androidx.glance.appwidget.lazy.LazyColumn
+import androidx.glance.appwidget.lazy.items
 import androidx.glance.state.GlanceStateDefinition
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.FontWeight
@@ -45,7 +48,12 @@ class CalendarWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val repo = TaskRepository(TaskDatabase.getInstance(context).taskDao())
         val prefs = getAppWidgetState(context, PreferencesGlanceStateDefinition, id)
-        val dateStr = prefs[KEY_SELECTED_DATE] ?: LocalDate.now().toString()
+        val today = LocalDate.now()
+        val dateStr = prefs[KEY_SELECTED_DATE]
+            ?.let { LocalDate.parse(it) }
+            ?.takeIf { !it.isBefore(today) }
+            ?.toString()
+            ?: today.toString()
         val tasks = repo.getTasksForDateOnce(LocalDate.parse(dateStr))
 
         provideContent {
@@ -65,16 +73,22 @@ private fun WidgetContent(selectedDate: String, tasks: List<Task>) {
     val white     = ColorProvider(Color(0xFFFFFFFF))
     val dimWhite  = ColorProvider(Color(0xFFBBBBBB))
 
-    Box(
-        modifier = GlanceModifier
-            .fillMaxSize()
-            .background(ImageProvider(R.drawable.widget_bg))
-            .cornerRadius(20.dp)
-    ) {
+    Box(modifier = GlanceModifier.fillMaxSize()) {
+        Image(
+            provider = ImageProvider(R.drawable.rose),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = GlanceModifier.fillMaxSize()
+        )
+        Box(
+            modifier = GlanceModifier
+                .fillMaxSize()
+                .background(ImageProvider(R.drawable.widget_overlay))
+        ) {}
         Column(
             modifier = GlanceModifier
                 .fillMaxSize()
-                .padding(horizontal = 14.dp, vertical = 12.dp)
+                .padding(horizontal = 10.dp, vertical = 12.dp)
         ) {
             // Week strip
             Row(modifier = GlanceModifier.fillMaxWidth()) {
@@ -177,9 +191,11 @@ private fun WidgetContent(selectedDate: String, tasks: List<Task>) {
                     style = TextStyle(color = dimWhite, fontSize = 12.sp)
                 )
             } else {
-                tasks.take(5).forEach { task ->
-                    TaskRow(task, date.toString())
-                    Spacer(GlanceModifier.height(6.dp))
+                LazyColumn(modifier = GlanceModifier.fillMaxWidth().defaultWeight()) {
+                    items(tasks, itemId = { it.id.toLong() }) { task ->
+                        TaskRow(task, date.toString())
+                        Spacer(GlanceModifier.height(6.dp))
+                    }
                 }
             }
         }
