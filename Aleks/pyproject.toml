@@ -12,6 +12,7 @@ dependencies = [
     "python-dotenv>=1.0",
     "aiosqlite>=0.19",
     "tenacity>=8.2",
+    "filelock>=3.13",
 ]
 
 [dependency-groups]
