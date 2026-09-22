@@ -14,7 +14,6 @@ const SCENE_COMPONENTS = {
 export const EditPlanComposition = ({projectId, fps, audioTrack, scenes}) => {
   return (
     <AbsoluteFill style={{backgroundColor: THEME.colors.background}}>
-      {audioTrack ? <Audio src={resolveMedia(projectId, audioTrack)} /> : null}
       {scenes.map((scene, index) => {
         const SceneComponent = SCENE_COMPONENTS[scene.type];
         if (!SceneComponent) {
@@ -24,7 +23,10 @@ export const EditPlanComposition = ({projectId, fps, audioTrack, scenes}) => {
         const durationInFrames = Math.max(1, Math.round((scene.end - scene.start) * fps));
         return (
           <Sequence key={index} from={from} durationInFrames={durationInFrames}>
-            <SceneComponent {...scene} projectId={projectId} audioTrack={audioTrack} />
+            <SceneComponent {...scene} projectId={projectId} audioTrack={audioTrack} sourceStartFrame={from} />
+            {scene.audioMode === 'sync' && audioTrack ? (
+              <Audio src={resolveMedia(projectId, audioTrack)} startFrom={from} />
+            ) : null}
           </Sequence>
         );
       })}

@@ -3,8 +3,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const {spawnSync} = require('node:child_process');
 const {makeFixtureVideo} = require('./helpers/fixture-video');
+const {renderComposition} = require('../scripts/lib/run-remotion');
 
 const REPO_ROOT = path.join(__dirname, '..');
 
@@ -33,11 +33,9 @@ test('remotion render собирает mp4 из тестового edit-план
   fs.writeFileSync(propsPath, JSON.stringify(plan));
   const outPath = path.join(os.tmpdir(), `${projectId}.mp4`);
 
-  const result = spawnSync(
-    'npx',
-    ['remotion', 'render', 'remotion/src/index.jsx', 'EditPlan', outPath, `--props=${propsPath}`],
-    {cwd: REPO_ROOT, encoding: 'utf8', shell: true}
-  );
+  const result = renderComposition([
+    'remotion/src/index.jsx', 'EditPlan', outPath, `--props=${propsPath}`,
+  ]);
 
   try {
     assert.equal(result.status, 0, result.stderr || result.stdout);

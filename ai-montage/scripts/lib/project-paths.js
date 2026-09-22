@@ -6,11 +6,21 @@ const PUBLIC_PROJECTS_ROOT = path.join(__dirname, '..', '..', 'remotion', 'publi
 
 const SUBDIRS = ['input', 'transcript', 'brief', 'assets', 'previews', 'renders', 'final'];
 
+const SAFE_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
+
+function assertSafeId(id) {
+  if (typeof id !== 'string' || !SAFE_ID_PATTERN.test(id)) {
+    throw new Error(`Недопустимый id проекта: "${id}". Разрешены только буквы, цифры, "-" и "_".`);
+  }
+}
+
 function getProjectDir(id, projectsRoot = PROJECTS_ROOT) {
+  assertSafeId(id);
   return path.join(projectsRoot, id);
 }
 
 function getPublicProjectDir(id, publicRoot = PUBLIC_PROJECTS_ROOT) {
+  assertSafeId(id);
   return path.join(publicRoot, id);
 }
 
