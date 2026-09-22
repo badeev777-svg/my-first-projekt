@@ -6,7 +6,7 @@
 
 **Что было сделано:**
 - ✅ Создан Telegram бот через @BotFather: **@NeuroLead_parser_bot**
-- ✅ Получен BOT_TOKEN: `<redacted-telegram-bot-token>`
+- ✅ Получен BOT_TOKEN: `<redacted, see .env>`
 - ✅ Получен BOT_CHAT_ID: `108418424` (из API /getUpdates)
 - ✅ Добавлены оба значения в `.env.local`
 - ✅ Приложение переразвернуто на сервере (155.212.208.194)

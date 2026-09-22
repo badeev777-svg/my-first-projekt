@@ -1,1 +1,1 @@
-токен репетитор:    <redacted-telegram-bot-token>
+токен репетитор:    <redacted, see .env>
