@@ -1,0 +1,19 @@
+{
+  "name": "ai-montage",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Локальный AI-движок монтажа видео: Talking-Head и Motion-Reel из одного пайплайна",
+  "type": "commonjs",
+  "scripts": {
+    "test": "node --test \"test/**/*.test.js\"",
+    "cli": "node scripts/cli.js",
+    "demo": "node scripts/demo.js"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "remotion": "^4.0.0",
+    "@remotion/cli": "^4.0.0"
+  }
+}

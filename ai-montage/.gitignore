@@ -1,0 +1,7 @@
+node_modules/
+projects/*
+!projects/.gitkeep
+remotion/public/projects/*
+!remotion/public/projects/.gitkeep
+python/venv/
+*.log
