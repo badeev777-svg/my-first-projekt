@@ -1,0 +1,7 @@
+.venv
+.env
+tests
+scripts
+demo_docs
+docs
+__pycache__
