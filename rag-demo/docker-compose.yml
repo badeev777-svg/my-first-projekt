@@ -1,0 +1,8 @@
+services:
+  rag-demo:
+    build: .
+    container_name: rag-demo
+    env_file: .env
+    ports:
+      - "127.0.0.1:8090:8000"
+    restart: unless-stopped
