@@ -5,4 +5,7 @@ services:
     env_file: .env
     ports:
       - "127.0.0.1:8090:8000"
+    # Starlette спулит загрузки >1 МБ в /tmp: держим его в RAM, чтобы файлы клиентов не попадали на диск.
+    tmpfs:
+      - /tmp:size=256m
     restart: unless-stopped

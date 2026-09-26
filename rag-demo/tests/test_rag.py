@@ -59,3 +59,15 @@ def test_top_k_limits_candidates_sent_to_reranker():
     client.rerank = spy
     answer(client, session_with(*[Chunk("f.pdf", f"стр. {i}", f"t{i}") for i in range(30)]), "q", top_k=20)
     assert seen["n"] == 20
+
+
+def test_partial_not_found_keeps_cited_answer():
+    reply = "Отпуск 28 дней [1]. В загруженных документах этого нет сведений о директоре."
+    result = answer(FakeClient(chat_reply=reply), session_with(A), "отпуск и директор?")
+    assert result.text == reply
+    assert [s.n for s in result.sources] == [1]
+
+
+def test_not_found_without_final_period_is_normalized():
+    result = answer(FakeClient(chat_reply=" В загруженных документах этого нет "), session_with(A), "q")
+    assert (result.text, result.sources) == (NOT_FOUND, [])

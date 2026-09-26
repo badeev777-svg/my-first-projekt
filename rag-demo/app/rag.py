@@ -54,7 +54,8 @@ def answer(client, session: Session, question: str, top_k: int = 20, top_n: int 
     sources = [Source(n, c.file, c.loc, c.text) for n, c in enumerate(picked, start=1)]
 
     text = client.chat(SYSTEM_PROMPT, _user_prompt(question, sources))
-    if NOT_FOUND.rstrip(".") in text:
+    # Только ответ целиком: фраза внутри частичного ответа не должна стирать найденное.
+    if text.strip().rstrip(".").strip() == NOT_FOUND.rstrip("."):
         return Answer(NOT_FOUND, [])
     # Показываем только то, на что модель сослалась: несвязанные фрагменты создают ложное впечатление обоснованности.
     return Answer(text, [s for s in sources if f"[{s.n}]" in text])

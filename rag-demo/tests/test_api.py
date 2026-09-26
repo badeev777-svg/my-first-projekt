@@ -12,7 +12,7 @@ DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.docu
 
 
 def make_settings(**kw):
-    base = dict(cloudru_api_key="k", access_code="secret", cookie_secure=False, max_files=2, max_questions=2)
+    base = dict(cloudru_api_key="k", access_code="secret-code", cookie_secure=False, max_files=2, max_questions=2)
     base.update(kw)
     return Settings(_env_file=None, **base)
 
@@ -29,7 +29,7 @@ def api(fake):
 
 
 def login(c):
-    assert c.post("/api/login", json={"code": "secret"}).status_code == 200
+    assert c.post("/api/login", json={"code": "secret-code"}).status_code == 200
 
 
 def upload(c, name="Регламент.docx", paragraphs=("Отпуск 28 дней",)):
@@ -142,3 +142,19 @@ def test_expired_session(fake):
         r = c.get("/api/session")
         assert r.status_code == 401
         assert r.json()["detail"] == "Сессия завершена, документы удалены. Загрузите их снова."
+
+
+def test_too_many_chunks_rejected(fake):
+    with TestClient(create_app(make_settings(max_chunks_per_file=1), client=fake, store=SessionStore(3600))) as c:
+        login(c)
+        r = upload(c, paragraphs=["x" * 700, "y" * 700])
+        assert r.status_code == 400
+        assert r.json()["detail"] == "Файл «Регламент.docx» слишком большой для демо."
+        assert c.get("/api/session").json()["files"] == []
+
+
+def test_upload_without_session_rejected_before_body_is_parsed(api):
+    # Без cookie тело не читается: иначе аноним заставляет сервер спулить файл во временный файл.
+    r = api.post("/api/upload", content=b"not multipart at all", headers={"content-type": "multipart/form-data; boundary=x"})
+    assert r.status_code == 401
+    assert r.json()["detail"] == "Сессия завершена, документы удалены. Загрузите их снова."
