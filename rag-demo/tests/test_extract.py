@@ -1,7 +1,7 @@
 import pytest
 
 from app.extract import ExtractError, NoTextLayer, UnsupportedFormat, extract
-from tests.helpers import make_docx, make_pdf
+from tests.helpers import encrypt_pdf, make_docx, make_pdf
 
 
 def test_pdf_pages_numbered_and_blank_pages_skipped():
@@ -42,3 +42,20 @@ def test_extension_case_insensitive():
 def test_corrupted_file(name):
     with pytest.raises(ExtractError, match="Не удалось прочитать"):
         extract(name, b"definitely not a document")
+
+
+def test_pdf_with_owner_password_only_is_read():
+    # Запрет печати/правки без пароля на открытие — частый случай у корпоративных PDF.
+    units = extract("p.pdf", encrypt_pdf(make_pdf(["Price 100"]), user_password=""))
+    assert units[0].text == "Price 100"
+
+
+def test_pdf_with_open_password_rejected():
+    with pytest.raises(ExtractError, match="защищён паролем"):
+        extract("p.pdf", encrypt_pdf(make_pdf(["Price 100"]), user_password="pw"))
+
+
+def test_docx_tables_extracted_after_paragraphs():
+    units = extract("Прайс.docx", make_docx(["Прайс-лист"], table=[["Услуга", "Цена"], ["Стрижка", "1500 ₽"]]))
+    assert [u.text for u in units] == ["Прайс-лист", "Услуга | Цена", "Стрижка | 1500 ₽"]
+    assert [u.num for u in units] == [1, 2, 3]

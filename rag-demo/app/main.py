@@ -53,6 +53,13 @@ def create_app(settings: Settings, client=None, store: SessionStore | None = Non
 
     app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
 
+    @app.middleware("http")
+    async def reject_anonymous_upload(request: Request, call_next):
+        # До разбора multipart: иначе Starlette уже спулит тело во временный файл.
+        if request.url.path == "/api/upload" and store.get(request.cookies.get(COOKIE, "")) is None:
+            return JSONResponse(status_code=401, content={"detail": SESSION_EXPIRED})
+        return await call_next(request)
+
     @app.exception_handler(CloudRuError)
     async def cloud_error(request: Request, exc: CloudRuError):
         log.warning("cloud.ru error: %s", exc)
@@ -100,6 +107,8 @@ def create_app(settings: Settings, client=None, store: SessionStore | None = Non
             except ExtractError as e:
                 raise HTTPException(400, str(e)) from e
             chunks = chunk_units(units)
+            if len(chunks) > settings.max_chunks_per_file:
+                raise HTTPException(400, f"Файл «{name}» слишком большой для демо.")
             vectors = client.embed([c.text for c in chunks])
             store.add_document(session, name, chunks, vectors)
             log.info("document indexed: %d units, %d chunks", len(units), len(chunks))

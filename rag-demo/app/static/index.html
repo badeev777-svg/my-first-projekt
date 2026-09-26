@@ -132,7 +132,11 @@ $("wipe").onclick = async () => {
   $("chat").replaceChildren(); showLogin("Данные удалены.");
 };
 
-api("GET", "/api/session").then((s) => { showApp(); renderSession(s); }).catch(() => {});
+// Первый визит без cookie — просто форма входа, без «Сессия завершена».
+fetch("/api/session", { credentials: "same-origin" })
+  .then((r) => (r.ok ? r.json() : Promise.reject()))
+  .then((s) => { showApp(); renderSession(s); })
+  .catch(() => showLogin());
 </script>
 </body>
 </html>

@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from io import BytesIO
 
 import docx
-from pypdf import PdfReader
+from pypdf import PasswordType, PdfReader
 
 
 class ExtractError(Exception):
@@ -37,7 +37,8 @@ def extract(filename: str, data: bytes) -> list[Unit]:
 def _pdf(filename: str, data: bytes) -> list[Unit]:
     try:
         reader = PdfReader(BytesIO(data))
-        if reader.is_encrypted:
+        # Пароль только на правку/печать открывается пустым паролем — такие PDF читаем.
+        if reader.is_encrypted and reader.decrypt("") == PasswordType.NOT_DECRYPTED:
             raise ExtractError(f"Файл «{filename}» защищён паролем.")
         units = [
             Unit(filename, "стр.", i, text)
@@ -58,11 +59,20 @@ def _docx(filename: str, data: bytes) -> list[Unit]:
         document = docx.Document(BytesIO(data))
     except Exception as e:
         raise ExtractError(f"Не удалось прочитать файл «{filename}».") from e
-    units = [
-        Unit(filename, "абз.", i, text)
-        for i, p in enumerate(document.paragraphs, start=1)
-        if (text := p.text.strip())
+    texts = [p.text for p in document.paragraphs] + [
+        _row_text(row) for table in document.tables for row in table.rows
     ]
+    units = [Unit(filename, "абз.", i, text) for i, t in enumerate(texts, start=1) if (text := t.strip())]
     if not units:
         raise NoTextLayer(f"В файле «{filename}» нет текста.")
     return units
+
+
+def _row_text(row) -> str:
+    cells: list[str] = []
+    for cell in row.cells:
+        text = cell.text.strip()
+        # Объединённые ячейки python-docx отдаёт повторно.
+        if text and (not cells or cells[-1] != text):
+            cells.append(text)
+    return " | ".join(cells)

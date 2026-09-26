@@ -10,7 +10,7 @@ BASE = "https://foundation-models.api.cloud.ru/v1"
 
 
 def make_client(handler):
-    settings = Settings(cloudru_api_key="k", access_code="c", _env_file=None)
+    settings = Settings(cloudru_api_key="k", access_code="code-1234", _env_file=None)
     http = httpx.Client(base_url=BASE, transport=httpx.MockTransport(handler))
     return CloudRuClient(settings, http=http, retry_delay=0)
 
