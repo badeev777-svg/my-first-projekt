@@ -1,1 +1,138 @@
-<!doctype html><title>RAG</title>
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ответы по документам</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --text:#1c1f24; --muted:#6b7280; --accent:#2563eb; --err:#b91c1c; --border:#e5e7eb; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.5 system-ui, sans-serif; background:var(--bg); color:var(--text); }
+  header { padding:16px 24px; border-bottom:1px solid var(--border); background:var(--card); display:flex; justify-content:space-between; align-items:center; }
+  h1 { font-size:18px; margin:0; }
+  main { max-width:1100px; margin:24px auto; padding:0 16px; display:grid; grid-template-columns:320px 1fr; gap:16px; }
+  @media (max-width:800px) { main { grid-template-columns:1fr; } }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; }
+  .hidden { display:none !important; }
+  button { background:var(--accent); color:#fff; border:0; border-radius:8px; padding:10px 14px; font:inherit; cursor:pointer; }
+  button.secondary { background:transparent; color:var(--err); border:1px solid var(--err); }
+  button:disabled { opacity:.5; cursor:wait; }
+  input[type=text], input[type=password] { width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; font:inherit; }
+  .error { color:var(--err); min-height:1.5em; }
+  .muted { color:var(--muted); font-size:14px; }
+  #files li { margin:4px 0; }
+  #chat { display:flex; flex-direction:column; gap:12px; min-height:300px; max-height:60vh; overflow:auto; }
+  .q { align-self:flex-end; background:#dbeafe; padding:8px 12px; border-radius:12px; max-width:80%; }
+  .a { align-self:flex-start; background:#f3f4f6; padding:8px 12px; border-radius:12px; max-width:90%; white-space:pre-wrap; }
+  .warn { color:#92400e; font-size:14px; }
+  details { font-size:14px; margin-top:6px; }
+  details pre { white-space:pre-wrap; background:#fff; border:1px solid var(--border); padding:8px; border-radius:8px; }
+  form.ask { display:flex; gap:8px; margin-top:12px; }
+  #login { max-width:360px; margin:80px auto; }
+</style>
+</head>
+<body>
+<header><h1>Ответы по документам компании</h1>
+  <button id="wipe" class="secondary hidden">Удалить мои данные</button></header>
+
+<section id="login" class="card hidden">
+  <p>Введите код доступа, который вам дали на встрече.</p>
+  <form id="loginForm"><input id="code" type="password" autocomplete="off" required>
+    <p class="error" id="loginErr"></p><button>Войти</button></form>
+</section>
+
+<main id="app" class="hidden">
+  <section class="card">
+    <h2>Документы</h2>
+    <p class="muted">PDF или DOCX. Файлы не сохраняются на диск и удаляются вместе с сессией через час.</p>
+    <input id="fileInput" type="file" accept=".pdf,.docx" multiple>
+    <p class="error" id="uploadErr"></p>
+    <ul id="files"></ul>
+  </section>
+  <section class="card">
+    <div id="chat"><p class="muted" id="hint">Загрузите документы и задайте вопрос.</p></div>
+    <p class="error" id="askErr"></p>
+    <form class="ask" id="askForm"><input id="question" type="text" placeholder="Ваш вопрос…" maxlength="2000" required>
+      <button id="askBtn">Спросить</button></form>
+    <p class="muted" id="left"></p>
+  </section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+async function api(method, url, body) {
+  const opts = { method, credentials: "same-origin" };
+  if (body instanceof FormData) opts.body = body;
+  else if (body) { opts.headers = { "Content-Type": "application/json" }; opts.body = JSON.stringify(body); }
+  const r = await fetch(url, opts);
+  const data = await r.json().catch(() => ({}));
+  if (r.status === 401 && url !== "/api/login") { showLogin(data.detail); throw new Error(data.detail); }
+  if (!r.ok) throw new Error(data.detail || "Ошибка " + r.status);
+  return data;
+}
+
+function showLogin(msg) { $("app").classList.add("hidden"); $("wipe").classList.add("hidden"); $("login").classList.remove("hidden"); $("loginErr").textContent = msg || ""; }
+function showApp() { $("login").classList.add("hidden"); $("app").classList.remove("hidden"); $("wipe").classList.remove("hidden"); }
+
+function renderSession(s) {
+  $("files").replaceChildren(...s.files.map((f) => Object.assign(document.createElement("li"), { textContent: f })));
+  $("left").textContent = `Осталось вопросов: ${s.questions_left}`;
+}
+
+function addMessage(cls, text) {
+  $("hint")?.remove();
+  const el = Object.assign(document.createElement("div"), { className: cls, textContent: text });
+  $("chat").append(el); $("chat").scrollTop = $("chat").scrollHeight; return el;
+}
+
+function renderAnswer(data) {
+  const el = addMessage("a", data.answer);
+  if (!data.sources.length && data.answer !== "В загруженных документах этого нет.") {
+    el.append(Object.assign(document.createElement("div"), { className: "warn", textContent: "⚠ Ответ без ссылки на источник — проверьте по документу." }));
+  }
+  for (const s of data.sources) {
+    const d = document.createElement("details");
+    d.append(Object.assign(document.createElement("summary"), { textContent: `[${s.n}] ${s.file}, ${s.loc}` }),
+             Object.assign(document.createElement("pre"), { textContent: s.text }));
+    el.append(d);
+  }
+}
+
+$("loginForm").onsubmit = async (e) => {
+  e.preventDefault();
+  try { await api("POST", "/api/login", { code: $("code").value }); showApp(); renderSession(await api("GET", "/api/session")); }
+  catch (err) { $("loginErr").textContent = err.message; }
+};
+
+$("fileInput").onchange = async () => {
+  $("uploadErr").textContent = "";
+  for (const file of $("fileInput").files) {
+    const fd = new FormData(); fd.append("files", file);
+    $("uploadErr").textContent = `Обрабатываю «${file.name}»…`;
+    try { await api("POST", "/api/upload", fd); $("uploadErr").textContent = ""; }
+    catch (err) { $("uploadErr").textContent = err.message; break; }
+  }
+  $("fileInput").value = "";
+  try { renderSession(await api("GET", "/api/session")); } catch {}
+};
+
+$("askForm").onsubmit = async (e) => {
+  e.preventDefault();
+  const q = $("question").value.trim(); if (!q) return;
+  $("askErr").textContent = ""; $("askBtn").disabled = true;
+  addMessage("q", q); $("question").value = "";
+  try { renderAnswer(await api("POST", "/api/ask", { question: q })); renderSession(await api("GET", "/api/session")); }
+  catch (err) { $("askErr").textContent = err.message; }
+  finally { $("askBtn").disabled = false; }
+};
+
+$("wipe").onclick = async () => {
+  await api("DELETE", "/api/session").catch(() => {});
+  $("chat").replaceChildren(); showLogin("Данные удалены.");
+};
+
+api("GET", "/api/session").then((s) => { showApp(); renderSession(s); }).catch(() => {});
+</script>
+</body>
+</html>
