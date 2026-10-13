@@ -107,6 +107,8 @@ def create_app(settings: Settings | None = None, *, llm: LLM | None = None,
         if not text or len(text) > settings.max_message_chars:
             raise HTTPException(422, f"Сообщение должно быть от 1 до {settings.max_message_chars} символов")
         conv = own(body.conversation_id, sid)
+        if store.saved_response(conv.id, body.client_message_id) is not None:
+            return pipeline.handle(conv, body.client_message_id, text)  # повтор не тратит квоту
         if not limiter.allow(sid):
             raise HTTPException(429, "Слишком много сообщений. Подождите минуту и нажмите «Повторить».")
         try:
@@ -145,6 +147,7 @@ def create_app(settings: Settings | None = None, *, llm: LLM | None = None,
         conv = store.get_conversation(body.conversation_id)
         if conv is None or conv.state is not State.HUMAN_PENDING:
             raise HTTPException(409, "Диалог не ждёт человека")
+        store.bump_epoch(conv.id)
         store.set_state(conv.id, State.DISCOVERY)  # единственный выход из human_pending — решение человека
         return {"conversation_id": conv.id, "state": State.DISCOVERY.value}
 

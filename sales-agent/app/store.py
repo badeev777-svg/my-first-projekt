@@ -16,7 +16,8 @@ CLAIM_TTL_SECONDS = 120
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS conversations(
     id TEXT PRIMARY KEY, session_id TEXT NOT NULL, state TEXT NOT NULL,
-    stopped INTEGER NOT NULL DEFAULT 0, product_id TEXT, created_at TEXT NOT NULL);
+    stopped INTEGER NOT NULL DEFAULT 0, product_id TEXT, created_at TEXT NOT NULL,
+    epoch INTEGER NOT NULL DEFAULT 0);
 CREATE TABLE IF NOT EXISTS messages(
     id INTEGER PRIMARY KEY AUTOINCREMENT, conversation_id TEXT NOT NULL, client_message_id TEXT,
     role TEXT NOT NULL, text TEXT NOT NULL, skill TEXT, created_at TEXT NOT NULL, claimed_at REAL,
@@ -47,6 +48,7 @@ class Conversation:
     state: State
     stopped: bool
     product_id: str | None = None
+    epoch: int = 0
 
 
 def _iso(ts: float) -> str:
@@ -54,7 +56,8 @@ def _iso(ts: float) -> str:
 
 
 def _conv(row: sqlite3.Row) -> Conversation:
-    return Conversation(row["id"], row["session_id"], State(row["state"]), bool(row["stopped"]), row["product_id"])
+    return Conversation(row["id"], row["session_id"], State(row["state"]), bool(row["stopped"]), row["product_id"],
+                        row["epoch"])
 
 
 class Store:
@@ -64,6 +67,8 @@ class Store:
         self._clock = clock
         with self._conn() as c:
             c.executescript(SCHEMA)
+            if "epoch" not in {r["name"] for r in c.execute("PRAGMA table_info(conversations)")}:
+                c.execute("ALTER TABLE conversations ADD COLUMN epoch INTEGER NOT NULL DEFAULT 0")
 
     @contextmanager
     def _conn(self) -> Iterator[sqlite3.Connection]:
@@ -90,6 +95,11 @@ class Store:
     def set_state(self, cid: str, state: State) -> None:
         with self._conn() as c:
             c.execute("UPDATE conversations SET state=? WHERE id=?", (state.value, cid))
+
+    def bump_epoch(self, cid: str) -> None:
+        # Новая эпоха = новые ключи идемпотентности заявок/передач после возврата диалога боту.
+        with self._conn() as c:
+            c.execute("UPDATE conversations SET epoch=epoch+1 WHERE id=?", (cid,))
 
     def set_stopped(self, cid: str, stopped: bool) -> None:
         with self._conn() as c:
@@ -138,6 +148,12 @@ class Store:
             return True
         except sqlite3.IntegrityError:
             return False
+
+    def saved_response(self, cid: str, client_message_id: str) -> dict | None:
+        with self._conn() as c:
+            row = c.execute("SELECT body FROM responses WHERE conversation_id=? AND client_message_id=?",
+                            (cid, client_message_id)).fetchone()
+        return json.loads(row["body"]) if row else None
 
     def release_claim(self, cid: str, client_message_id: str) -> None:
         with self._conn() as c:

@@ -199,3 +199,70 @@ def test_price_conflict_hands_off_with_prefix(make_client):
     body = h.say(cid, "Сколько стоит?").json()
     assert body["state"] == "human_pending" and body["handoff"] is not None
     assert body["reply"].startswith("В каталоге указаны две разные цены") and h.script.skills == []
+
+
+def test_bare_consent_pending_without_ask_consent_keeps_state_and_no_lead(make_client):
+    h = make_client(Script(replies=[contract("Могу предложить такой вариант.", next_state="consent_pending")]))
+    cid = h.start()
+    h.store.set_state(cid, State.OFFER)
+    body = h.say(cid, "Расскажите подробнее").json()
+    assert body["state"] == "offer" and "Оставьте телефон" not in body["reply"]
+    body = h.say(cid, "мой email ivan@example.com").json()
+    assert body["lead"] is None and h.store.list_leads() == []
+
+
+def test_ask_consent_appends_consent_text_and_moves_state(make_client):
+    h = make_client(Script(replies=[contract("Отлично.", next_state="offer", action="ask_consent")]))
+    cid = h.start()
+    h.store.set_state(cid, State.OFFER)
+    body = h.say(cid, "Да, давайте").json()
+    assert body["state"] == "consent_pending" and "Оставьте телефон" in body["reply"]
+
+
+def test_approved_price_line_appended(make_client):
+    h = make_client(Script(intent="price", service_id="ai-agent"))
+    cid = h.start()
+    body = h.say(cid, "Сколько стоит?").json()
+    assert "Цена «AI-агент под заказ»: " in body["reply"]
+
+
+def test_unapproved_price_note_appended(make_client):
+    from tests.helpers import service
+    h = make_client(Script(intent="price", service_id="ai-agent"), services=[service(approved=False)])
+    cid = h.start()
+    body = h.say(cid, "Сколько стоит?").json()
+    assert "в каталоге не утверждена" in body["reply"]
+
+
+def test_handoff_after_admin_release_is_sent_again(make_client):
+    h = make_client(admin=True)
+    cid = h.start()
+    assert h.say(cid, "Позовите человека").json()["handoff"] is not None
+    h.http.post("/api/admin/release", json={"conversation_id": cid})
+    assert h.say(cid, "Позовите человека").json()["state"] == "human_pending"
+    assert len(h.channel.sent) == 2 and len(h.store.list_handoffs()) == 2
+
+
+def test_product_not_persisted_when_model_fails(make_client):
+    from app.llm_client import LLMError
+    h = make_client(Script(intent="need", service_id="ai-agent", replies=[LLMError("x"), contract("Ок.")]))
+    cid = h.start()
+    assert h.say(cid, "Нужен бот", mid="m1").status_code == 503
+    assert h.store.get_conversation(cid).product_id is None
+    assert h.say(cid, "Нужен бот", mid="m1").status_code == 200
+    assert h.store.get_conversation(cid).product_id == "ai-agent"
+
+
+def test_replay_does_not_consume_rate_limit(make_client):
+    h = make_client(rate=1)
+    cid = h.start()
+    first = h.say(cid, "Нужен бот", mid="m1")
+    assert first.status_code == 200
+    assert h.say(cid, "Нужен бот", mid="m1").json() == first.json()
+
+
+@pytest.mark.parametrize("host", ["127.0.0.1", "::1"])
+def test_require_local_accepts_loopback(make_client, host):
+    h = make_client()
+    r = TestClient(h.app, client=(host, 1)).get("/api/admin/data")
+    assert r.status_code == 200
