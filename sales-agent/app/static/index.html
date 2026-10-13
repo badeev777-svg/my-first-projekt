@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI-помощник Badeev Agency</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --text:#1d2330; --muted:#667085; --accent:#2f6fed; --user:#e8f0fe;
+          --warn:#fff4e5; --err:#fdecec; --border:#e3e6eb; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#14171c; --card:#1d2129; --text:#e8eaed; --muted:#9aa3b2; --accent:#6c9bff; --user:#24324d;
+            --warn:#3a2f1d; --err:#3d2224; --border:#2c313a; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text);
+         font:16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width:720px; margin:0 auto; padding:16px; min-height:100dvh; display:flex; flex-direction:column; gap:12px; }
+  header { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+  h1 { font-size:1.1rem; margin:0; flex:1 1 100%; }
+  .badge { background:var(--warn); border-radius:6px; padding:2px 8px; font-size:.85rem; }
+  button { font:inherit; border:1px solid var(--border); background:var(--card); color:var(--text); border-radius:8px;
+           padding:8px 12px; cursor:pointer; min-height:44px; }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  button:disabled { opacity:.5; cursor:default; }
+  #log { flex:1; display:flex; flex-direction:column; gap:8px; }
+  .msg { max-width:85%; padding:10px 12px; border-radius:12px; white-space:pre-wrap; overflow-wrap:anywhere;
+         background:var(--card); border:1px solid var(--border); margin:0; }
+  .msg.user { align-self:flex-end; background:var(--user); }
+  .msg.system { align-self:center; background:var(--warn); font-size:.9rem; }
+  .msg.error { align-self:stretch; max-width:100%; background:var(--err); }
+  .msg.error button { margin-top:8px; }
+  .msg.pending { opacity:.6; }
+  #status { color:var(--muted); font-size:.85rem; min-height:1.2em; }
+  form { display:flex; gap:8px; }
+  textarea { flex:1; min-width:0; font:inherit; padding:10px; border-radius:8px; border:1px solid var(--border);
+             background:var(--card); color:var(--text); resize:vertical; min-height:44px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>AI-помощник Badeev Agency</h1>
+    <span id="demo" class="badge" hidden>DEMO: модель не подключена</span>
+    <button id="reset" type="button">Сбросить диалог</button>
+    <button id="stop" type="button">Остановить автоответы</button>
+  </header>
+  <p class="msg system">Вы общаетесь с AI-помощником, а не с человеком. Цены и условия — только из утверждённого каталога.</p>
+  <div id="log" aria-live="polite"></div>
+  <div id="status"></div>
+  <form id="form">
+    <textarea id="text" maxlength="2000" rows="2" placeholder="Опишите задачу" aria-label="Сообщение"></textarea>
+    <button id="send" class="primary" type="submit">Отправить</button>
+  </form>
+</main>
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const log = $("log"), statusEl = $("status"), input = $("text"), sendBtn = $("send");
+let conversationId = null;
+let busy = false;
+
+function newId() {
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
+
+function bubble(text, kind) {
+  const el = document.createElement("div");
+  el.className = "msg " + kind;
+  el.textContent = text;
+  log.appendChild(el);
+  el.scrollIntoView({block: "end"});
+  return el;
+}
+
+function detailOf(data, fallback) {
+  return data && typeof data.detail === "string" ? data.detail : fallback;
+}
+
+async function post(url, body) {
+  const r = await fetch(url, {method: "POST", headers: {"Content-Type": "application/json"},
+                              body: JSON.stringify(body || {}), credentials: "same-origin"});
+  let data = null;
+  try { data = await r.json(); } catch (e) { data = null; }
+  return {status: r.status, data};
+}
+
+async function start(url, body) {
+  let res;
+  try { res = await post(url, body); } catch (e) { res = {status: 0, data: null}; }
+  if (res.status !== 200) { bubble(detailOf(res.data, "Не удалось начать диалог. Обновите страницу."), "error"); return; }
+  conversationId = res.data.conversation_id;
+  $("demo").hidden = !res.data.demo;
+  log.replaceChildren();
+  statusEl.textContent = "";
+}
+
+function setBusy(on) {
+  busy = on;
+  sendBtn.disabled = on;
+  statusEl.textContent = on ? "Помощник печатает…" : "";
+}
+
+async function send(text, mid, userEl) {
+  if (busy || !conversationId) return;
+  setBusy(true);
+  userEl.classList.add("pending");
+  let res;
+  try {
+    res = await post("/api/chat", {conversation_id: conversationId, client_message_id: mid, text});
+  } catch (e) {
+    res = {status: 0, data: null};
+  }
+  setBusy(false);
+  if (res.status === 200) {
+    userEl.classList.remove("pending");
+    if (res.data.reply === null) bubble("Автоответы остановлены. Сообщение сохранено.", "system");
+    else bubble(res.data.reply, "bot");
+    $("demo").hidden = !res.data.demo;
+    return;
+  }
+  if (res.status === 403) { bubble("Диалог недоступен в этой сессии. Нажмите «Сбросить диалог».", "error"); return; }
+  if (res.status === 422) {
+    userEl.remove();
+    bubble(detailOf(res.data, "Сообщение должно быть от 1 до 2000 символов."), "error");
+    return;
+  }
+  // 409, 429, 503, 5xx и обрыв сети: сообщение остаётся, повтор идёт с тем же client_message_id,
+  // поэтому сервер не создаст дубль и вернёт сохранённый ответ, если он уже готов.
+  const box = bubble(detailOf(res.data, "Связь прервалась. Сообщение не потеряно."), "error");
+  const retry = document.createElement("button");
+  retry.type = "button";
+  retry.textContent = "Повторить";
+  retry.addEventListener("click", () => { box.remove(); send(text, mid, userEl); });
+  box.appendChild(document.createElement("br"));
+  box.appendChild(retry);
+}
+
+$("form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const text = input.value.trim();
+  if (!text || busy) return;
+  input.value = "";
+  send(text, newId(), bubble(text, "user"));
+});
+input.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("form").requestSubmit(); }
+});
+$("reset").addEventListener("click", () => {
+  if (conversationId && !busy) start("/api/reset", {conversation_id: conversationId});
+});
+$("stop").addEventListener("click", async () => {
+  if (!conversationId) return;
+  let status = 0;
+  try { status = (await post("/api/stop", {conversation_id: conversationId})).status; } catch (e) { status = 0; }
+  bubble(status === 200 ? "Автоответы в этом диалоге остановлены." : "Не удалось остановить автоответы.", "system");
+});
+start("/api/conversations");
+</script>
+</body>
+</html>

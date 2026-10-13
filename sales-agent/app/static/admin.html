@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sales-agent — админка</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --text:#1d2330; --muted:#667085; --warn:#fff4e5; --border:#e3e6eb; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#14171c; --card:#1d2129; --text:#e8eaed; --muted:#9aa3b2; --warn:#3a2f1d; --border:#2c313a; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.4 system-ui, "Segoe UI", Roboto, sans-serif; }
+  main { max-width:1100px; margin:0 auto; padding:16px; }
+  h1 { font-size:1.2rem; } h2 { font-size:1rem; margin-top:24px; }
+  #meta { color:var(--muted); }
+  .warn { background:var(--warn); padding:8px 12px; border-radius:8px; }
+  .scroll { overflow-x:auto; }
+  table { border-collapse:collapse; width:100%; background:var(--card); }
+  th, td { border:1px solid var(--border); padding:6px 8px; text-align:left; vertical-align:top; overflow-wrap:anywhere; }
+  button { font:inherit; padding:6px 10px; border-radius:6px; border:1px solid var(--border); background:var(--card);
+           color:var(--text); cursor:pointer; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Заявки и передачи человеку</h1>
+  <p id="meta">Загрузка…</p>
+  <p id="consent" class="warn" hidden>Текст согласия не утверждён (consent_approved: false): заявки сохраняются в демо-режиме, полный контакт не хранится и никуда не отправляется.</p>
+  <button id="refresh" type="button">Обновить</button>
+  <h2>Ждут человека</h2>
+  <div class="scroll"><table id="pending"><thead><tr><th>Диалог</th><th>Действие</th></tr></thead><tbody></tbody></table></div>
+  <h2>Заявки</h2>
+  <div class="scroll"><table id="leads"><thead><tr><th>№</th><th>Создана</th><th>Контакт</th><th>Маска</th><th>Задача</th><th>Услуга</th><th>Доставка</th></tr></thead><tbody></tbody></table></div>
+  <h2>Передачи человеку</h2>
+  <div class="scroll"><table id="handoffs"><thead><tr><th>№</th><th>Создана</th><th>Причина</th><th>Кратко</th><th>Вопрос</th><th>Доставка</th></tr></thead><tbody></tbody></table></div>
+</main>
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+
+function fill(tableId, rows, cols) {
+  const tbody = $(tableId).tBodies[0];
+  tbody.replaceChildren();
+  if (!rows.length) {
+    const cell = tbody.insertRow().insertCell();
+    cell.colSpan = cols.length;
+    cell.textContent = "Пусто";
+    return;
+  }
+  for (const row of rows) {
+    const tr = tbody.insertRow();
+    for (const col of cols) tr.insertCell().textContent = row[col] ?? "";
+  }
+}
+
+function fillPending(ids) {
+  const tbody = $("pending").tBodies[0];
+  tbody.replaceChildren();
+  if (!ids.length) {
+    const cell = tbody.insertRow().insertCell();
+    cell.colSpan = 2;
+    cell.textContent = "Пусто";
+    return;
+  }
+  for (const id of ids) {
+    const tr = tbody.insertRow();
+    tr.insertCell().textContent = id;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = "Вернуть боту";
+    btn.addEventListener("click", () => release(id));
+    tr.insertCell().appendChild(btn);
+  }
+}
+
+async function load() {
+  const r = await fetch("/api/admin/data");
+  if (!r.ok) { $("meta").textContent = "Нет доступа: админка открывается только на этом компьютере."; return; }
+  const d = await r.json();
+  $("meta").textContent = "Каталог: " + d.catalog_version + " · режим: " + (d.demo ? "DEMO" : "модель подключена");
+  $("consent").hidden = d.consent_approved;
+  fillPending(d.human_pending);
+  fill("leads", d.leads, ["id", "created_at", "contact", "contact_masked", "need", "product_id", "delivery_status"]);
+  fill("handoffs", d.handoffs, ["id", "created_at", "reason", "summary", "question", "delivery_status"]);
+}
+
+async function release(id) {
+  await fetch("/api/admin/release", {method: "POST", headers: {"Content-Type": "application/json"},
+                                     body: JSON.stringify({conversation_id: id})});
+  load();
+}
+
+$("refresh").addEventListener("click", load);
+load();
+</script>
+</body>
+</html>
