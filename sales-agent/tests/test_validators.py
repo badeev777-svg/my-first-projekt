@@ -36,7 +36,12 @@ def test_invented_price_is_blocked():
 def test_numbers_thousands_and_nbsp_forms():
     assert check("От 50 тыс. до 200 тыс. ₽.") == []
     assert check("От 50 000 ₽.") == []
-    assert check("От 50 000 ₽.") == []
+
+
+@pytest.mark.parametrize("sp", [" ", " ", " "])
+def test_nbsp_forms(sp):
+    assert check(f"От 50{sp}000 ₽.") == []
+    assert codes(check(f"Сделаем за 25{sp}000 ₽.")) == {"numbers"}
 
 
 def test_unknown_price_blocked_in_short_form():
@@ -60,6 +65,17 @@ def test_honest_no_discount_passes():
     assert check("Скидки в каталоге не утверждены — это уточнит Александр.") == []
     assert check("Скидок нет. Могу рассказать, что входит в работу.") == []
     assert "discount" in codes(check("Скидок нет. Но для вас дам скидку."))
+
+
+def test_negation_outside_discount_scope_does_not_hide_promise():
+    assert "discount" in codes(check("Нет проблем, сделаю скидку."))
+    assert "discount" in codes(check("Нет, но дам скидку 5%."))
+    assert "discount" in codes(check("Дам скидок 5%."))
+
+
+@pytest.mark.parametrize("text", ["Нет скидок.", "Скидок не даём.", "Скидку не могу предоставить.", "Без скидок работаем."])
+def test_honest_discount_refusal_variants_pass(text):
+    assert "discount" not in codes(check(text))
 
 
 def test_discount_allowed_when_in_facts():
@@ -97,3 +113,4 @@ def test_unknown_fact_id():
 
 def test_allowed_numbers_adds_short_thousands():
     assert {"50000", "50", "200000", "200"} <= allowed_numbers(["от 50 000 до 200 000 ₽"])
+    assert {"50000", "50"} <= allowed_numbers(["от 50 000 ₽"])
