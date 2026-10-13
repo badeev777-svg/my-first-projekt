@@ -1,16 +1,19 @@
+import re
 from pathlib import Path
 
 import pytest
 
 STATIC = Path(__file__).resolve().parent.parent / "app" / "static"
 SINKS = ("innerHTML", "outerHTML", "insertAdjacentHTML", "document.write")
+# Любой внешний адрес (скрипт, шрифт, CSS url(http...)) и @import запрещены.
+EXTERNAL = re.compile(r"https?://|@import|url\(\s*['\"]?https?:", re.IGNORECASE)
 
 
 @pytest.mark.parametrize("name", ["index.html", "admin.html"])
 def test_no_html_injection_sinks(name):
     text = (STATIC / name).read_text(encoding="utf-8")
     assert [s for s in SINKS if s in text] == []
-    assert "<script src=" not in text
+    assert EXTERNAL.search(text) is None
 
 
 def test_index_has_controls(make_client):

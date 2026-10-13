@@ -30,6 +30,8 @@
   .msg.error { align-self:stretch; max-width:100%; background:var(--err); }
   .msg.error button { margin-top:8px; }
   .msg.pending { opacity:.6; }
+  .msg.unsent { border-style:dashed; }
+  .msg .note { color:var(--muted); font-size:.85rem; }
   #status { color:var(--muted); font-size:.85rem; min-height:1.2em; }
   form { display:flex; gap:8px; }
   textarea { flex:1; min-width:0; font:inherit; padding:10px; border-radius:8px; border:1px solid var(--border);
@@ -77,22 +79,48 @@ function detailOf(data, fallback) {
   return data && typeof data.detail === "string" ? data.detail : fallback;
 }
 
+const REQUEST_TIMEOUT_MS = 60000;
+
 async function post(url, body) {
-  const r = await fetch(url, {method: "POST", headers: {"Content-Type": "application/json"},
-                              body: JSON.stringify(body || {}), credentials: "same-origin"});
-  let data = null;
-  try { data = await r.json(); } catch (e) { data = null; }
-  return {status: r.status, data};
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const r = await fetch(url, {method: "POST", headers: {"Content-Type": "application/json"},
+                                body: JSON.stringify(body || {}), credentials: "same-origin", signal: ctrl.signal});
+    let data = null;
+    try { data = await r.json(); } catch (e) { data = null; }
+    return {status: r.status, data};
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
-async function start(url, body) {
+function adopt(data) {
+  conversationId = data.conversation_id;
+  $("demo").hidden = !data.demo;
+  statusEl.textContent = "";
+}
+
+// Возвращает true, если диалог начат. keepLog — не очищать ленту (фолбэк после 403 не должен стирать текст пользователя).
+async function start(url, body, keepLog) {
   let res;
   try { res = await post(url, body); } catch (e) { res = {status: 0, data: null}; }
-  if (res.status !== 200) { bubble(detailOf(res.data, "Не удалось начать диалог. Обновите страницу."), "error"); return; }
-  conversationId = res.data.conversation_id;
-  $("demo").hidden = !res.data.demo;
-  log.replaceChildren();
-  statusEl.textContent = "";
+  if (res.status !== 200 || !res.data) {
+    bubble(detailOf(res.data, "Не удалось начать диалог. Обновите страницу."), "error");
+    return false;
+  }
+  adopt(res.data);
+  if (!keepLog) log.replaceChildren();
+  return true;
+}
+
+function markUnsent(el) {
+  el.classList.remove("pending");
+  el.classList.add("unsent");
+  const note = document.createElement("span");
+  note.className = "note";
+  note.textContent = " — не отправлено";
+  el.appendChild(note);
 }
 
 function setBusy(on) {
@@ -102,7 +130,12 @@ function setBusy(on) {
 }
 
 async function send(text, mid, userEl) {
-  if (busy || !conversationId) return;
+  if (busy) return;
+  if (!conversationId) {
+    markUnsent(userEl);
+    bubble("Диалог не начат. Обновите страницу.", "error");
+    return;
+  }
   setBusy(true);
   userEl.classList.add("pending");
   let res;
@@ -112,26 +145,37 @@ async function send(text, mid, userEl) {
     res = {status: 0, data: null};
   }
   setBusy(false);
-  if (res.status === 200) {
+  if (res.status === 200 && res.data) {
     userEl.classList.remove("pending");
     if (res.data.reply === null) bubble("Автоответы остановлены. Сообщение сохранено.", "system");
     else bubble(res.data.reply, "bot");
     $("demo").hidden = !res.data.demo;
     return;
   }
-  if (res.status === 403) { bubble("Диалог недоступен в этой сессии. Нажмите «Сбросить диалог».", "error"); return; }
+  if (res.status === 403) {
+    // Диалог не принадлежит этой сессии: начинаем новый, текст остаётся в ленте как не отправленный.
+    markUnsent(userEl);
+    if (await start("/api/conversations", null, true)) {
+      bubble("Диалог был недоступен в этой сессии, поэтому начат новый. Отправьте сообщение ещё раз.", "system");
+    }
+    return;
+  }
   if (res.status === 422) {
     userEl.remove();
     bubble(detailOf(res.data, "Сообщение должно быть от 1 до 2000 символов."), "error");
     return;
   }
-  // 409, 429, 503, 5xx и обрыв сети: сообщение остаётся, повтор идёт с тем же client_message_id,
+  // 409, 429, 503, 5xx, таймаут и обрыв сети: сообщение остаётся, повтор идёт с тем же client_message_id,
   // поэтому сервер не создаст дубль и вернёт сохранённый ответ, если он уже готов.
   const box = bubble(detailOf(res.data, "Связь прервалась. Сообщение не потеряно."), "error");
   const retry = document.createElement("button");
   retry.type = "button";
   retry.textContent = "Повторить";
-  retry.addEventListener("click", () => { box.remove(); send(text, mid, userEl); });
+  retry.addEventListener("click", () => {
+    if (busy) return;
+    box.remove();
+    send(text, mid, userEl);
+  });
   box.appendChild(document.createElement("br"));
   box.appendChild(retry);
 }
@@ -146,8 +190,21 @@ $("form").addEventListener("submit", (e) => {
 input.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("form").requestSubmit(); }
 });
-$("reset").addEventListener("click", () => {
-  if (conversationId && !busy) start("/api/reset", {conversation_id: conversationId});
+$("reset").addEventListener("click", async () => {
+  if (!conversationId || busy) return;
+  let res;
+  try { res = await post("/api/reset", {conversation_id: conversationId}); } catch (e) { res = {status: 0, data: null}; }
+  if (res.status === 200 && res.data) {
+    log.replaceChildren();
+    adopt(res.data);
+    return;
+  }
+  if (res.status === 403) {
+    // Диалог не принадлежит этой сессии: сброс невозможен, начинаем новый.
+    if (await start("/api/conversations")) bubble("Диалог был недоступен в этой сессии, поэтому начат новый.", "system");
+    return;
+  }
+  bubble(detailOf(res.data, "Не удалось сбросить диалог. Попробуйте ещё раз."), "error");
 });
 $("stop").addEventListener("click", async () => {
   if (!conversationId) return;
