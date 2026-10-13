@@ -1,0 +1,189 @@
+import json
+import sqlite3
+import uuid
+from collections.abc import Iterator
+from contextlib import contextmanager
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from pathlib import Path
+
+from app.state import State
+
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS conversations(
+    id TEXT PRIMARY KEY, session_id TEXT NOT NULL, state TEXT NOT NULL,
+    stopped INTEGER NOT NULL DEFAULT 0, product_id TEXT, created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS messages(
+    id INTEGER PRIMARY KEY AUTOINCREMENT, conversation_id TEXT NOT NULL, client_message_id TEXT,
+    role TEXT NOT NULL, text TEXT NOT NULL, skill TEXT, created_at TEXT NOT NULL,
+    UNIQUE(conversation_id, client_message_id));
+CREATE TABLE IF NOT EXISTS responses(
+    conversation_id TEXT NOT NULL, client_message_id TEXT NOT NULL, body TEXT NOT NULL,
+    PRIMARY KEY(conversation_id, client_message_id));
+CREATE TABLE IF NOT EXISTS leads(
+    id INTEGER PRIMARY KEY AUTOINCREMENT, conversation_id TEXT NOT NULL,
+    idempotency_key TEXT NOT NULL UNIQUE, contact_masked TEXT NOT NULL, contact TEXT NOT NULL,
+    consent_status TEXT NOT NULL, consent_time TEXT, need TEXT NOT NULL, product_id TEXT NOT NULL,
+    next_step TEXT NOT NULL, delivery_status TEXT NOT NULL, created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS handoffs(
+    id INTEGER PRIMARY KEY AUTOINCREMENT, conversation_id TEXT NOT NULL,
+    idempotency_key TEXT NOT NULL UNIQUE, reason TEXT NOT NULL, summary TEXT NOT NULL,
+    question TEXT NOT NULL, delivery_status TEXT NOT NULL, created_at TEXT NOT NULL);
+"""
+
+
+class AlreadyProcessing(Exception):
+    pass
+
+
+@dataclass(frozen=True)
+class Conversation:
+    id: str
+    session_id: str
+    state: State
+    stopped: bool
+    product_id: str | None = None
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def _conv(row: sqlite3.Row) -> Conversation:
+    return Conversation(row["id"], row["session_id"], State(row["state"]), bool(row["stopped"]), row["product_id"])
+
+
+class Store:
+    def __init__(self, path: str):
+        Path(path).parent.mkdir(parents=True, exist_ok=True)
+        self._path = path
+        with self._conn() as c:
+            c.executescript(SCHEMA)
+
+    @contextmanager
+    def _conn(self) -> Iterator[sqlite3.Connection]:
+        conn = sqlite3.connect(self._path, timeout=10)
+        conn.row_factory = sqlite3.Row
+        try:
+            with conn:
+                yield conn
+        finally:
+            conn.close()
+
+    def create_conversation(self, session_id: str) -> Conversation:
+        cid = uuid.uuid4().hex
+        with self._conn() as c:
+            c.execute("INSERT INTO conversations(id, session_id, state, created_at) VALUES (?,?,?,?)",
+                      (cid, session_id, State.NEW.value, _now()))
+        return Conversation(cid, session_id, State.NEW, False)
+
+    def get_conversation(self, cid: str) -> Conversation | None:
+        with self._conn() as c:
+            row = c.execute("SELECT * FROM conversations WHERE id=?", (cid,)).fetchone()
+        return _conv(row) if row else None
+
+    def set_state(self, cid: str, state: State) -> None:
+        with self._conn() as c:
+            c.execute("UPDATE conversations SET state=? WHERE id=?", (state.value, cid))
+
+    def set_stopped(self, cid: str, stopped: bool) -> None:
+        with self._conn() as c:
+            c.execute("UPDATE conversations SET stopped=? WHERE id=?", (int(stopped), cid))
+
+    def set_product(self, cid: str, product_id: str) -> None:
+        with self._conn() as c:
+            c.execute("UPDATE conversations SET product_id=? WHERE id=?", (product_id, cid))
+
+    def conversations_in(self, state: State) -> list[Conversation]:
+        with self._conn() as c:
+            rows = c.execute("SELECT * FROM conversations WHERE state=? ORDER BY created_at", (state.value,)).fetchall()
+        return [_conv(r) for r in rows]
+
+    def claim_message(self, cid: str, client_message_id: str, text: str) -> dict | None:
+        # Вставка с UNIQUE — это и есть захват: два одновременных запроса не обработают одно сообщение дважды.
+        with self._conn() as c:
+            try:
+                c.execute(
+                    "INSERT INTO messages(conversation_id, client_message_id, role, text, created_at) VALUES (?,?,?,?,?)",
+                    (cid, client_message_id, "user", text, _now()),
+                )
+                return None
+            except sqlite3.IntegrityError:
+                row = c.execute("SELECT body FROM responses WHERE conversation_id=? AND client_message_id=?",
+                                (cid, client_message_id)).fetchone()
+        if row:
+            return json.loads(row["body"])
+        raise AlreadyProcessing(client_message_id)
+
+    def release_claim(self, cid: str, client_message_id: str) -> None:
+        with self._conn() as c:
+            c.execute("DELETE FROM messages WHERE conversation_id=? AND client_message_id=? AND role='user'",
+                      (cid, client_message_id))
+
+    def save_response(self, cid: str, client_message_id: str, body: dict, reply: str | None, skill: str | None) -> None:
+        with self._conn() as c:
+            c.execute("INSERT INTO responses(conversation_id, client_message_id, body) VALUES (?,?,?)",
+                      (cid, client_message_id, json.dumps(body, ensure_ascii=False)))
+            if reply:
+                c.execute("INSERT INTO messages(conversation_id, role, text, skill, created_at) VALUES (?,?,?,?,?)",
+                          (cid, "assistant", reply, skill, _now()))
+
+    def history(self, cid: str, limit: int = 10) -> list[tuple[str, str]]:
+        with self._conn() as c:
+            rows = c.execute("SELECT role, text FROM messages WHERE conversation_id=? ORDER BY id DESC LIMIT ?",
+                             (cid, limit)).fetchall()
+        return [(r["role"], r["text"]) for r in reversed(rows)]
+
+    def _insert_once(self, table: str, fields: dict) -> tuple[int, bool]:
+        fields = {**fields, "created_at": _now()}
+        cols = ", ".join(fields)
+        marks = ", ".join("?" for _ in fields)
+        with self._conn() as c:
+            cur = c.execute(f"INSERT OR IGNORE INTO {table}({cols}) VALUES ({marks})", tuple(fields.values()))
+            created = cur.rowcount == 1
+            row = c.execute(f"SELECT id FROM {table} WHERE idempotency_key=?", (fields["idempotency_key"],)).fetchone()
+        return row["id"], created
+
+    def _get(self, table: str, row_id: int) -> dict:
+        with self._conn() as c:
+            return dict(c.execute(f"SELECT * FROM {table} WHERE id=?", (row_id,)).fetchone())
+
+    def _set_delivery(self, table: str, row_id: int, status: str) -> None:
+        with self._conn() as c:
+            c.execute(f"UPDATE {table} SET delivery_status=? WHERE id=?", (status, row_id))
+
+    def _list(self, table: str) -> list[dict]:
+        with self._conn() as c:
+            return [dict(r) for r in c.execute(f"SELECT * FROM {table} ORDER BY id DESC").fetchall()]
+
+    def create_lead(self, *, conversation_id: str, idempotency_key: str, contact_masked: str, contact: str,
+                    consent_status: str, consent_time: str | None, need: str, product_id: str, next_step: str,
+                    delivery_status: str) -> tuple[int, bool]:
+        return self._insert_once("leads", dict(
+            conversation_id=conversation_id, idempotency_key=idempotency_key, contact_masked=contact_masked,
+            contact=contact, consent_status=consent_status, consent_time=consent_time, need=need,
+            product_id=product_id, next_step=next_step, delivery_status=delivery_status))
+
+    def get_lead(self, lead_id: int) -> dict:
+        return self._get("leads", lead_id)
+
+    def set_lead_delivery(self, lead_id: int, status: str) -> None:
+        self._set_delivery("leads", lead_id, status)
+
+    def list_leads(self) -> list[dict]:
+        return self._list("leads")
+
+    def create_handoff(self, *, conversation_id: str, idempotency_key: str, reason: str, summary: str,
+                       question: str, delivery_status: str) -> tuple[int, bool]:
+        return self._insert_once("handoffs", dict(
+            conversation_id=conversation_id, idempotency_key=idempotency_key, reason=reason, summary=summary,
+            question=question, delivery_status=delivery_status))
+
+    def get_handoff(self, handoff_id: int) -> dict:
+        return self._get("handoffs", handoff_id)
+
+    def set_handoff_delivery(self, handoff_id: int, status: str) -> None:
+        self._set_delivery("handoffs", handoff_id, status)
+
+    def list_handoffs(self) -> list[dict]:
+        return self._list("handoffs")
