@@ -1,7 +1,8 @@
 import json
 import sqlite3
+import time
 import uuid
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -9,13 +10,16 @@ from pathlib import Path
 
 from app.state import State
 
+# Дольше двух попыток модели по 20 с плюс проверка качества: живой запрос не должен быть перехвачен повтором.
+CLAIM_TTL_SECONDS = 120
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS conversations(
     id TEXT PRIMARY KEY, session_id TEXT NOT NULL, state TEXT NOT NULL,
     stopped INTEGER NOT NULL DEFAULT 0, product_id TEXT, created_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS messages(
     id INTEGER PRIMARY KEY AUTOINCREMENT, conversation_id TEXT NOT NULL, client_message_id TEXT,
-    role TEXT NOT NULL, text TEXT NOT NULL, skill TEXT, created_at TEXT NOT NULL,
+    role TEXT NOT NULL, text TEXT NOT NULL, skill TEXT, created_at TEXT NOT NULL, claimed_at REAL,
     UNIQUE(conversation_id, client_message_id));
 CREATE TABLE IF NOT EXISTS responses(
     conversation_id TEXT NOT NULL, client_message_id TEXT NOT NULL, body TEXT NOT NULL,
@@ -45,8 +49,8 @@ class Conversation:
     product_id: str | None = None
 
 
-def _now() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+def _iso(ts: float) -> str:
+    return datetime.fromtimestamp(ts, timezone.utc).isoformat(timespec="seconds")
 
 
 def _conv(row: sqlite3.Row) -> Conversation:
@@ -54,9 +58,10 @@ def _conv(row: sqlite3.Row) -> Conversation:
 
 
 class Store:
-    def __init__(self, path: str):
+    def __init__(self, path: str, clock: Callable[[], float] = time.time):
         Path(path).parent.mkdir(parents=True, exist_ok=True)
         self._path = path
+        self._clock = clock
         with self._conn() as c:
             c.executescript(SCHEMA)
 
@@ -74,7 +79,7 @@ class Store:
         cid = uuid.uuid4().hex
         with self._conn() as c:
             c.execute("INSERT INTO conversations(id, session_id, state, created_at) VALUES (?,?,?,?)",
-                      (cid, session_id, State.NEW.value, _now()))
+                      (cid, session_id, State.NEW.value, _iso(self._clock())))
         return Conversation(cid, session_id, State.NEW, False)
 
     def get_conversation(self, cid: str) -> Conversation | None:
@@ -101,19 +106,38 @@ class Store:
 
     def claim_message(self, cid: str, client_message_id: str, text: str) -> dict | None:
         # Вставка с UNIQUE — это и есть захват: два одновременных запроса не обработают одно сообщение дважды.
+        now = self._clock()
         with self._conn() as c:
-            try:
-                c.execute(
-                    "INSERT INTO messages(conversation_id, client_message_id, role, text, created_at) VALUES (?,?,?,?,?)",
-                    (cid, client_message_id, "user", text, _now()),
-                )
+            if self._insert_claim(c, cid, client_message_id, text, now):
                 return None
-            except sqlite3.IntegrityError:
-                row = c.execute("SELECT body FROM responses WHERE conversation_id=? AND client_message_id=?",
-                                (cid, client_message_id)).fetchone()
-        if row:
-            return json.loads(row["body"])
-        raise AlreadyProcessing(client_message_id)
+            row = c.execute("SELECT body FROM responses WHERE conversation_id=? AND client_message_id=?",
+                            (cid, client_message_id)).fetchone()
+            if row:
+                return json.loads(row["body"])
+            # Захват умер до ответа (процесс упал): забираем его, только если он старше TTL.
+            # Условный DELETE по claimed_at не даёт двум повторам захватить один и тот же устаревший захват.
+            stale = c.execute("SELECT claimed_at FROM messages WHERE conversation_id=? AND client_message_id=? "
+                              "AND role='user'", (cid, client_message_id)).fetchone()
+            if stale is None or stale["claimed_at"] is None or now - stale["claimed_at"] <= CLAIM_TTL_SECONDS:
+                raise AlreadyProcessing(client_message_id)
+            taken = c.execute("DELETE FROM messages WHERE conversation_id=? AND client_message_id=? "
+                              "AND role='user' AND claimed_at=?",
+                              (cid, client_message_id, stale["claimed_at"])).rowcount
+            if taken == 0 or not self._insert_claim(c, cid, client_message_id, text, now):
+                raise AlreadyProcessing(client_message_id)
+            return None
+
+    def _insert_claim(self, c: sqlite3.Connection, cid: str, client_message_id: str, text: str,
+                      now: float) -> bool:
+        try:
+            c.execute(
+                "INSERT INTO messages(conversation_id, client_message_id, role, text, created_at, claimed_at) "
+                "VALUES (?,?,?,?,?,?)",
+                (cid, client_message_id, "user", text, _iso(now), now),
+            )
+            return True
+        except sqlite3.IntegrityError:
+            return False
 
     def release_claim(self, cid: str, client_message_id: str) -> None:
         with self._conn() as c:
@@ -126,7 +150,7 @@ class Store:
                       (cid, client_message_id, json.dumps(body, ensure_ascii=False)))
             if reply:
                 c.execute("INSERT INTO messages(conversation_id, role, text, skill, created_at) VALUES (?,?,?,?,?)",
-                          (cid, "assistant", reply, skill, _now()))
+                          (cid, "assistant", reply, skill, _iso(self._clock())))
 
     def history(self, cid: str, limit: int = 10) -> list[tuple[str, str]]:
         with self._conn() as c:
@@ -135,11 +159,13 @@ class Store:
         return [(r["role"], r["text"]) for r in reversed(rows)]
 
     def _insert_once(self, table: str, fields: dict) -> tuple[int, bool]:
-        fields = {**fields, "created_at": _now()}
+        fields = {**fields, "created_at": _iso(self._clock())}
         cols = ", ".join(fields)
         marks = ", ".join("?" for _ in fields)
         with self._conn() as c:
-            cur = c.execute(f"INSERT OR IGNORE INTO {table}({cols}) VALUES ({marks})", tuple(fields.values()))
+            # Только конфликт по ключу идемпотентности гасится; NOT NULL и прочие нарушения должны подниматься.
+            cur = c.execute(f"INSERT INTO {table}({cols}) VALUES ({marks}) "
+                            "ON CONFLICT(idempotency_key) DO NOTHING", tuple(fields.values()))
             created = cur.rowcount == 1
             row = c.execute(f"SELECT id FROM {table} WHERE idempotency_key=?", (fields["idempotency_key"],)).fetchone()
         return row["id"], created
