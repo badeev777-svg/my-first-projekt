@@ -162,19 +162,40 @@ class Catalog:
         return facts
 
 
+def _flag(value: Any, file: str, where: str, key: str) -> bool:
+    # bool("false") is True: only a real YAML boolean may switch a price, FAQ or consent on.
+    if not isinstance(value, bool):
+        raise CatalogError(f"{file}: {where}: поле {key} должно быть true или false, получено {value!r}")
+    return value
+
+
+def _price(value: Any, file: str, where: str, key: str) -> int | None:
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise CatalogError(f"{file}: {where}: поле {key} должно быть целым числом или null, получено {value!r}")
+    return value
+
+
 def _load_services(path: Path) -> list[Service]:
     out: list[Service] = []
     for item in _read_yaml(path) or []:
         _require(item, ["id", "title", "description", "price_from", "price_to", "currency", "period", "approved"],
                  "services.yaml")
+        where = f"запись {item['id']}"
         if item["period"] not in PERIODS:
-            raise CatalogError(f"services.yaml: {item['id']}: period должен быть one_time или monthly")
+            raise CatalogError(f"services.yaml: {where}: period должен быть one_time или monthly")
+        price_from = _price(item["price_from"], "services.yaml", where, "price_from")
+        price_to = _price(item["price_to"], "services.yaml", where, "price_to")
+        if price_from is not None and price_to is not None and price_from > price_to:
+            raise CatalogError(f"services.yaml: {where}: price_from больше price_to")
         out.append(Service(
             id=str(item["id"]), title=str(item["title"]), description=str(item["description"]),
             includes=tuple(str(x) for x in item.get("includes") or []),
-            price_from=item["price_from"], price_to=item["price_to"], currency=str(item["currency"]),
+            price_from=price_from, price_to=price_to, currency=str(item["currency"]),
             period=item["period"], duration_note=str(item.get("duration_note") or ""),
-            approved=bool(item["approved"]), source=str(item.get("source") or ""),
+            approved=_flag(item["approved"], "services.yaml", where, "approved"),
+            source=str(item.get("source") or ""),
         ))
     return out
 
@@ -190,7 +211,7 @@ def _load_projects(path: Path) -> list[Project]:
         out.append(Project(
             id=str(item["id"]), title=str(item["title"]), description=str(item.get("description") or ""),
             status=item["status"], url=str(item.get("url") or ""), public=item["public"],
-            verified=bool(item["verified"]),
+            verified=_flag(item["verified"], "projects.yaml", f"запись {item['id']}", "verified"),
         ))
     return out
 
@@ -199,7 +220,9 @@ def _load_faq(path: Path) -> list[FaqItem]:
     out: list[FaqItem] = []
     for item in _read_yaml(path) or []:
         _require(item, ["q", "a", "approved"], "faq.yaml")
-        out.append(FaqItem(q=str(item["q"]), a=str(item["a"]), approved=bool(item["approved"])))
+        where = f"запись «{item['q']}»"
+        out.append(FaqItem(q=str(item["q"]), a=str(item["a"]),
+                           approved=_flag(item["approved"], "faq.yaml", where, "approved")))
     return out
 
 
@@ -208,7 +231,7 @@ def _load_policy(path: Path) -> Policy:
     _require(item, ["tone", "recipient", "consent_text", "consent_approved"], "policy.yaml")
     return Policy(
         tone=str(item["tone"]), recipient=str(item["recipient"]), consent_text=str(item["consent_text"]),
-        consent_approved=bool(item["consent_approved"]),
+        consent_approved=_flag(item["consent_approved"], "policy.yaml", "policy", "consent_approved"),
         data_rules=tuple(str(x) for x in item.get("data_rules") or []),
     )
 
