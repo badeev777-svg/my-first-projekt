@@ -9,7 +9,12 @@ from app.store import Store
 
 log = logging.getLogger("sales_agent.leads")
 
-_PHONE = re.compile(r"(?:\+7|8)[\s\-()]*\d{3}[\s\-()]*\d{3}[\s\-]*\d{2}[\s\-]*\d{2}")
+# Границы по цифрам отсекают артикулы и суммы; после префикса первая цифра 3-9 (код страны/оператора),
+# без префикса только 9 (мобильный). Разделители между группами допускают пробел, NBSP, дефис, точку, скобки.
+_SEP = r"[\s \-().]*"
+_PHONE = re.compile(
+    rf"(?<!\d)(?:(?:\+?7|8){_SEP}[3-9]|9)\d{{2}}{_SEP}\d{{3}}{_SEP}\d{{2}}{_SEP}\d{{2}}(?!\d)"
+)
 _EMAIL = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
 
 
@@ -24,12 +29,15 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+def _normalize_phone(raw: str) -> str:
+    return "+7" + re.sub(r"\D", "", raw)[-10:]
+
+
 def extract_contact(text: str) -> str | None:
     if m := _EMAIL.search(text):
         return m.group()
     if m := _PHONE.search(text):
-        digits = re.sub(r"\D", "", m.group())
-        return "+7" + digits[-10:]
+        return _normalize_phone(m.group())
     return None
 
 
@@ -42,7 +50,7 @@ def mask_contact(contact: str) -> str:
 
 def mask_text(text: str) -> str:
     text = _EMAIL.sub(lambda m: mask_contact(m.group()), text)
-    return _PHONE.sub(lambda m: mask_contact(re.sub(r"\D", "", m.group())), text)
+    return _PHONE.sub(lambda m: mask_contact(_normalize_phone(m.group())), text)
 
 
 def _deliver(channel: Channel, kind: str, payload: dict, demo: bool) -> str:
@@ -62,7 +70,8 @@ def create_lead(store: Store, channel: Channel, *, conversation_id: str, contact
     masked = mask_contact(contact)
     lead_id, created = store.create_lead(
         conversation_id=conversation_id, idempotency_key=f"lead:{conversation_id}", contact_masked=masked,
-        contact=contact if real else "", consent_status="given", consent_time=_now(),
+        contact=contact if real else "", consent_status="given" if real else "demo",
+        consent_time=_now() if real else None,
         need=mask_text(need)[:500], product_id=product_id or "unknown",
         next_step=f"ответ: {policy.recipient}", delivery_status="pending",
     )
