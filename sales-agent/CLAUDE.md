@@ -11,3 +11,9 @@
 - Ключи только в `.env` (не в git). Подключение к cloud.ru — как в `../rag-demo/app/cloudru.py`.
 - Граница v1 — локальный прототип; деплой, каналы, CRM — только с согласия Александра.
 - `../Manager-saler/` — старая версия, к удалению; не развивать.
+
+## Команды
+- Запуск: `start.bat` или `uv run uvicorn app.main:create_app --factory --host 127.0.0.1 --port 8000`
+- Тесты: `uv run pytest`
+- Живая приёмка: `uv run python scripts/live_acceptance.py` (нужен `CLOUDRU_API_KEY` в `.env`)
+- Админка: http://127.0.0.1:8000/admin — только localhost; в Docker недоступна.
