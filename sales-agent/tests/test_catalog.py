@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from app.catalog import CatalogError, load_catalog
-from tests.helpers import make_content, service
+from tests.helpers import DEFAULT_POLICY, make_content, service
 
 REAL_CONTENT = Path(__file__).resolve().parent.parent / "content"
 
@@ -119,3 +119,50 @@ def test_facts_have_no_secret_like_values():
     cat = load_catalog(REAL_CONTENT)
     for f in cat.facts():
         assert not re.search(r"(?i)api[_-]?key|password|пароль|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}", f.text)
+
+
+@pytest.mark.parametrize("value", ["false", "no", 0, None])
+def test_non_bool_approved_rejected(tmp_path, value):
+    with pytest.raises(CatalogError, match=r"services\.yaml.*ai-agent.*approved"):
+        load_catalog(make_content(tmp_path, [service(approved=value)]))
+
+
+def test_non_bool_project_verified_rejected(tmp_path):
+    projects = [{"id": "p", "title": "P", "description": "d", "status": "live", "public": "yes", "verified": "no"}]
+    with pytest.raises(CatalogError, match=r"projects\.yaml.*p.*verified"):
+        load_catalog(make_content(tmp_path, [service()], projects=projects))
+
+
+def test_non_bool_faq_approved_rejected(tmp_path):
+    faq = [{"q": "Вопрос?", "a": "Ответ", "approved": "yes"}]
+    with pytest.raises(CatalogError, match=r"faq\.yaml.*approved"):
+        load_catalog(make_content(tmp_path, [service()], faq=faq))
+
+
+def test_non_bool_consent_approved_rejected(tmp_path):
+    policy = {**DEFAULT_POLICY, "consent_approved": "no"}
+    with pytest.raises(CatalogError, match=r"policy\.yaml.*consent_approved"):
+        load_catalog(make_content(tmp_path, [service()], policy=policy))
+
+
+@pytest.mark.parametrize("value", ["50000", True, 1.5])
+def test_non_int_price_rejected(tmp_path, value):
+    with pytest.raises(CatalogError, match=r"services\.yaml.*ai-agent.*price_from"):
+        load_catalog(make_content(tmp_path, [service(price_from=value)]))
+
+
+def test_bool_price_to_rejected(tmp_path):
+    with pytest.raises(CatalogError, match=r"price_to"):
+        load_catalog(make_content(tmp_path, [service(price_to=True)]))
+
+
+def test_price_from_above_price_to_rejected(tmp_path):
+    with pytest.raises(CatalogError, match=r"ai-agent.*price_from больше price_to"):
+        load_catalog(make_content(tmp_path, [service(price_from=300000, price_to=100000)]))
+
+
+def test_open_ended_prices_are_accepted(tmp_path):
+    cat = load_catalog(make_content(tmp_path, [service("a", price_from=None, price_to=90000),
+                                               service("b", price_from=80000, price_to=None)]))
+    assert cat.price_text("a") == "до 90 000 ₽"
+    assert cat.price_text("b") == "от 80 000 ₽"
