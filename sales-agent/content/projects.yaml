@@ -1,0 +1,28 @@
+# status: live | in_dev | paused | unknown;  public: yes | no | description_only
+# verified: false — описание не показывается клиенту, пока владелец его не подтвердит.
+- {id: neuro-marketolog, title: Нейро-маркетолог, description: "Анализ сайта и маркетинга с оценкой и рекомендациями", status: live, url: "https://нейро.бизнесгенератор.рф", public: "yes", verified: false}
+- {id: agent-hub, title: agent-hub, description: "Платформа ИИ-агентов для Telegram, MAX, Авито и виджета сайта", status: live, url: "https://hub.бизнесгенератор.рф", public: "yes", verified: false}
+- {id: aleks, title: Aleks, description: "Персональный ИИ-агент-разработчик: принимает задачи в Telegram, ведёт несколько проектов, пишет и проверяет код", status: live, public: description_only, verified: true}
+- {id: my-portfolio, title: Портфолио, description: "Сайт-портфолио с примерами проектов и демо", status: live, public: "yes", verified: true}
+- {id: vizitka, title: Визитка, description: "Персональная визитка / об авторе", status: live, public: "yes", verified: true}
+- {id: lending, title: Лендинг с интеграциями, description: "Промо-лендинг с интеграциями и примерами", status: live, public: "yes", verified: true}
+- {id: tg-beauty-catalog, title: Каталог красоты в Telegram, description: "Каталог товаров красоты в Telegram с поиском, фильтрацией и заказами", status: live, public: "yes", verified: true}
+- {id: rag-demo, title: Ответы по документам (демо), description: "Загрузка документов компании и вопросы к ним", status: in_dev, public: "yes", verified: false}
+- {id: content-agent-bot, title: Content Agent Bot, description: "Telegram-бот для малого бизнеса и SMM-агентств: генерирует и переписывает посты, анализирует аудиторию, рекомендует хэштеги и время публикации", status: in_dev, public: "yes", verified: true}
+- {id: primerka, title: Виртуальная примерка, description: "Приложение виртуальной примерки одежды по фото пользователя", status: in_dev, public: "yes", verified: true}
+- {id: ai-tyutor, title: AI-тьютор английского, description: "Бот для практики разговорного английского с AI-наставником: исправляет ошибки, предлагает альтернативы", status: in_dev, public: "yes", verified: true}
+- {id: ai-montage, title: ai-montage, description: "", status: in_dev, public: "yes", verified: false}
+- {id: sales-agent, title: ИИ-продажник, description: "Этот помощник: выясняет задачу, подбирает услугу из утверждённого каталога и передаёт заявку человеку", status: in_dev, public: "yes", verified: true}
+- {id: lead-parser, title: Lead Parser, description: "Парсер лидов из различных источников", status: paused, public: "yes", verified: true}
+- {id: inter-sales, title: inter-sales, description: "Утилита для B2B-продаж", status: paused, public: "yes", verified: true}
+- {id: elektra, title: Elektra, description: "", status: paused, public: "yes", verified: false}
+- {id: battleshipgame, title: BattleshipGame, description: "Android-игра «Морской бой»", status: unknown, public: "yes", verified: false}
+- {id: crm, title: CRM, description: "Мини-CRM для учёта клиентов (одна HTML-страница)", status: unknown, public: "yes", verified: false}
+- {id: crm-rieltor, title: crm-rieltor, description: "CRM для риелтора (одна HTML-страница)", status: unknown, public: "yes", verified: false}
+- {id: calendar, title: Calendar, description: "Android-приложение «Календарь»", status: unknown, public: "yes", verified: false}
+- {id: mcwin, title: Mcwin, description: "", status: unknown, public: "yes", verified: false}
+- {id: mini-app, title: Mini-app, description: "", status: unknown, public: "yes", verified: false}
+- {id: kalkulyator, title: kalkulyator, description: "Калькулятор стоимости доставки (одна HTML-страница)", status: unknown, public: "yes", verified: false}
+- {id: internet-magazin, title: internet-magazin, description: "Интернет-магазин на Flask и SQLite: каталог товаров, корзина и оформление заказа", status: unknown, public: "yes", verified: false}
+- {id: telegram-reader, title: telegram-reader, description: "", status: unknown, public: "yes", verified: false}
+- {id: presentation, title: Presentation, description: "HTML-презентация Lead Parser — AI-парсера заказов", status: unknown, public: "yes", verified: false}
