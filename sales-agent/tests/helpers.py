@@ -1,3 +1,5 @@
+import json
+import re
 from pathlib import Path
 
 import yaml
@@ -49,3 +51,40 @@ def make_content(
     (root / "role.md").write_text(role, encoding="utf-8")
     (root / "VERSION").write_text("test\n", encoding="utf-8")
     return root
+
+
+def contract(reply: str, next_state: str = "discovery", action: str = "none", review: str = "ok",
+             facts: list[str] | None = None) -> str:
+    return json.dumps({"reply": reply, "facts_used": facts or [], "missing_fields": [], "next_state": next_state,
+                       "proposed_action": action, "review_status": review}, ensure_ascii=False)
+
+
+class Script:
+    """Тестовая модель: различает классификатор, контроль качества и навык по маркерам в системном промпте.
+
+    replies — очередь ответов навыка; последний повторяется. Элемент-исключение бросается.
+    fail — если задано, бросается на любом вызове.
+    """
+
+    def __init__(self, intent: str = "need", service_id: str | None = None, replies: list | None = None,
+                 verdict: str = "pass", fail: Exception | None = None):
+        self.intent = intent
+        self.service_id = service_id
+        self.replies = list(replies or [contract("Расскажите, пожалуйста, о задаче.")])
+        self.verdict = verdict
+        self.fail = fail
+        self.skills: list[str] = []
+
+    def __call__(self, system: str, user: str) -> str:
+        if self.fail is not None:
+            raise self.fail
+        if system.startswith("Ты — классификатор намерений"):
+            return json.dumps({"intent": self.intent, "service_id": self.service_id})
+        if "name: sales-quality-check" in system:
+            return json.dumps({"verdict": self.verdict})
+        m = re.search(r"^name: (sales-[a-z-]+)$", system, re.M)
+        self.skills.append(m.group(1) if m else "?")
+        item = self.replies.pop(0) if len(self.replies) > 1 else self.replies[0]
+        if isinstance(item, Exception):
+            raise item
+        return item
