@@ -1,12 +1,25 @@
+import sqlite3
+
 import pytest
 
 from app.state import State
-from app.store import AlreadyProcessing, Store
+from app.store import CLAIM_TTL_SECONDS, AlreadyProcessing, Store
 
 
 @pytest.fixture
 def store(tmp_path):
     return Store(str(tmp_path / "db" / "sales.db"))
+
+
+@pytest.fixture
+def clock():
+    now = [1000.0]
+    return now, (lambda: now[0])
+
+
+@pytest.fixture
+def clocked_store(tmp_path, clock):
+    return Store(str(tmp_path / "sales.db"), clock=clock[1])
 
 
 def lead_kwargs(cid: str, key: str = "lead:x") -> dict:
@@ -97,3 +110,30 @@ def test_data_survives_new_store_instance(tmp_path):
     path = str(tmp_path / "sales.db")
     cid = Store(path).create_conversation("s").id
     assert Store(path).get_conversation(cid) is not None
+
+
+def test_lead_constraint_violation_raises_and_saves_nothing(store):
+    cid = store.create_conversation("s").id
+    with pytest.raises(sqlite3.IntegrityError):
+        store.create_lead(**{**lead_kwargs(cid), "need": None})
+    assert store.list_leads() == []
+
+
+def test_fresh_claim_conflict_raises(clocked_store, clock):
+    now, _ = clock
+    cid = clocked_store.create_conversation("s").id
+    assert clocked_store.claim_message(cid, "m1", "привет") is None
+    now[0] += CLAIM_TTL_SECONDS
+    with pytest.raises(AlreadyProcessing):
+        clocked_store.claim_message(cid, "m1", "привет")
+
+
+def test_stale_claim_is_taken_over(clocked_store, clock):
+    now, _ = clock
+    cid = clocked_store.create_conversation("s").id
+    assert clocked_store.claim_message(cid, "m1", "привет") is None
+    now[0] += CLAIM_TTL_SECONDS + 1
+    assert clocked_store.claim_message(cid, "m1", "привет") is None
+    assert clocked_store.history(cid) == [("user", "привет")]
+    with pytest.raises(AlreadyProcessing):
+        clocked_store.claim_message(cid, "m1", "привет")
