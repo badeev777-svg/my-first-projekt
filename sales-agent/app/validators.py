@@ -73,7 +73,8 @@ def check_reply(reply: SkillReply, *, facts: list[Fact], state: State, client_te
     if state is not State.CONSENT_PENDING and _CONTACT.search(text):
         issues.append("contact_request: контакт запрашивает система через proposed_action ask_consent")
     target = parse_state(reply.next_state)
-    if target is None or not model_may_set(state, target):
+    # Остаться в текущем состоянии (в т.ч. new → new) всегда допустимо, даже если can_transition(src, src) ложно.
+    if target is None or (target is not state and not model_may_set(state, target)):
         issues.append(f"next_state: недопустимый переход {state.value} → {reply.next_state}")
     known = {f.id for f in facts}
     unknown = [fid for fid in reply.facts_used if fid not in known]
