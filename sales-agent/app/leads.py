@@ -65,11 +65,11 @@ def _deliver(channel: Channel, kind: str, payload: dict, demo: bool) -> str:
 
 
 def create_lead(store: Store, channel: Channel, *, conversation_id: str, contact: str, need: str,
-                product_id: str | None, policy: Policy, demo: bool) -> Outcome:
+                product_id: str | None, policy: Policy, demo: bool, epoch: int = 0) -> Outcome:
     real = policy.consent_approved and not demo
     masked = mask_contact(contact)
     lead_id, created = store.create_lead(
-        conversation_id=conversation_id, idempotency_key=f"lead:{conversation_id}", contact_masked=masked,
+        conversation_id=conversation_id, idempotency_key=f"lead:{conversation_id}:{epoch}", contact_masked=masked,
         contact=contact if real else "", consent_status="given" if real else "demo",
         consent_time=_now() if real else None,
         need=mask_text(need)[:500], product_id=product_id or "unknown",
@@ -85,9 +85,9 @@ def create_lead(store: Store, channel: Channel, *, conversation_id: str, contact
 
 
 def create_handoff(store: Store, channel: Channel, *, conversation_id: str, reason: str, summary: str,
-                   question: str, demo: bool) -> Outcome:
+                   question: str, demo: bool, epoch: int = 0) -> Outcome:
     handoff_id, created = store.create_handoff(
-        conversation_id=conversation_id, idempotency_key=f"handoff:{conversation_id}:{reason}", reason=reason,
+        conversation_id=conversation_id, idempotency_key=f"handoff:{conversation_id}:{epoch}:{reason}", reason=reason,
         summary=mask_text(summary)[:1000], question=mask_text(question)[:500], delivery_status="pending",
     )
     if not created:

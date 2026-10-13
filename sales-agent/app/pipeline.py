@@ -49,6 +49,7 @@ class Turn:
     fallback: bool = False
     lead: Outcome | None = None
     handoff: Outcome | None = None
+    product: str | None = None
 
 
 def _outcome(o: Outcome | None) -> dict | None:
@@ -88,6 +89,8 @@ class Pipeline:
             # Без снятия захвата «Повторить» с тем же id навсегда получал бы 409.
             self._store.release_claim(conv.id, client_message_id)
             raise
+        if turn.product and turn.product != conv.product_id:
+            self._store.set_product(conv.id, turn.product)
         if turn.state is not conv.state:
             self._store.set_state(conv.id, turn.state)
         body = {
@@ -127,33 +130,32 @@ class Pipeline:
     def _lead(self, conv: Conversation, contact: str, text: str, history: list[tuple[str, str]]) -> Turn:
         need = " | ".join(t for role, t in history if role == "user")[-500:] or text
         out = create_lead(self._store, self._channel, conversation_id=conv.id, contact=contact, need=need,
-                          product_id=conv.product_id, policy=self._catalog.policy, demo=self.demo)
+                          product_id=conv.product_id, policy=self._catalog.policy, demo=self.demo,
+                          epoch=conv.epoch)
         reply = LEAD_REPLY.get(out.delivery_status, LEAD_REPLY["failed"]).format(id=out.id, recipient=self._recipient)
         state = State.LEAD_DRAFT if out.delivery_status == "failed" else State.HUMAN_PENDING
         return Turn(reply, state, skill="sales-lead-capture", lead=out)
 
     def _handoff(self, conv: Conversation, reason: str, text: str, history: list[tuple[str, str]],
-                 prefix: str = "") -> Turn:
+                 prefix: str = "", product: str | None = None) -> Turn:
         summary = " | ".join(t for role, t in history[-6:] if role == "user") or text
         out = create_handoff(self._store, self._channel, conversation_id=conv.id, reason=reason, summary=summary,
-                             question=text, demo=self.demo)
+                             question=text, demo=self.demo, epoch=conv.epoch)
         reply = HANDOFF_REPLY.get(out.delivery_status, HANDOFF_REPLY["failed"]).format(
             id=out.id, recipient=self._recipient)
-        return Turn(prefix + reply, State.HUMAN_PENDING, skill="sales-human-handoff", handoff=out)
+        return Turn(prefix + reply, State.HUMAN_PENDING, skill="sales-human-handoff", handoff=out, product=product)
 
     def _model_turn(self, llm: LLM, conv: Conversation, text: str, history: list[tuple[str, str]]) -> Turn:
         cls = classify(llm, text, history, self._catalog.service_ids)
-        if cls.service_id and cls.service_id != conv.product_id:
-            self._store.set_product(conv.id, cls.service_id)
         product = cls.service_id or conv.product_id
         if cls.intent == "refuse":
             return Turn(CLOSED_REPLY, State.CLOSED)
         if cls.intent == "price" and product and self._catalog.price_status(product) == "conflict":
             prefix = CONFLICT_PREFIX.format(title=self._catalog.title(product))
-            return self._handoff(conv, "price_conflict", text, history, prefix)
+            return self._handoff(conv, "price_conflict", text, history, prefix, product)
         skill = admit(conv.state, cls.intent)
         if skill == "sales-human-handoff":
-            return self._handoff(conv, "client_request", text, history)
+            return self._handoff(conv, "client_request", text, history, product=product)
 
         facts = self._catalog.facts()
         draft = run_skill(llm, self._skills[skill], self._catalog, facts, conv.state, history, text)
@@ -163,10 +165,10 @@ class Pipeline:
             draft = run_skill(llm, self._skills[skill], self._catalog, facts, conv.state, history, text, issues)
             verdict, issues = self._vet(llm, draft, facts, conv.state, text)
         if verdict == "human":
-            return self._handoff(conv, "quality_review", text, history)
+            return self._handoff(conv, "quality_review", text, history, product=product)
         if verdict != "ok" or draft is None:
             log.warning("fallback conv=%s skill=%s issues=%s", conv.id, skill, _codes(issues))
-            return Turn(FALLBACK_REPLY.format(recipient=self._recipient), conv.state, skill=skill, fallback=True)
+            return Turn(FALLBACK_REPLY.format(recipient=self._recipient), conv.state, skill=skill, fallback=True, product=product)
         return self._finish(conv, cls, product, skill, draft, text, history)
 
     def _vet(self, llm: LLM, draft: SkillReply | None, facts: list, state: State,
@@ -187,9 +189,12 @@ class Pipeline:
     def _finish(self, conv: Conversation, cls: Classification, product: str | None, skill: str,
                 draft: SkillReply, text: str, history: list[tuple[str, str]]) -> Turn:
         if draft.proposed_action == "handoff":
-            return self._handoff(conv, "model_request", text, history, prefix=draft.reply + "\n\n")
+            return self._handoff(conv, "model_request", text, history, prefix=draft.reply + "\n\n", product=product)
         reply = draft.reply
         target = parse_state(draft.next_state)
+        if target is State.CONSENT_PENDING:
+            # В consent_pending ведёт только ask_consent (с текстом согласия); иначе контакт станет заявкой без согласия.
+            target = conv.state
         if draft.proposed_action == "ask_consent" and can_transition(conv.state, State.CONSENT_PENDING):
             # Текст согласия добавляет код: модель не может исказить, кому и зачем уходит контакт.
             reply += "\n\n" + self._catalog.policy.consent_text
@@ -203,4 +208,4 @@ class Pipeline:
             elif status in ("unapproved", "none") and "уточн" not in reply.lower():
                 reply += f"\n\nЦена «{title}» в каталоге не утверждена — её уточнит {self._recipient}."
         state = target if target is not None and can_transition(conv.state, target) else conv.state
-        return Turn(reply, state, skill=skill)
+        return Turn(reply, state, skill=skill, product=product)
