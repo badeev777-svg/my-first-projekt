@@ -927,7 +927,7 @@ def load_catalog(content_dir: Path) -> Catalog:
 # verified: false — описание не показывается клиенту, пока владелец его не подтвердит.
 - {id: neuro-marketolog, title: Нейро-маркетолог, description: "Анализ сайта и маркетинга с оценкой и рекомендациями", status: live, url: "https://нейро.бизнесгенератор.рф", public: "yes", verified: false}
 - {id: agent-hub, title: agent-hub, description: "Платформа ИИ-агентов для Telegram, MAX, Авито и виджета сайта", status: live, url: "https://hub.бизнесгенератор.рф", public: "yes", verified: false}
-- {id: aleks, title: Aleks, description: "Персональный ИИ-агент-разработчик: принимает задачи в Telegram, ведёт несколько проектов, пишет и проверяет код", status: live, public: description_only, verified: false}
+- {id: aleks, title: Aleks, description: "Персональный ИИ-агент-разработчик: принимает задачи в Telegram, ведёт несколько проектов, пишет и проверяет код", status: live, public: description_only, verified: true}
 - {id: my-portfolio, title: Портфолио, description: "Сайт-портфолио с примерами проектов и демо", status: live, public: "yes", verified: true}
 - {id: vizitka, title: Визитка, description: "Персональная визитка / об авторе", status: live, public: "yes", verified: true}
 - {id: lending, title: Лендинг с интеграциями, description: "Промо-лендинг с интеграциями и примерами", status: live, public: "yes", verified: true}
