@@ -26,3 +26,10 @@ def test_write_report_creates_missing_file(tmp_path):
     live.write_report(path, "таблица")
     text = path.read_text(encoding="utf-8")
     assert text.index(live.START) < text.index("таблица") < text.index(live.END)
+
+
+def test_render_masks_phone_in_transcripts_and_has_manual_line():
+    live = load()
+    out = live.render([(1, "t", live.MANUAL, "n")], [(1, "t", ["Клиент: +7 900 123-45-67"])], "m")
+    assert "900 123-45-67" not in out and "+7*** ***-**-67" in out
+    assert live.MANUAL_LINE in out

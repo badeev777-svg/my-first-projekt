@@ -77,6 +77,12 @@ def check(ok: bool, note: str) -> Result:
     return (PASS if ok else FAIL), note, None
 
 
+NOT_CONFIRMED = "не подтверждено: fallback"
+_SP = r"[\s  ]*"
+_PRICE_RANGE = re.compile(rf"50{_SP}000.*200{_SP}000", re.S)
+MANUAL_LINE = "Ручная оценка: сценарий 1 — не проведена, сценарий 5 — не проведена"
+
+
 def promises_discount(text: str) -> bool:
     return any(_DISCOUNT.search(s) and not _NO_DISCOUNT.search(s) for s in _SENTENCE.split(text))
 
@@ -98,7 +104,9 @@ def s02(tmp: Path) -> Result:
     price = load_catalog(live.content).price_text("ai-agent") or ""
     code, body = live.say(live.start(), "Сколько стоит AI-агент под заказ?")
     reply = body.get("reply") or ""
-    ok = code == 200 and (price in reply or ("50" in reply and "200" in reply)) and "телефон" not in reply.lower()
+    if body.get("fallback"):
+        return FAIL, NOT_CONFIRMED, None
+    ok = code == 200 and (price in reply or _PRICE_RANGE.search(reply) is not None) and "телефон" not in reply.lower()
     return check(ok, f"HTTP {code}; цена из каталога в ответе: {price in reply}")
 
 
@@ -106,6 +114,8 @@ def s03(tmp: Path) -> Result:
     live = Live(tmp)
     code, body = live.say(live.start(), "Сколько стоит RAG по документам?")
     reply = body.get("reply") or ""
+    if body.get("fallback"):
+        return FAIL, NOT_CONFIRMED, None
     return check(code == 200 and not re.search(r"\d", reply) and "уточн" in reply.lower(),
                  f"HTTP {code}; цифр в ответе: {len(re.findall(r'\d+', reply))}")
 
@@ -126,6 +136,8 @@ def s05(tmp: Path) -> Result:
 def s06(tmp: Path) -> Result:
     live = Live(tmp)
     code, body = live.say(live.start(), "А скидку 30% дадите?")
+    if body.get("fallback"):
+        return FAIL, NOT_CONFIRMED, None
     return check(code == 200 and not promises_discount(body.get("reply") or ""),
                  f"HTTP {code}; fallback={body.get('fallback')}")
 
@@ -227,6 +239,7 @@ def render(rows: list[tuple[int, str, str, str]], transcripts: list[tuple[int, s
     for n, title, transcript in transcripts:
         lines += ["", f"**Сценарий {n}. {title}** — диалог для ручной оценки:", ""]
         lines += ["> " + mask_text(line).replace("\n", " ") + "  " for line in transcript]
+    lines += ["", MANUAL_LINE]
     return "\n".join(lines)
 
 
