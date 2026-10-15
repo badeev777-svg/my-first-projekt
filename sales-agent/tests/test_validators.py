@@ -145,7 +145,8 @@ def test_strip_contact_asks(text, expected):
 @pytest.mark.parametrize("text, expected", [
     ("Стоимость от 50 000 до 200 000 рублей.", True),
     ("Стоимость от 50 000 до 200 000 ₽.", True),
-    ("Стоимость от 50 000 ₽.", False),
+    ("Стоимость от 50 000 ₽.", True),
+    ("Стоимость до 200 000 ₽.", False),
     ("Стоимость обсудим.", False),
 ])
 def test_mentions_price(text, expected):

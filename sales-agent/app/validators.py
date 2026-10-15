@@ -71,9 +71,13 @@ def allowed_numbers(texts: list[str]) -> set[str]:
 
 
 def mentions_price(price: str, text: str) -> bool:
-    """Все суммы цены уже есть в тексте — «от 50 000 до 200 000 рублей» вместо «₽» не дублируем."""
-    wanted = {_norm(m.group()) for m in _NUM.finditer(price)}
-    return bool(wanted) and wanted <= {_norm(m.group()) for m in _NUM.finditer(text)}
+    """Первая сумма цены (нижняя граница) уже есть в тексте — цену не дублируем.
+
+    «от 15 000» без верхней границы честен; дописывать к нему всю вилку — дубль (живая проверка 2026-10-15).
+    Одна верхняя граница («200 000») без нижней — не цена «от», её дописываем.
+    """
+    first = _NUM.search(price)
+    return first is not None and _norm(first.group()) in {_norm(m.group()) for m in _NUM.finditer(text)}
 
 
 def _client_numbers(text: str) -> list[str]:
