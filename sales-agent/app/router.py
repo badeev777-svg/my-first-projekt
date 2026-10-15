@@ -61,8 +61,9 @@ intent — одно из:
 - refuse: отказывается от общения или покупки
 - human: просит живого человека
 - other: всё остальное
-service_id — id услуги из списка, о которой идёт речь, иначе null.
-Услуги: {services}
+service_id — id услуги из списка (id — название), о которой идёт речь, иначе null.
+Услуги:
+{services}
 Ответь ТОЛЬКО JSON: {{"intent": "...", "service_id": "..." или null}}"""
 
 
@@ -90,14 +91,15 @@ def priority_route(text: str, conv: Conversation) -> RouteKind | None:
     return None
 
 
-def classify(llm: LLM, text: str, history: list[tuple[str, str]], service_ids: list[str]) -> Classification:
-    system = CLASSIFIER_SYSTEM.format(services=", ".join(service_ids))
+def classify(llm: LLM, text: str, history: list[tuple[str, str]], services: dict[str, str]) -> Classification:
+    # Одних id мало: «ответы по регламентам» без названий уходили в ai-agent вместо rag-docs (живая проверка 2026-10-15).
+    system = CLASSIFIER_SYSTEM.format(services="\n".join(f"- {sid} — {title}" for sid, title in services.items()))
     data = extract_json(llm.chat(system, build_user(history[-4:], text))) or {}
     intent = data.get("intent")
     service_id = data.get("service_id")
     return Classification(
         intent=intent if intent in INTENTS else "other",
-        service_id=service_id if service_id in service_ids else None,
+        service_id=service_id if service_id in services else None,
     )
 
 

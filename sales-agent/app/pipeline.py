@@ -160,7 +160,7 @@ class Pipeline:
         return Turn(prefix + reply, State.HUMAN_PENDING, skill="sales-human-handoff", handoff=out, product=product)
 
     def _model_turn(self, llm: LLM, conv: Conversation, text: str, history: list[tuple[str, str]]) -> Turn:
-        cls = classify(llm, text, history, self._catalog.service_ids)
+        cls = classify(llm, text, history, {sid: self._catalog.title(sid) for sid in self._catalog.service_ids})
         product = cls.service_id or conv.product_id
         if cls.intent == "refuse":
             return Turn(CLOSED_REPLY, State.CLOSED)

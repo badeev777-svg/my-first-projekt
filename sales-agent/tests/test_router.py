@@ -52,20 +52,20 @@ def test_ordinary_messages_have_no_priority_route(text):
 
 def test_classify_valid():
     fake = FakeLLM(lambda s, u: '{"intent": "price", "service_id": "tg-bot"}')
-    c = classify(fake, "Сколько стоит бот?", [], ["tg-bot", "landing"])
+    c = classify(fake, "Сколько стоит бот?", [], {"tg-bot": "Telegram-бот", "landing": "Лендинг"})
     assert (c.intent, c.service_id) == ("price", "tg-bot")
     system, user = fake.calls[0]
-    assert system.startswith("Ты — классификатор намерений") and "tg-bot, landing" in system
+    assert system.startswith("Ты — классификатор намерений") and "- tg-bot — Telegram-бот\n- landing — Лендинг" in system
     assert "Сколько стоит бот?" in user
 
 
 @pytest.mark.parametrize("raw", ["мусор", '{"intent": "buy_now"}', '{"intent": 5}'])
 def test_classify_invalid_is_other(raw):
-    assert classify(FakeLLM(lambda s, u: raw), "x", [], ["tg-bot"]).intent == "other"
+    assert classify(FakeLLM(lambda s, u: raw), "x", [], {"tg-bot": "Telegram-бот"}).intent == "other"
 
 
 def test_classify_unknown_service_is_none():
-    c = classify(FakeLLM(lambda s, u: '{"intent": "price", "service_id": "rocket"}'), "x", [], ["tg-bot"])
+    c = classify(FakeLLM(lambda s, u: '{"intent": "price", "service_id": "rocket"}'), "x", [], {"tg-bot": "Telegram-бот"})
     assert c.service_id is None
 
 
@@ -124,7 +124,7 @@ def test_classify_propagates_llm_error():
         raise LLMError("cloud.ru unavailable")
 
     with pytest.raises(LLMError):
-        classify(FakeLLM(boom), "x", [], ["tg-bot"])
+        classify(FakeLLM(boom), "x", [], {"tg-bot": "Telegram-бот"})
 
 
 @pytest.mark.parametrize("intent", ["question", "need", "price", "objection", "agree", "refuse", "human", "other"])
