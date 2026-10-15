@@ -3,13 +3,13 @@ from dataclasses import dataclass
 
 from app.catalog import Catalog
 from app.handoff import Channel
-from app.leads import Outcome, create_handoff, create_lead, extract_contact
+from app.leads import Outcome, create_handoff, create_lead, extract_contact, mask_text
 from app.llm_client import LLM
 from app.router import Classification, admit, classify, priority_route
 from app.skills import SkillReply, quality_check, run_skill
 from app.state import State, can_transition, parse_state
 from app.store import Conversation, Store
-from app.validators import check_reply
+from app.validators import check_reply, mentions_price, strip_contact_asks
 
 log = logging.getLogger("sales_agent.pipeline")
 
@@ -21,12 +21,15 @@ CONTACT_REFUSED_REPLY = "Хорошо, контакт не нужен. Може�
 DEMO_REPLY = ("Демо-режим: модель не подключена, поэтому это шаблонный ответ, а не работа ИИ-продажника. "
               "В рабочем режиме помощник уточнит задачу и подберёт услугу из каталога.")
 FALLBACK_REPLY = ("Не получилось подготовить точный ответ. Уточните, пожалуйста, вопрос — или напишите "
-                  "«позовите человека», и разговор перейдёт к {recipient}.")
+                  "«позовите человека», и к разговору подключится {recipient}.")
+CONTACT_BEFORE_CONSENT_REPLY = ("Спасибо! Контакт я пока не сохранил: сначала прочитайте, кому и зачем он передаётся. "
+                                "Если согласны, отправьте его ещё раз.")
 CONFLICT_PREFIX = "В каталоге указаны две разные цены на «{title}», поэтому называть цену не буду. "
 LEAD_REPLY = {
     "demo": ("Заявка №{id} сохранена локально в демо-режиме и никому не отправлена. Это не заказ и не оплата. "
              "Автоответы в этом диалоге остановлены."),
-    "sent_stub": ("Заявка №{id} передана в тестовый канал (заглушка) для {recipient}. Это не заказ и не оплата. "
+    "sent_stub": ("Заявка №{id} передана в тестовый канал (заглушка), получатель — {recipient}. "
+                  "Это не заказ и не оплата. "
                   "Пока заявка у человека, автоответы остановлены."),
     "failed": ("Не удалось подтвердить передачу заявки №{id}. Она сохранена во внутреннем списке; "
                "отправлять контакт ещё раз не нужно."),
@@ -56,6 +59,11 @@ def _outcome(o: Outcome | None) -> dict | None:
     return {"id": o.id, "delivery_status": o.delivery_status} if o else None
 
 
+def _reachable(src: State, dst: State) -> bool:
+    # Прямой переход или через offer: discovery → offer → consent_pending.
+    return can_transition(src, dst) or (can_transition(src, State.OFFER) and can_transition(State.OFFER, dst))
+
+
 def _codes(issues: list[str]) -> list[str]:
     return [i.split(":")[0] for i in issues]
 
@@ -80,7 +88,8 @@ class Pipeline:
 
     def handle(self, conv: Conversation, client_message_id: str, text: str) -> dict:
         history = self._store.history(conv.id)  # до захвата: текущая реплика не должна попасть в историю дважды
-        saved = self._store.claim_message(conv.id, client_message_id, text)
+        # В историю (и значит в модель) полный контакт не попадает никогда; заявка берёт его из text в памяти.
+        saved = self._store.claim_message(conv.id, client_message_id, mask_text(text))
         if saved is not None:
             return saved
         try:
@@ -93,12 +102,13 @@ class Pipeline:
             self._store.set_product(conv.id, turn.product)
         if turn.state is not conv.state:
             self._store.set_state(conv.id, turn.state)
+        reply = mask_text(turn.reply) if turn.reply else turn.reply
         body = {
-            "reply": turn.reply, "state": turn.state.value, "skill": turn.skill, "demo": self.demo,
+            "reply": reply, "state": turn.state.value, "skill": turn.skill, "demo": self.demo,
             "stopped": conv.stopped, "fallback": turn.fallback,
             "lead": _outcome(turn.lead), "handoff": _outcome(turn.handoff),
         }
-        self._store.save_response(conv.id, client_message_id, body, turn.reply, turn.skill)
+        self._store.save_response(conv.id, client_message_id, body, reply, turn.skill)
         log.info("turn conv=%s skill=%s state=%s->%s fallback=%s", conv.id, turn.skill, conv.state.value,
                  turn.state.value, turn.fallback)
         return body
@@ -123,9 +133,13 @@ class Pipeline:
             return self._lead(conv, contact, text, history)
         if conv.state is State.LEAD_DRAFT:
             return self._handoff(conv, "lead_not_delivered", text, history)
+        if contact and _reachable(conv.state, State.CONSENT_PENDING):
+            # Контакт без согласия не сохраняем: показываем условия передачи, клиент пришлёт контакт повторно.
+            reply = CONTACT_BEFORE_CONSENT_REPLY + "\n\n" + self._catalog.policy.consent_text
+            return Turn(reply, State.CONSENT_PENDING)
         if self._llm is None:
             return Turn(DEMO_REPLY, State.DISCOVERY if conv.state is State.NEW else conv.state)
-        return self._model_turn(self._llm, conv, text, history)
+        return self._model_turn(self._llm, conv, mask_text(text), history)
 
     def _lead(self, conv: Conversation, contact: str, text: str, history: list[tuple[str, str]]) -> Turn:
         need = " | ".join(t for role, t in history if role == "user")[-500:] or text
@@ -153,7 +167,7 @@ class Pipeline:
         if cls.intent == "price" and product and self._catalog.price_status(product) == "conflict":
             prefix = CONFLICT_PREFIX.format(title=self._catalog.title(product))
             return self._handoff(conv, "price_conflict", text, history, prefix, product)
-        skill = admit(conv.state, cls.intent)
+        skill = admit(conv.state, cls.intent, product_known=product is not None)
         if skill == "sales-human-handoff":
             return self._handoff(conv, "client_request", text, history, product=product)
 
@@ -175,6 +189,9 @@ class Pipeline:
              text: str) -> tuple[str, list[str]]:
         if draft is None:
             return "revise", ["format: ответ не соответствует JSON-контракту"]
+        if state is not State.CONSENT_PENDING and (rest := strip_contact_asks(draft.reply)):
+            # Объект изменяется на месте: дальше в _finish уходит уже очищенный ответ.
+            draft.reply = rest
         issues = check_reply(draft, facts=facts, state=state, client_text=text, secrets=self._secrets)
         if issues:
             return "revise", issues
@@ -195,17 +212,25 @@ class Pipeline:
         if target is State.CONSENT_PENDING:
             # В consent_pending ведёт только ask_consent (с текстом согласия); иначе контакт станет заявкой без согласия.
             target = conv.state
-        if draft.proposed_action == "ask_consent" and can_transition(conv.state, State.CONSENT_PENDING):
+        consent_ok = (can_transition(conv.state, State.CONSENT_PENDING)
+                      or (conv.state is State.DISCOVERY and product is not None))
+        if draft.proposed_action == "ask_consent" and consent_ok:
             # Текст согласия добавляет код: модель не может исказить, кому и зачем уходит контакт.
             reply += "\n\n" + self._catalog.policy.consent_text
             target = State.CONSENT_PENDING
+        price_shown = False
         if cls.intent == "price" and product:
             status = self._catalog.price_status(product)
             title = self._catalog.title(product)
             price = self._catalog.price_text(product)
-            if status == "approved" and price and price not in reply:
-                reply += f"\n\nЦена «{title}»: {price}."
+            if status == "approved" and price:
+                price_shown = True
+                if not mentions_price(price, reply):
+                    reply += f"\n\nЦена «{title}»: {price}."
             elif status in ("unapproved", "none") and "уточн" not in reply.lower():
                 reply += f"\n\nЦена «{title}» в каталоге не утверждена — её уточнит {self._recipient}."
-        state = target if target is not None and can_transition(conv.state, target) else conv.state
+        if conv.state is State.DISCOVERY and (cls.service_id or price_shown) and target in (None, State.DISCOVERY):
+            # Модель часто остаётся в discovery, хотя услуга уже названа; без offer диалог не дойдёт до заявки.
+            target = State.OFFER
+        state = target if target is not None and _reachable(conv.state, target) else conv.state
         return Turn(reply, state, skill=skill, product=product)

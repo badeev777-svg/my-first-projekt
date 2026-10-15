@@ -33,3 +33,20 @@ def test_render_masks_phone_in_transcripts_and_has_manual_line():
     out = live.render([(1, "t", live.MANUAL, "n")], [(1, "t", ["Клиент: +7 900 123-45-67"])], "m")
     assert "900 123-45-67" not in out and "+7*** ***-**-67" in out
     assert live.MANUAL_LINE in out
+
+
+def test_request_ids_are_not_counted_as_digits():
+    live = load()
+    assert live.strip_request_ids("Запрос №12 передан. Цену уточнит Александр.") == "Запрос  передан. Цену уточнит Александр."
+    assert live.strip_request_ids("Стоит 90 000 ₽, заявка № 7") == "Стоит 90 000 ₽, заявка "
+
+
+def test_failed_check_keeps_transcript_passed_does_not():
+    live = load()
+
+    class Fake:
+        transcript = ["Клиент: привет", "Бот [200, new]: здравствуйте"]
+
+    assert live.check(False, "n", Fake()) == (live.FAIL, "n", Fake.transcript)
+    assert live.check(True, "n", Fake()) == (live.PASS, "n", None)
+    assert live.check(False, "n") == (live.FAIL, "n", None)

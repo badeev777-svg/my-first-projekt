@@ -25,7 +25,7 @@ def test_chat_returns_stripped_content_and_sends_model():
     llm, seen = make(lambda r: ok("  привет  "))
     assert llm.chat("sys", "user") == "привет"
     body = seen[0].read().decode()
-    assert "ai-sage/GigaChat3.5-432B-A28B" in body
+    assert "GigaChat/GigaChat-2-Max" in body
     assert seen[0].headers["Authorization"] == "Bearer test-key"
 
 
@@ -68,3 +68,10 @@ def test_fake_llm_records_calls():
     fake = FakeLLM(lambda s, u: f"{s}|{u}")
     assert fake.chat("a", "b") == "a|b"
     assert fake.calls == [("a", "b")]
+
+
+@pytest.mark.parametrize("content", [None, 42, ["a"]])
+def test_null_or_non_string_content_raises_llm_error(content):
+    llm, _ = make(lambda r: httpx.Response(200, json={"choices": [{"message": {"content": content}}]}))
+    with pytest.raises(LLMError):
+        llm.chat("s", "u")

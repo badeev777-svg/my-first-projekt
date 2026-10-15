@@ -137,3 +137,8 @@ def test_stale_claim_is_taken_over(clocked_store, clock):
     assert clocked_store.history(cid) == [("user", "привет")]
     with pytest.raises(AlreadyProcessing):
         clocked_store.claim_message(cid, "m1", "привет")
+
+
+def test_claim_ttl_covers_five_model_calls_with_retry():
+    # 5 вызовов модели × (2 попытки × 20 с + 1 с паузы) = 205 с; TTL с запасом.
+    assert CLAIM_TTL_SECONDS == 240

@@ -20,6 +20,7 @@ from app.store import AlreadyProcessing, Conversation, Store
 
 STATIC = Path(__file__).resolve().parent / "static"
 LOCAL_HOSTS = {"127.0.0.1", "::1"}
+LOCAL_HOST_NAMES = {"127.0.0.1", "localhost", "::1", "[::1]"}
 COOKIE = "sid"
 
 
@@ -54,8 +55,17 @@ class RateLimiter:
 def require_local(request: Request) -> None:
     # Только адрес TCP-соединения: X-Forwarded-For подделывается, поэтому uvicorn запускается без --proxy-headers.
     host = request.client.host if request.client else ""
-    if host not in LOCAL_HOSTS:
+    # Host проверяется против DNS rebinding: чужой сайт может указать своё имя на 127.0.0.1 и читать админку из браузера.
+    if host not in LOCAL_HOSTS or _host_name(request.headers.get("host", "")) not in LOCAL_HOST_NAMES:
         raise HTTPException(403, "Админка доступна только с этого компьютера")
+
+
+def _host_name(header: str) -> str:
+    value = header.strip().lower()
+    if value.startswith("["):
+        end = value.find("]")
+        return value[: end + 1] if end > 0 else value
+    return value.split(":", 1)[0] if value.count(":") == 1 else value
 
 
 def create_app(settings: Settings | None = None, *, llm: LLM | None = None,

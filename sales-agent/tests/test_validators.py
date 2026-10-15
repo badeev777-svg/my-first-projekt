@@ -3,7 +3,7 @@ import pytest
 from app.catalog import Fact
 from app.skills import SkillReply
 from app.state import State
-from app.validators import allowed_numbers, check_reply
+from app.validators import allowed_numbers, check_reply, mentions_price, strip_contact_asks
 
 FACTS = [
     Fact("service:ai-agent", "Услуга «AI-агент под заказ»: агент под задачу."),
@@ -54,7 +54,27 @@ def test_small_counts_pass_but_small_percent_does_not():
 
 
 def test_number_from_client_text_is_allowed():
-    assert check("Бюджет 100 тысяч — понял.", client_text="у меня бюджет 100 тысяч") == []
+    assert check("На 150 сотрудников — понял.", client_text="у нас 150 сотрудников") == []
+
+
+def test_client_number_with_currency_is_not_allowed():
+    assert codes(check("Да, сделаем за 30 000 ₽", client_text="Сделаете за 30 000 ₽?")) == {"numbers"}
+
+
+@pytest.mark.parametrize("client", ["бюджет 100 тысяч", "за 100 тыс", "за 100 руб", "100 000 рублей", "100 т.р.",
+                                    "100 млн", "100 р.", "100к", "100 $", "100 евро"])
+def test_client_number_with_unit_is_not_allowed(client):
+    assert "numbers" in codes(check("Хорошо, 100 — подходит.", client_text=client))
+
+
+@pytest.mark.parametrize("text", ["Сделаем за пятьдесят тысяч рублей.", "Стоимость — двадцать тысяч ₽.",
+                                  "Обойдётся в сто тыс.", "Около трёх миллионов рублей."])
+def test_price_in_words_is_blocked(text):
+    assert "numbers" in codes(check(text))
+
+
+def test_approved_digits_with_word_thousands_pass():
+    assert check("От 50 тысяч рублей.") == []
 
 
 def test_discount_without_fact_is_blocked():
@@ -71,9 +91,14 @@ def test_negation_outside_discount_scope_does_not_hide_promise():
     assert "discount" in codes(check("Нет проблем, сделаю скидку."))
     assert "discount" in codes(check("Нет, но дам скидку 5%."))
     assert "discount" in codes(check("Дам скидок 5%."))
+    assert "discount" in codes(check("Мы согласовали для вас скидку."))
+    assert "discount" in codes(check("Скидку для вас согласовали."))
 
 
-@pytest.mark.parametrize("text", ["Нет скидок.", "Скидок не даём.", "Скидку не могу предоставить.", "Без скидок работаем."])
+@pytest.mark.parametrize("text", ["Нет скидок.", "Скидок не даём.", "Скидку не могу предоставить.", "Без скидок работаем.",
+                                  "Скидки предоставляются только по согласованию с менеджером.",
+                                  "Скидки и специальные предложения необходимо согласовывать отдельно.",
+                                  "Скидки и специальные предложения необходимо уточнить у менеджера."])
 def test_honest_discount_refusal_variants_pass(text):
     assert "discount" not in codes(check(text))
 
@@ -100,6 +125,31 @@ def test_false_sent_claim_blocked(text):
 def test_contact_request_blocked_outside_consent():
     assert "contact_request" in codes(check("Оставьте телефон, и я скажу цену."))
     assert check("Оставьте телефон или e-mail.", state=State.CONSENT_PENDING, next_state="consent_pending") == []
+
+
+def test_contact_mention_is_not_a_request():
+    assert check("Номер заявки пришлём. Александр свяжется по контакту из заявки.") == []
+
+
+@pytest.mark.parametrize("text, expected", [
+    ("Цена от 50 000 ₽. Оставьте телефон, и Александр перезвонит! Какая у вас задача?",
+     "Цена от 50 000 ₽. Какая у вас задача?"),
+    ("Подскажите ваш e-mail?\nКакие интеграции нужны?", "Какие интеграции нужны?"),
+    ("Оставьте телефон.", ""),
+    ("Какая у вас задача?", "Какая у вас задача?"),
+])
+def test_strip_contact_asks(text, expected):
+    assert strip_contact_asks(text) == expected
+
+
+@pytest.mark.parametrize("text, expected", [
+    ("Стоимость от 50 000 до 200 000 рублей.", True),
+    ("Стоимость от 50 000 до 200 000 ₽.", True),
+    ("Стоимость от 50 000 ₽.", False),
+    ("Стоимость обсудим.", False),
+])
+def test_mentions_price(text, expected):
+    assert mentions_price("от 50 000 до 200 000 ₽", text) is expected
 
 
 @pytest.mark.parametrize("ns", ["lead_draft", "human_pending", "closed", "bogus"])

@@ -1,7 +1,11 @@
+import re
+import sqlite3
+
 import pytest
 
 from app.handoff import StubChannel
 from app.llm_client import LLMTimeout
+from app import pipeline
 from app.pipeline import INJECTION_REPLY
 from app.state import State
 from tests.helpers import DEFAULT_POLICY, Script, contract, service
@@ -33,6 +37,21 @@ def test_s01_full_path_to_lead(make_client):
     lead = h.store.list_leads()[0]
     assert lead["product_id"] == "ai-agent" and "записи клиентов" in lead["need"]
     assert "345-67-89" not in str(h.channel.sent)
+
+
+def test_model_contact_ask_is_stripped_not_fallback(make_client):
+    # Живая приёмка 2026-10-15: модель просила телефон сама, обе попытки отклонялись — клиент видел заглушку.
+    h = make_client()
+    cid = h.start()
+    h.script.intent, h.script.service_id = "price", "ai-agent"
+    h.script.replies = [contract("Подойдёт AI-агент под заказ.", "offer", facts=["service:ai-agent"])]
+    h.say(cid, "Что предложите и сколько стоит?")
+    h.script.intent, h.script.service_id = "agree", None
+    h.script.replies = [contract("Отлично! Оставьте ваш телефон, и Александр перезвонит.", "consent_pending",
+                                 "ask_consent")]
+    body = h.say(cid, "Да, давайте").json()
+    assert body["fallback"] is False and body["state"] == "consent_pending"
+    assert body["reply"] == "Отлично!\n\n" + DEFAULT_POLICY["consent_text"]
 
 
 def test_s02_price_added_by_code_without_phone_wall(make_client):
@@ -169,3 +188,117 @@ def test_skill_selection_through_http(make_client, state, intent, skill):
     h.store.set_state(cid, state)
     h.say(cid, "Хорошо")
     assert h.script.skills[0] == skill
+
+
+# --- Модель, которая сама не ставит offer/consent_pending (как GigaChat в живом прогоне s01) ---
+
+def test_s01_model_stuck_in_discovery_still_reaches_one_lead(make_client):
+    h = make_client()
+    cid = h.start()
+    h.script.replies = [contract("Сколько записей в день и где сейчас ведёте запись?")]
+    assert h.say(cid, "Нужен бот для записи клиентов").json()["state"] == "discovery"
+
+    h.script.intent, h.script.service_id = "price", "ai-agent"
+    h.script.replies = [contract("Под вашу задачу подойдёт AI-агент под заказ.")]
+    body = h.say(cid, "Что предложите и сколько стоит?").json()
+    assert body["state"] == "offer" and "Цена «AI-агент под заказ»: от" in body["reply"]
+
+    h.script.intent, h.script.service_id = "agree", None
+    h.script.replies = [contract("Отлично! Следующий шаг — короткий созвон.", action="ask_consent")]
+    body = h.say(cid, "Да, давайте").json()
+    assert body["state"] == "consent_pending" and body["skill"] == "sales-lead-capture"
+    assert body["reply"].endswith(DEFAULT_POLICY["consent_text"])
+
+    body = h.say(cid, PHONE).json()
+    assert body["state"] == "human_pending" and body["lead"]["delivery_status"] == "sent_stub"
+    assert len(h.store.list_leads()) == 1
+
+
+def test_known_product_moves_discovery_to_offer_without_price(make_client):
+    h = make_client(Script("question", "ai-agent", [contract("AI-агент под заказ решает такие задачи.")]))
+    cid = h.start()
+    h.store.set_state(cid, State.DISCOVERY)
+    assert h.say(cid, "А что такое AI-агент?").json()["state"] == "offer"
+
+
+def test_unknown_product_stays_in_discovery(make_client):
+    h = make_client(Script("need", replies=[contract("Расскажите подробнее.")]))
+    cid = h.start()
+    h.store.set_state(cid, State.DISCOVERY)
+    assert h.say(cid, "Нужна автоматизация").json()["state"] == "discovery"
+
+
+def test_agree_in_discovery_with_known_product_asks_consent(make_client):
+    h = make_client(Script("agree", replies=[contract("Отлично, следующий шаг — созвон.", action="ask_consent")]))
+    cid = h.start()
+    h.store.set_state(cid, State.DISCOVERY)
+    h.store.set_product(cid, "ai-agent")
+    body = h.say(cid, "Да, давайте").json()
+    assert body["state"] == "consent_pending" and body["skill"] == "sales-lead-capture"
+    assert body["reply"].endswith(DEFAULT_POLICY["consent_text"])
+
+
+def test_agree_in_discovery_without_product_does_not_ask_consent(make_client):
+    h = make_client(Script("agree", replies=[contract("Отлично, расскажите о задаче.", action="ask_consent")]))
+    cid = h.start()
+    h.store.set_state(cid, State.DISCOVERY)
+    body = h.say(cid, "Да").json()
+    assert body["state"] == "discovery" and body["skill"] == "sales-discovery"
+    assert DEFAULT_POLICY["consent_text"] not in body["reply"]
+
+
+@pytest.mark.parametrize("state", [State.NEW, State.DISCOVERY, State.OFFER])
+@pytest.mark.parametrize("demo", [False, True])
+def test_contact_before_consent_asks_consent_and_is_not_stored(make_client, state, demo):
+    h = make_client(demo=demo)
+    cid = h.start()
+    if state is not State.NEW:
+        h.store.set_state(cid, state)
+    body = h.say(cid, f"Мой телефон {PHONE}").json()
+    assert body["state"] == "consent_pending" and body["reply"].endswith(DEFAULT_POLICY["consent_text"])
+    assert body["reply"].startswith(pipeline.CONTACT_BEFORE_CONSENT_REPLY)
+    assert h.store.list_leads() == [] and (demo or h.llm.calls == [])
+    body = h.say(cid, PHONE).json()
+    assert body["state"] == "human_pending" and len(h.store.list_leads()) == 1
+
+
+# --- I2: полный контакт не хранится в истории и не уходит в модель ---
+
+def _stored_texts(h) -> list[str]:
+    with sqlite3.connect(h.store._path) as c:
+        return ([r[0] for r in c.execute("SELECT text FROM messages")]
+                + [r[0] for r in c.execute("SELECT body FROM responses")])
+
+
+def _has_full_phone(text: str) -> bool:
+    return "9123456789" in re.sub(r"\D", "", text) or "345-67-89" in text
+
+
+def test_phone_in_discovery_never_stored_or_sent_to_model(make_client):
+    h = make_client()
+    cid = h.start()
+    h.store.set_state(cid, State.DISCOVERY)
+    h.say(cid, f"Звоните {PHONE}")
+    h.say(cid, "А пока расскажите про сроки")
+    assert h.llm.calls and not any(_has_full_phone(u) for _, u in h.llm.calls)
+    assert not any(_has_full_phone(t) for t in _stored_texts(h))
+
+
+def test_phone_in_consent_pending_demo_never_stored(make_client):
+    h = make_client(demo=True)
+    cid = h.start()
+    h.store.set_state(cid, State.CONSENT_PENDING)
+    assert h.say(cid, f"Звоните {PHONE}").json()["lead"]["delivery_status"] == "demo"
+    assert not any(_has_full_phone(t) for t in _stored_texts(h))
+
+
+def test_phone_in_consent_pending_working_never_in_history(make_client):
+    h = make_client()
+    cid = h.start()
+    h.store.set_state(cid, State.CONSENT_PENDING)
+    assert h.say(cid, f"Звоните {PHONE}").json()["lead"]["delivery_status"] == "sent_stub"
+    assert h.store.list_leads()[0]["contact"] == "+79123456789"  # согласие дано: контакт заявки хранится
+    h.store.set_state(cid, State.DISCOVERY)  # как после «Вернуть боту» в админке
+    h.say(cid, "Ещё вопрос про сроки")
+    assert h.llm.calls and not any(_has_full_phone(u) for _, u in h.llm.calls)
+    assert not any(_has_full_phone(t) for t in _stored_texts(h))

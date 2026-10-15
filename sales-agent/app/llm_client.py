@@ -47,9 +47,12 @@ class CloudRuLLM:
                     raise LLMError(f"cloud.ru HTTP {r.status_code}")
                 if r.status_code < 400:
                     try:
-                        return r.json()["choices"][0]["message"]["content"].strip()
+                        content = r.json()["choices"][0]["message"]["content"]
                     except (ValueError, KeyError, IndexError, TypeError) as e:
                         raise LLMError("cloud.ru bad response") from e
+                    if not isinstance(content, str):
+                        raise LLMError("cloud.ru bad response: content is not text")
+                    return content.strip()
                 err = LLMError(f"cloud.ru HTTP {r.status_code}")
             if attempt == 1:
                 time.sleep(self._retry_delay)

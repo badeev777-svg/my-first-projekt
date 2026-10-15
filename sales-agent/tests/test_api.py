@@ -264,5 +264,20 @@ def test_replay_does_not_consume_rate_limit(make_client):
 @pytest.mark.parametrize("host", ["127.0.0.1", "::1"])
 def test_require_local_accepts_loopback(make_client, host):
     h = make_client()
-    r = TestClient(h.app, client=(host, 1)).get("/api/admin/data")
+    r = TestClient(h.app, client=(host, 1)).get("/api/admin/data", headers={"Host": "127.0.0.1:8000"})
+    assert r.status_code == 200
+
+
+@pytest.mark.parametrize("path", ["/admin", "/api/admin/data"])
+def test_require_local_rejects_foreign_host_header(make_client, path):
+    h = make_client()
+    client = TestClient(h.app, client=("127.0.0.1", 1))
+    assert client.get(path, headers={"Host": "evil.example"}).status_code == 403
+    assert client.get(path, headers={"Host": "evil.example:8000"}).status_code == 403
+
+
+@pytest.mark.parametrize("host", ["127.0.0.1:8000", "localhost:8000", "localhost", "[::1]:8000", "[::1]"])
+def test_require_local_accepts_loopback_host_header(make_client, host):
+    h = make_client()
+    r = TestClient(h.app, client=("127.0.0.1", 1)).get("/api/admin/data", headers={"Host": host})
     assert r.status_code == 200
