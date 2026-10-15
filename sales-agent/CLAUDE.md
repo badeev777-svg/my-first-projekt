@@ -1,6 +1,6 @@
 # sales-agent
 
-ИИ-продажник Badeev Agency по ТЗ [ai-sales-build-brief.md](ai-sales-build-brief.md): движок + сменный каталог (`content/`), GigaChat3.5 через cloud.ru, гибридный маршрутизатор, 6 навыков в `skills/`.
+ИИ-продажник Badeev Agency по ТЗ [ai-sales-build-brief.md](ai-sales-build-brief.md): движок + сменный каталог (`content/`), GigaChat-2-Max через cloud.ru, гибридный маршрутизатор, 6 навыков в `skills/`.
 
 - Спецификация: [docs/superpowers/specs/2026-10-13-sales-agent-design.md](docs/superpowers/specs/2026-10-13-sales-agent-design.md)
 - План и статус: [PLAN.md](PLAN.md)

@@ -116,5 +116,8 @@ for _intent in INTENTS:
     _ADMISSION[(State.LEAD_DRAFT, _intent)] = "sales-human-handoff"
 
 
-def admit(state: State, intent: str) -> str:
+def admit(state: State, intent: str, product_known: bool = False) -> str:
+    # Модель может не перевести диалог в offer, хотя услуга уже ясна; согласие клиента тогда всё равно ведёт к заявке.
+    if state is State.DISCOVERY and intent == "agree" and product_known:
+        return "sales-lead-capture"
     return _ADMISSION.get((state, intent), "sales-discovery")

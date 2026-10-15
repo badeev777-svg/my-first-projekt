@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     # Пустой ключ = режим DEMO: модель не вызывается, заявки никуда не уходят.
     cloudru_api_key: str = ""
     cloudru_base_url: str = "https://foundation-models.api.cloud.ru/v1"
-    chat_model: str = "ai-sage/GigaChat3.5-432B-A28B"
+    chat_model: str = "GigaChat/GigaChat-2-Max"
     llm_timeout_seconds: float = 20.0
     db_path: str = "data/sales.db"
     content_dir: str = "content"
