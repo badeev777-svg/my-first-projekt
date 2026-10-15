@@ -1,4 +1,6 @@
-from app.agent import AgentStore, Session
+import asyncio
+
+from app.agent import PAID_SPLIT, REPORT_MARKER, AgentStore, Session, ensure_paid_split
 from app.routers.chat import _extract_score
 
 
@@ -130,6 +132,86 @@ def test_extract_score_rejects_when_category_count_is_not_four():
 | Целевая аудитория и каналы | 18 | 25 |
 """
     assert _extract_score(report) is None
+
+
+def test_extract_score_parses_fraction_format_with_reason_column():
+    report = """
+### 0. Скоринг зрелости маркетинга
+
+| Категория | Балл | Обоснование |
+|-----------|------|-------------|
+| Позиционирование и УТП | **15/25** | Свои обжарка и скорость. |
+| Целевая аудитория и каналы | **18/25** | Ядро определено. |
+| Конкурентная позиция | 12/25 | Конкуренты известны. |
+| Готовность к масштабированию | **10 / 25** | CRM нет. |
+
+**Общий балл: 55/100**
+
+### 1. Профиль бизнеса
+| Стадия | 1 | 2 |
+"""
+    score = _extract_score(report)
+    assert score == {
+        "total": 55,
+        "categories": [
+            {"name": "Позиционирование и УТП", "score": 15, "max": 25},
+            {"name": "Целевая аудитория и каналы", "score": 18, "max": 25},
+            {"name": "Конкурентная позиция", "score": 12, "max": 25},
+            {"name": "Готовность к масштабированию", "score": 10, "max": 25},
+        ],
+    }
+
+
+def test_extract_score_parses_bold_numbers_in_template_format():
+    report = """
+### 0. Скоринг зрелости маркетинга
+
+**Общий балл: 40/100**
+
+| Категория | Балл | Макс |
+|---|---|---|
+| A | **10** | 25 |
+| B | **10** | **25** |
+| C | 10 | 25 |
+| D | 10 | 25 |
+"""
+    score = _extract_score(report)
+    assert score is not None
+    assert [c["score"] for c in score["categories"]] == [10, 10, 10, 10]
+
+
+def test_ensure_paid_split_inserts_before_section_7():
+    report = "### 6. Каналы\nтекст\n\n### 7. Детальный план\nплатно\nМАРКЕТИНГОВЫЙ_АНАЛИЗ_ЗАВЕРШЁН"
+    fixed = ensure_paid_split(report)
+    free, paid = fixed.split(PAID_SPLIT)
+    assert "### 6." in free and "### 7." not in free
+    assert paid.lstrip().startswith("### 7. Детальный план")
+
+
+def test_ensure_paid_split_keeps_existing_separator():
+    report = f"### 6. A\n{PAID_SPLIT}\n### 7. B"
+    assert ensure_paid_split(report) == report
+
+
+def test_ensure_paid_split_ignores_inline_numbers():
+    report = "### 1. Профиль\nшаг 7. не заголовок\n| 7. | x |"
+    assert ensure_paid_split(report) == report
+
+
+def test_chat_stores_report_with_paid_split(monkeypatch):
+    import app.agent as agent
+
+    async def fake_llm(history):
+        return f"### 6. A\n\n### 7. B\n{REPORT_MARKER}"
+
+    monkeypatch.setattr(agent, "_call_llm", fake_llm)
+    s = AgentStore()
+    sess = s.get_or_create("x")
+    sess.msg_count = 10
+    reply = asyncio.run(s.chat("x", "готово"))
+    assert PAID_SPLIT in reply
+    assert sess.report_text == reply
+    assert sess.history[-1]["content"] == reply
 
 
 def test_undo_reverts_normal_two_message_turn():
