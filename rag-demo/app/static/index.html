@@ -26,7 +26,7 @@
   .a { align-self:flex-start; background:#f3f4f6; padding:8px 12px; border-radius:12px; max-width:90%; white-space:pre-wrap; }
   .warn { color:#92400e; font-size:14px; }
   details { font-size:14px; margin-top:6px; }
-  details pre { white-space:pre-wrap; background:#fff; border:1px solid var(--border); padding:8px; border-radius:8px; }
+  details blockquote { margin:6px 0 0; white-space:pre-line; background:#fff; border:1px solid var(--border); border-left:3px solid var(--accent, #2563eb); padding:8px 12px; border-radius:8px; color:#374151; line-height:1.5; }
   form.ask { display:flex; gap:8px; margin-top:12px; }
   #login { max-width:360px; margin:80px auto; }
 </style>
@@ -94,7 +94,7 @@ function renderAnswer(data) {
   for (const s of data.sources) {
     const d = document.createElement("details");
     d.append(Object.assign(document.createElement("summary"), { textContent: `[${s.n}] ${s.file}, ${s.loc}` }),
-             Object.assign(document.createElement("pre"), { textContent: s.text }));
+             Object.assign(document.createElement("blockquote"), { textContent: s.text }));
     el.append(d);
   }
 }
