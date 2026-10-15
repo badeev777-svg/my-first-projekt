@@ -16,7 +16,8 @@ class Settings(BaseSettings):
     max_files: int = 10
     max_file_mb: int = 20
     max_questions: int = 60
-    # ~240 тыс. символов: индексация укладывается в таймаут прокси и ограничивает расход.
-    max_chunks_per_file: int = 300
+    # ~300 стр. текста. Замер 2026-10-15: эмбеддинги cloud.ru ~1 с на 100 фрагментов, т.е. ~15 с —
+    # далеко от таймаута прокси; лимит ограничивает расход и память сессии.
+    max_chunks_per_file: int = 1500
     http_timeout_seconds: float = 60.0
     cookie_secure: bool = True
