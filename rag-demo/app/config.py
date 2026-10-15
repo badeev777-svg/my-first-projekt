@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     cloudru_base_url: str = "https://foundation-models.api.cloud.ru/v1"
     embed_model: str = "BAAI/bge-m3"
     rerank_model: str = "BAAI/bge-reranker-v2-m3"
-    chat_model: str = "ai-sage/GigaChat3.5-432B-A28B"
+    chat_model: str = "ai-sage/GigaChat3.5-432B-A28B-Reasoning"
     session_ttl_seconds: int = 3600
     max_files: int = 10
     max_file_mb: int = 20
