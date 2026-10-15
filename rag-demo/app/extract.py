@@ -1,3 +1,4 @@
+import re
 from dataclasses import dataclass
 from io import BytesIO
 
@@ -43,7 +44,7 @@ def _pdf(filename: str, data: bytes) -> list[Unit]:
         units = [
             Unit(filename, "стр.", i, text)
             for i, page in enumerate(reader.pages, start=1)
-            if (text := (page.extract_text() or "").strip())
+            if (text := _unwrap((page.extract_text() or "").strip()))
         ]
     except ExtractError:
         raise
@@ -52,6 +53,15 @@ def _pdf(filename: str, data: bytes) -> list[Unit]:
     if not units:
         raise NoTextLayer("Похоже, это скан. Распознавание сканов появится в следующей версии.")
     return units
+
+
+_LINE_WRAP = re.compile(r"[ \t]*\n[ \t]*(?=[a-zа-яё])")
+
+
+def _unwrap(text: str) -> str:
+    # PDF отдаёт текст построчно, как он свёрстан. Строка со строчной буквы — продолжение предложения:
+    # склеиваем, чтобы цитата источника читалась как обычный текст. Абзацы и пункты списков не трогаем.
+    return _LINE_WRAP.sub(" ", text)
 
 
 def _docx(filename: str, data: bytes) -> list[Unit]:

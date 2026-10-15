@@ -59,3 +59,13 @@ def test_docx_tables_extracted_after_paragraphs():
     units = extract("Прайс.docx", make_docx(["Прайс-лист"], table=[["Услуга", "Цена"], ["Стрижка", "1500 ₽"]]))
     assert [u.text for u in units] == ["Прайс-лист", "Услуга | Цена", "Стрижка | 1500 ₽"]
     assert [u.num for u in units] == [1, 2, 3]
+
+
+def test_pdf_line_wraps_joined_but_paragraphs_and_lists_kept():
+    from app.extract import _unwrap
+
+    raw = "Работник, направляемый в\nкомандировку, руководствуется разделом.\n4. Работник\nсдаёт отчёт.\nМосква 7 000 руб.\nСанкт-Петербург 6 000 руб."
+    assert _unwrap(raw) == (
+        "Работник, направляемый в командировку, руководствуется разделом.\n4. Работник сдаёт отчёт.\n"
+        "Москва 7 000 руб.\nСанкт-Петербург 6 000 руб."
+    )
