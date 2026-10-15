@@ -180,6 +180,34 @@ def test_extract_score_parses_bold_numbers_in_template_format():
     assert [c["score"] for c in score["categories"]] == [10, 10, 10, 10]
 
 
+def test_extract_score_total_as_table_row_falls_back_to_sum():
+    report = """
+### 0. Скоринг зрелости маркетинга
+
+| Категория | Балл | Макс |
+|-----------|------|------|
+| Позиционирование и УТП | 12 | 25 |
+| Целевая аудитория и каналы | 15 | 25 |
+| Конкурентная позиция | 10 | 25 |
+| Готовность к масштабированию | 8 | 25 |
+| **Общий балл** | **45** | **100** |
+
+---
+
+### 1. Профиль бизнеса
+"""
+    score = _extract_score(report)
+    assert score is not None
+    assert score["total"] == 45
+    assert len(score["categories"]) == 4
+
+
+def test_extract_score_accepts_bold_label_total():
+    report = SAMPLE_REPORT.replace("**Общий балл: 62/100**", "**Общий балл:** 62/100")
+    score = _extract_score(report)
+    assert score is not None and score["total"] == 62
+
+
 def test_ensure_paid_split_inserts_before_section_7():
     report = "### 6. Каналы\nтекст\n\n### 7. Детальный план\nплатно\nМАРКЕТИНГОВЫЙ_АНАЛИЗ_ЗАВЕРШЁН"
     fixed = ensure_paid_split(report)

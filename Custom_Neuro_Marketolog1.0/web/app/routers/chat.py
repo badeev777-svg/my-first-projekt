@@ -56,7 +56,7 @@ def _extract_lead_info(report: str) -> tuple[str, str, str]:
     return business_name[:200], niche[:100], pain_points[:500]
 
 
-_SCORE_TOTAL_RE = re.compile(r"Общий балл:\s*(\d+)\s*/\s*100")
+_SCORE_TOTAL_RE = re.compile(r"Общий балл\**:\**\s*(\d+)\s*/\s*100")
 # Template format "| Имя | 15 | 25 |"; Reasoning models also write "| Имя | **15/25** | … |".
 _SCORE_ROW_RE = re.compile(
     r"\|\s*([^|\n]+?)\s*\|\s*\**\s*(\d+)\s*\**\s*(?:\|\s*\**\s*|/\s*)(\d+)\s*\**\s*\|"
@@ -76,21 +76,20 @@ def _extract_score(report: str) -> dict | None:
     heading_match = _NEXT_HEADING_RE.search(report, section_start + len("Скоринг зрелости маркетинга"))
     section = report[section_start: heading_match.start() if heading_match else None]
 
-    total_match = _SCORE_TOTAL_RE.search(section)
-    if not total_match:
-        return None
-    total = int(total_match.group(1))
-    if not (0 <= total <= 100):
-        return None
-
     categories = []
     for name, score, max_score in _SCORE_ROW_RE.findall(section):
         score, max_score = int(score), int(max_score)
         if not (0 <= score <= max_score <= _MAX_CATEGORY_SCORE):
             continue
-        categories.append({"name": name.strip(), "score": score, "max": max_score})
+        categories.append({"name": name.strip(" *"), "score": score, "max": max_score})
 
     if len(categories) != 4:
+        return None
+
+    # The total may be a line or a table row; the instructions define it as the sum anyway.
+    total_match = _SCORE_TOTAL_RE.search(section)
+    total = int(total_match.group(1)) if total_match else sum(c["score"] for c in categories)
+    if not (0 <= total <= 100):
         return None
 
     return {"total": total, "categories": categories}
