@@ -1,3 +1,4 @@
+import re
 from dataclasses import dataclass
 from itertools import groupby
 
@@ -25,9 +26,30 @@ def _loc(kind: str, first: int, last: int) -> str:
     return f"{kind} {first}" if first == last else f"{kind} {first}–{last}"
 
 
+_SPACE = re.compile(r"\s+")
+_SENTENCE_GAP = re.compile(r"(?<=[.!?…])\s+")
+
+
 def _windows(text: str, size: int, overlap: int) -> list[str]:
-    step = size - overlap
-    return [text[i : i + size] for i in range(0, max(len(text) - overlap, 1), step)]
+    # Режем по границам слов: цитата источника показывается пользователю и не должна начинаться с обрубка слова.
+    out: list[str] = []
+    start = 0
+    while len(text) - start > size:
+        gaps = [m for m in _SPACE.finditer(text, start, start + size + 1) if m.start() > start]
+        end = gaps[-1].start() if gaps else start + size  # слово длиннее size режем как есть
+        out.append(text[start:end])
+        lo = max(end - overlap, start + 1)
+        nxt = _first_gap_end(_SENTENCE_GAP, text, lo, end) or _first_gap_end(_SPACE, text, lo, end)
+        if nxt is None:  # в зоне перекрытия нет пробела: без перекрытия, но с целого слова
+            nxt = gaps[-1].end() if gaps else max(end - overlap, start + 1)
+        start = nxt
+    out.append(text[start:])
+    return out
+
+
+def _first_gap_end(pattern: re.Pattern[str], text: str, lo: int, hi: int) -> int | None:
+    m = pattern.search(text, lo, hi)
+    return m.end() if m else None
 
 
 def _chunk_file(units: list[Unit], size: int, overlap: int) -> list[Chunk]:
