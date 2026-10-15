@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 from dataclasses import dataclass, field
 
@@ -16,6 +17,20 @@ PAID_SPLIT = "[PAID_START]"
 TOTAL_QUESTIONS = 13
 
 SITE_CONTEXT_LABEL = "[ДАННЫЕ С САЙТА КЛИЕНТА]"
+
+
+# The paid part starts at section 7; the model sometimes drops the separator,
+# and without it the frontend shows the whole report for free.
+_PAID_SECTION_RE = re.compile(r"^#{2,4}\s*\**\s*7\.", re.MULTILINE)
+
+
+def ensure_paid_split(report: str) -> str:
+    if PAID_SPLIT in report:
+        return report
+    m = _PAID_SECTION_RE.search(report)
+    if not m:
+        return report
+    return f"{report[:m.start()]}{PAID_SPLIT}\n\n{report[m.start():]}"
 
 
 class LLMUnavailableError(Exception):
@@ -127,6 +142,8 @@ class AgentStore:
         session.turn_starts.append(history_len_before)
 
         if REPORT_MARKER in reply:
+            reply = ensure_paid_split(reply)
+            session.history[-1]["content"] = reply
             session.report_text = reply
             session.finished = True
 

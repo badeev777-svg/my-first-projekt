@@ -22,7 +22,7 @@
 | Слой | Технология |
 |------|-----------|
 | Backend | FastAPI + uvicorn |
-| LLM | cloud.ru Foundation Models → GigaChat3.5-432B-A28B |
+| LLM | cloud.ru Foundation Models → GigaChat3.5-432B-A28B-Reasoning |
 | Telegram | aiogram 3.x |
 | Frontend | Vanilla HTML/CSS/JS (тёмная тема, Inter font) |
 | Сессии | Cookie UUID, in-memory dict |

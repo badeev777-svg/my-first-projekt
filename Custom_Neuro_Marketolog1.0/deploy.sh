@@ -106,7 +106,7 @@ python3 -m venv "$INSTALL_DIR/venv"
 echo -e "${YELLOW}[4/6] Создаю .env...${NC}"
 cat > "$INSTALL_DIR/web/.env" <<EOF
 CLOUD_RU_API_KEY=$CLOUD_RU_KEY
-MODEL=ai-sage/GigaChat3.5-432B-A28B
+MODEL=ai-sage/GigaChat3.5-432B-A28B-Reasoning
 MAX_TOKENS=14000
 
 AGENT_NAME=$AGENT_NAME

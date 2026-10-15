@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     CLOUD_RU_API_KEY: str
-    MODEL: str = "ai-sage/GigaChat3.5-432B-A28B"
+    MODEL: str = "ai-sage/GigaChat3.5-432B-A28B-Reasoning"
     CLOUD_RU_API_URL: str = "https://foundation-models.api.cloud.ru/v1/chat/completions"
     MAX_TOKENS: int = 14000
 

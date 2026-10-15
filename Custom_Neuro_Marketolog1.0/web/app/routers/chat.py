@@ -57,7 +57,10 @@ def _extract_lead_info(report: str) -> tuple[str, str, str]:
 
 
 _SCORE_TOTAL_RE = re.compile(r"Общий балл:\s*(\d+)\s*/\s*100")
-_SCORE_ROW_RE = re.compile(r"\|\s*([^|\n]+?)\s*\|\s*(\d+)\s*\|\s*(\d+)\s*\|")
+# Template format "| Имя | 15 | 25 |"; Reasoning models also write "| Имя | **15/25** | … |".
+_SCORE_ROW_RE = re.compile(
+    r"\|\s*([^|\n]+?)\s*\|\s*\**\s*(\d+)\s*\**\s*(?:\|\s*\**\s*|/\s*)(\d+)\s*\**\s*\|"
+)
 _NEXT_HEADING_RE = re.compile(r"\n#{1,3} ")
 _MAX_CATEGORY_SCORE = 25
 
