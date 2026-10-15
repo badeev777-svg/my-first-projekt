@@ -1,6 +1,6 @@
 # rag-demo
 
-Демо для встреч с клиентами: загрузка PDF/DOCX в браузере → ответы по документам со ссылкой на источник. Модели — cloud.ru Foundation Models (bge-m3, bge-reranker-v2-m3, GigaChat3.5).
+Демо для встреч с клиентами: загрузка PDF/DOCX в браузере → ответы по документам со ссылкой на источник. Модели — cloud.ru Foundation Models (bge-m3, bge-reranker-v2-m3, GigaChat3.5-Reasoning).
 
 - Спецификация: [docs/superpowers/specs/2026-09-26-rag-demo-design.md](docs/superpowers/specs/2026-09-26-rag-demo-design.md)
 - План и статус: [PLAN.md](PLAN.md)
