@@ -242,6 +242,70 @@ def test_chat_stores_report_with_paid_split(monkeypatch):
     assert sess.history[-1]["content"] == reply
 
 
+def test_report_without_marker_is_still_finished(monkeypatch):
+    import app.agent as agent
+
+    async def fake_llm(messages):
+        return "### 0. Скоринг зрелости маркетинга\n...\n### 7. Детальный план\nплатно"
+
+    monkeypatch.setattr(agent, "_call_llm", fake_llm)
+    s = AgentStore()
+    sess = s.get_or_create("x")
+    sess.msg_count = 10
+    reply = asyncio.run(s.chat("x", "готово"))
+    assert sess.finished
+    assert REPORT_MARKER in reply and PAID_SPLIT in reply
+
+
+def test_plain_question_is_not_a_report(monkeypatch):
+    import app.agent as agent
+
+    async def fake_llm(messages):
+        return "**Какой у Вас средний чек?**"
+
+    monkeypatch.setattr(agent, "_call_llm", fake_llm)
+    s = AgentStore()
+    sess = s.get_or_create("x")
+    sess.msg_count = 10
+    asyncio.run(s.chat("x", "ответ"))
+    assert not sess.finished
+
+
+def _run_llm_turn(monkeypatch, answers_before: int) -> tuple[list[dict], Session]:
+    import app.agent as agent
+
+    sent = []
+
+    async def fake_llm(messages):
+        sent.extend(messages)
+        return "Следующий вопрос?"
+
+    monkeypatch.setattr(agent, "_call_llm", fake_llm)
+    s = AgentStore()
+    sess = s.get_or_create("x")
+    sess.msg_count = answers_before
+    sess.history.append({"role": "assistant", "content": "Вопрос?"})
+    asyncio.run(s.chat("x", "ответ"))
+    return sent, sess
+
+
+def test_interview_guard_added_before_min_answers(monkeypatch):
+    import app.agent as agent
+
+    sent, sess = _run_llm_turn(monkeypatch, agent.MIN_ANSWERS_BEFORE_REPORT - 2)
+    assert sent[-1]["content"].startswith("ответ")
+    assert "Отчёт пока НЕ формируй" in sent[-1]["content"]
+    # the guard is request-only, never stored in the dialogue
+    assert all("Служебно" not in m["content"] for m in sess.history)
+
+
+def test_interview_guard_absent_after_min_answers(monkeypatch):
+    import app.agent as agent
+
+    sent, _ = _run_llm_turn(monkeypatch, agent.MIN_ANSWERS_BEFORE_REPORT - 1)
+    assert sent[-1]["content"] == "ответ"
+
+
 def test_undo_reverts_normal_two_message_turn():
     store = AgentStore()
     session = store.get_or_create("s1")

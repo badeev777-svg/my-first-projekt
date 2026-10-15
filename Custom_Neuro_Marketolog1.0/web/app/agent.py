@@ -33,6 +33,28 @@ def ensure_paid_split(report: str) -> str:
     return f"{report[:m.start()]}{PAID_SPLIT}\n\n{report[m.start():]}"
 
 
+# The prompt asks for 8–12 exchanges, but with site data in context the model
+# tends to jump straight to the report right after question 5.
+MIN_ANSWERS_BEFORE_REPORT = 8
+_KEEP_INTERVIEWING = (
+    "\n\n[Служебно, не отвечай на это: интервью продолжается. "
+    "Задай один следующий вопрос интервью. Отчёт пока НЕ формируй.]"
+)
+
+
+def _with_interview_guard(history: list[dict], answers: int) -> list[dict]:
+    if answers >= MIN_ANSWERS_BEFORE_REPORT:
+        return history
+    last = history[-1]
+    return [*history[:-1], {**last, "content": last["content"] + _KEEP_INTERVIEWING}]
+
+
+def _looks_like_report(reply: str) -> bool:
+    # A full report without the marker would be rendered as a plain chat message,
+    # paid sections included.
+    return "скоринг" in reply.lower() and _PAID_SECTION_RE.search(reply) is not None
+
+
 class LLMUnavailableError(Exception):
     """Raised when the upstream LLM provider can't be reached (e.g. geo-block, outage)."""
 
@@ -129,7 +151,7 @@ class AgentStore:
             return reply
 
         try:
-            reply = await _call_llm(session.history)
+            reply = await _call_llm(_with_interview_guard(session.history, session.msg_count))
         except LLMUnavailableError:
             session.msg_count -= 1
             del session.history[history_len_before:]
@@ -140,6 +162,9 @@ class AgentStore:
 
         session.history.append({"role": "assistant", "content": reply})
         session.turn_starts.append(history_len_before)
+
+        if REPORT_MARKER not in reply and _looks_like_report(reply):
+            reply = f"{reply.rstrip()}\n\n{REPORT_MARKER}"
 
         if REPORT_MARKER in reply:
             reply = ensure_paid_split(reply)
