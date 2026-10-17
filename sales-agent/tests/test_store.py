@@ -139,6 +139,30 @@ def test_stale_claim_is_taken_over(clocked_store, clock):
         clocked_store.claim_message(cid, "m1", "привет")
 
 
+def test_purge_uses_last_message_and_longer_term_for_contacts(clocked_store, clock):
+    now, _ = clock
+    now[0] = 1_790_000_000.0  # отрицательное время отсечки Windows не переводит в дату
+    s = clocked_store
+    plain_old, plain_active = s.create_conversation("s").id, s.create_conversation("s").id
+    lead_conv, handoff_conv = s.create_conversation("s").id, s.create_conversation("s").id
+    s.create_lead(**lead_kwargs(lead_conv))
+    s.create_handoff(conversation_id=handoff_conv, idempotency_key="h", reason="client_request", summary="x",
+                     question="y", delivery_status="demo")
+    now[0] += 20 * 86400
+    s.claim_message(plain_active, "m1", "ещё тут")
+    s.save_response(plain_active, "m1", {"reply": "да"}, reply="да", skill=None)
+    now[0] += 11 * 86400  # 31 день от создания, 11 от последнего сообщения plain_active
+
+    assert s.purge_expired(plain_days=30, contact_days=90) == 1
+    assert s.get_conversation(plain_old) is None
+    assert all(s.get_conversation(c) for c in (plain_active, lead_conv, handoff_conv))
+
+    now[0] += 60 * 86400  # 91 день от заявок, 71 от последнего сообщения plain_active
+    assert s.purge_expired(plain_days=30, contact_days=90) == 3
+    assert s.list_leads() == [] and s.list_handoffs() == []
+    assert s.history(plain_active) == [] and s.saved_response(plain_active, "m1") is None
+
+
 def test_claim_ttl_covers_five_model_calls_with_retry():
     # 5 вызовов модели × (2 попытки × 20 с + 1 с паузы) = 205 с; TTL с запасом.
     assert CLAIM_TTL_SECONDS == 240

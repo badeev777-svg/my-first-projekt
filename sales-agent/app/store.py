@@ -230,3 +230,21 @@ class Store:
 
     def list_handoffs(self) -> list[dict]:
         return self._list("handoffs")
+
+    def purge_expired(self, *, plain_days: int, contact_days: int) -> int:
+        # Сроки из политики конфиденциальности сайта: считаются от последнего сообщения диалога.
+        # Передача человеку приравнена к заявке — в её сводке могут быть данные клиента.
+        now = self._clock()
+        plain_cut, contact_cut = _iso(now - plain_days * 86400), _iso(now - contact_days * 86400)
+        with self._conn() as c:
+            ids = [r["id"] for r in c.execute(
+                "SELECT c.id, COALESCE((SELECT MAX(m.created_at) FROM messages m WHERE m.conversation_id=c.id),"
+                " c.created_at) AS last_at,"
+                " EXISTS(SELECT 1 FROM leads l WHERE l.conversation_id=c.id)"
+                " OR EXISTS(SELECT 1 FROM handoffs h WHERE h.conversation_id=c.id) AS has_contact "
+                "FROM conversations c").fetchall()
+                if r["last_at"] < (contact_cut if r["has_contact"] else plain_cut)]
+            for table, col in (("messages", "conversation_id"), ("responses", "conversation_id"),
+                               ("leads", "conversation_id"), ("handoffs", "conversation_id"), ("conversations", "id")):
+                c.executemany(f"DELETE FROM {table} WHERE {col}=?", [(i,) for i in ids])
+        return len(ids)

@@ -3,6 +3,7 @@ import secrets
 import threading
 import time
 from collections import deque
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
@@ -22,6 +23,8 @@ STATIC = Path(__file__).resolve().parent / "static"
 LOCAL_HOSTS = {"127.0.0.1", "::1"}
 LOCAL_HOST_NAMES = {"127.0.0.1", "localhost", "::1", "[::1]"}
 COOKIE = "sid"
+PURGE_INTERVAL_SECONDS = 24 * 3600
+log = logging.getLogger("sales-agent")
 
 
 class ChatIn(BaseModel):
@@ -86,7 +89,25 @@ def create_app(settings: Settings | None = None, *, llm: LLM | None = None,
                         [s for s in (key, settings.notify_bot_token.strip()) if s])
     limiter = RateLimiter(settings.rate_limit_per_minute)
 
-    app = FastAPI(title="sales-agent", docs_url=None, redoc_url=None, openapi_url=None)
+    @asynccontextmanager
+    async def lifespan(_: FastAPI):
+        stop = threading.Event()
+
+        def purge_daily() -> None:
+            while not stop.is_set():
+                try:
+                    removed = store.purge_expired(plain_days=settings.retention_plain_days,
+                                                  contact_days=settings.retention_contact_days)
+                    log.info("retention purge: removed %d conversations", removed)
+                except Exception:
+                    log.exception("retention purge failed")
+                stop.wait(PURGE_INTERVAL_SECONDS)
+
+        threading.Thread(target=purge_daily, name="retention-purge", daemon=True).start()
+        yield
+        stop.set()
+
+    app = FastAPI(title="sales-agent", docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
     app.state.store = store
     app.state.channel = channel
 

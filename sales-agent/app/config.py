@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     # Оба пустые = заявки уходят в канал-заглушку (только лог).
     notify_bot_token: str = ""
     notify_chat_id: str = ""
+    # Сроки хранения из политики конфиденциальности бизнесгенератор.рф — менять только вместе с ней.
+    retention_plain_days: int = 30
+    retention_contact_days: int = 90
 
     @property
     def demo(self) -> bool:
