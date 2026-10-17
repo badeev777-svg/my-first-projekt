@@ -1,0 +1,698 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Бизнес Генератор — AI идеи для Вашего бизнеса</title>
+<meta name="description" content="ИИ-консультанты, боты для Telegram и MAX, ответы по документам и автоматизация на российской модели GigaChat. Поговорите с ИИ-менеджером по продажам прямо на странице.">
+<meta property="og:title" content="Бизнес Генератор — AI идеи для Вашего бизнеса">
+<meta property="og:description" content="ИИ-помощники для бизнеса на GigaChat. Не верьте на слово — поговорите с одним из них на сайте.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0f0f0d">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600&family=Golos+Text:wght@400;500&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0f0f0d; --bg-2:#161613; --panel:#1b1b18; --line:#2c2c27; --line-2:#3a3a33;
+    --text:#ecebe4; --muted:#9a998f; --dim:#6c6b63;
+    --sig:#9d90ff; --sig-2:#00d4ff; --sig-soft:rgba(124,108,255,.2);
+    --sig-g:linear-gradient(135deg, rgba(124,108,255,.78), rgba(0,212,255,.72)); --live:#5ee37a;
+    --paper:#efebe1; --paper-ink:#151512; --paper-line:#d6d0c2; --paper-muted:#6b665a;
+    --display:"Unbounded", "Golos Text", sans-serif;
+    --body:"Golos Text", ui-sans-serif, system-ui, sans-serif;
+    --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+    --r:18px;
+    --crystal:76 201 255; --crystal-deep:47 107 255;
+  }
+  /* Регистрируем --glow, чтобы свет кристалла плавно разгорался, а не включался рывком */
+  @property --glow { syntax:"<number>"; inherits:false; initial-value:0; }
+  * { box-sizing:border-box; }
+  html { scroll-behavior:smooth; overflow-x:clip; }
+  /* Цветные пятна под страницей — без них стеклу нечего преломлять */
+  body { margin:0; background:
+           radial-gradient(900px 700px at 8% 35%, rgb(var(--crystal-deep) / .10), transparent 60%),
+           radial-gradient(800px 700px at 92% 75%, rgba(124,108,255,.08), transparent 60%),
+           var(--bg) fixed; color:var(--text); font:400 16px/1.55 var(--body);
+         -webkit-font-smoothing:antialiased; overflow-x:clip; }
+  /* Зерно поверх всей страницы — убирает «пластиковость» плоского тёмного фона */
+  body::before { content:""; position:fixed; inset:0; pointer-events:none; z-index:100; opacity:.07; mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+  h1, h2, h3, p { margin:0; font-weight:400; }
+  a { color:inherit; }
+  ::selection { background:#7c6cff; color:#fff; }
+  .wrap { max-width:1240px; margin:0 auto; padding:0 28px; position:relative; }
+  section { padding-top:120px; }
+
+  .mono { font-family:var(--mono); font-size:12px; letter-spacing:.08em; text-transform:uppercase; }
+
+  /* ---------- верхняя полоса ---------- */
+  .notice { background:linear-gradient(90deg, #6a5cf0, #0bb4e0); color:#fff; font-size:14px; padding:8px 16px;
+            display:flex; justify-content:center; align-items:center; gap:14px; flex-wrap:wrap; text-align:center; }
+  .notice a { font-family:var(--mono); font-size:12px; text-transform:uppercase; letter-spacing:.08em;
+              color:#fff; text-decoration:none; border-bottom:1px solid #fff; }
+
+  /* ---------- кнопки ---------- */
+  .pill { display:inline-flex; align-items:center; gap:8px; background:var(--sig-g) 0 0 / 220% 220%; color:#fff; border:1px solid rgba(255,255,255,.16); border-radius:999px;
+          backdrop-filter:blur(16px) saturate(160%); box-shadow:0 6px 32px rgba(124,108,255,.35), inset 0 1px 0 rgba(255,255,255,.35); transition:transform .22s, box-shadow .22s, background-position .4s;
+          font:500 14px/1.2 var(--body); padding:11px 20px; text-decoration:none; cursor:pointer;
+          transition:transform .2s, box-shadow .2s, background .2s; }
+  .pill:hover { transform:translateY(-2px); background-position:right center; box-shadow:0 12px 38px rgba(124,108,255,.6), inset 0 1px 0 rgba(255,255,255,.4); }
+  .pill.sm { padding:6px 14px; font-size:13px; }
+  .pill:disabled { opacity:.4; cursor:default; transform:none; box-shadow:none; }
+  .ghost { background:none; border:1px solid var(--line-2); border-radius:999px; padding:5px 12px;
+           font:400 11px/1.3 var(--mono); letter-spacing:.06em; text-transform:uppercase; color:var(--muted); cursor:pointer;
+           transition:color .2s, border-color .2s; }
+  .ghost:hover { color:var(--text); border-color:var(--muted); }
+  #text:focus-visible, .pill:focus-visible, .ghost:focus-visible, a:focus-visible, summary:focus-visible
+    { outline:2px solid var(--sig); outline-offset:3px; }
+
+  /* ---------- навигация ---------- */
+  nav { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:22px 0; }
+  .logo { display:flex; align-items:center; gap:10px; text-decoration:none; white-space:nowrap; font:600 15px/1 var(--display); letter-spacing:.01em; }
+  .logo i { width:26px; height:26px; border-radius:50%; border:2px solid var(--sig); position:relative; flex:none; }
+  .logo i::after { content:""; position:absolute; inset:5px; border-radius:50%; background:var(--sig);
+                   animation:pulse 2.4s ease-in-out infinite; }
+  .navlinks { display:flex; gap:8px; font-size:14px; color:var(--muted); }
+  .navlinks a { text-decoration:none; padding:9px 16px; border-radius:999px; }
+  .navlinks a:hover { color:var(--text); transform:translateY(-1px); }
+
+  /* ---------- первый экран ---------- */
+  .hero { position:relative; display:grid; grid-template-columns:1.02fr 1fr; gap:56px; align-items:center;
+          padding:56px 0 24px; }
+  .hero-bg { position:absolute; inset:-120px -28px 0; z-index:-1; pointer-events:none;
+    background:
+      radial-gradient(600px 380px at 78% 40%, rgba(124,108,255,.18), transparent 70%),
+      linear-gradient(var(--line) 1px, transparent 1px) 0 0/56px 56px,
+      linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0/56px 56px;
+    -webkit-mask-image:radial-gradient(ellipse 60% 70% at 50% 40%, #000 30%, transparent 75%);
+            mask-image:radial-gradient(ellipse 60% 70% at 50% 40%, #000 30%, transparent 75%); opacity:.55; }
+  .wave { position:absolute; left:-28px; right:-28px; bottom:-30px; height:120px; z-index:-1; opacity:.5; pointer-events:none; }
+  .wave path { fill:none; stroke:var(--sig); stroke-width:1.5; stroke-dasharray:6 10; animation:flow 3s linear infinite; }
+  .wave path + path { stroke:var(--line-2); stroke-dasharray:none; animation:none; }
+
+  .status-line { display:inline-flex; align-items:center; gap:10px; color:var(--muted); margin-bottom:28px; }
+  .dot { width:8px; height:8px; border-radius:50%; background:var(--live); box-shadow:0 0 0 0 rgba(94,227,122,.6);
+         animation:ping 2s infinite; flex:none; }
+  .hero h1 { font-family:var(--display); font-weight:600; font-size:clamp(34px, 4.4vw, 62px); line-height:1.02;
+             letter-spacing:-.035em; }
+  .hero h1 .sub { display:block; margin-top:26px; font:400 clamp(20px, 2vw, 26px)/1.35 var(--body); letter-spacing:0;
+                  color:var(--muted); max-width:470px; }
+  .hero h1 .sub em { font-style:normal; color:var(--text); background:linear-gradient(transparent 62%, var(--sig-soft) 62%); }
+  .hero-meta { display:flex; gap:10px; flex-wrap:wrap; margin-top:36px; }
+  .tag { font:400 12px/1 var(--mono); letter-spacing:.06em; text-transform:uppercase; color:var(--muted);
+         border:1px solid var(--line-2); border-radius:999px; padding:9px 14px; }
+  .tag b { font-weight:400; color:var(--text); }
+
+  /* ---------- чат как приборная панель ---------- */
+  .chat { border-radius:24px; display:flex; flex-direction:column; height:600px; }
+  .chat::before { content:""; position:absolute; top:0; left:24px; right:24px; height:1px;
+                  background:linear-gradient(90deg, transparent, var(--sig), transparent); opacity:.8; }
+  .chat-head { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+               padding:16px 20px; border-bottom:1px solid var(--line); }
+  .chat-title { display:flex; align-items:center; gap:12px; }
+  .avatar { width:36px; height:36px; border-radius:12px; background:var(--sig-g); color:#fff; display:grid; place-items:center;
+            font:600 13px/1 var(--display); flex:none; }
+  .chat-title strong { display:block; font-weight:500; font-size:15px; }
+  .chat-title small { display:flex; align-items:center; gap:6px; color:var(--muted); font:400 11px/1.4 var(--mono);
+                      letter-spacing:.06em; text-transform:uppercase; }
+  .chat-title small .dot { width:6px; height:6px; }
+  .chat-head .tools { display:flex; gap:8px; }
+  .chat-note { font-size:12.5px; color:var(--dim); padding:12px 20px 0; }
+  #log { flex:1; overflow-y:auto; padding:16px 20px; display:flex; flex-direction:column; gap:10px; scrollbar-width:thin;
+         scrollbar-color:var(--line-2) transparent; }
+  .msg { max-width:86%; padding:11px 15px; border-radius:16px; white-space:pre-wrap; overflow-wrap:anywhere;
+         font-size:15px; line-height:1.5; animation:in .35s ease both; }
+  .msg.bot { align-self:flex-start; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.08); border-bottom-left-radius:4px; }
+  .msg.user { align-self:flex-end; background:var(--sig-g); color:#fff; border-bottom-right-radius:4px; }
+  .msg.system { align-self:center; color:var(--muted); font:400 12px/1.4 var(--mono); padding:4px 8px; }
+  .msg.error { align-self:stretch; max-width:100%; border:1px dashed var(--line-2); border-radius:12px; font-size:14px; color:var(--muted); }
+  .msg.error button { margin-top:10px; }
+  .msg.pending { opacity:.6; }
+  .msg.unsent { outline:1px dashed #111; outline-offset:-4px; }
+  .msg .note { opacity:.7; font-size:13px; }
+  #status { color:var(--sig); font:400 12px/1.4 var(--mono); min-height:1.4em; padding:0 20px; }
+  #form { display:flex; gap:8px; padding:12px 14px 14px; border-top:1px solid var(--line); align-items:flex-end; background:rgba(0,0,0,.18); }
+  #text { flex:1; min-width:0; font:400 15px/1.5 var(--body); color:var(--text); background:var(--bg); padding:11px 16px;
+          border:1px solid var(--line-2); border-radius:14px; resize:none; min-height:46px; max-height:140px; transition:border-color .2s; }
+  #text::placeholder { color:var(--dim); }
+  #text:focus { outline:none; border-color:var(--sig); }
+  #send { min-height:46px; }
+
+  /* ---------- бегущая строка ---------- */
+  .ticker { margin-top:96px; border-block:1px solid var(--line); overflow:hidden; white-space:nowrap; }
+  .ticker div { display:inline-flex; gap:48px; padding:18px 0; animation:marquee 38s linear infinite;
+                font:400 clamp(18px, 2.2vw, 28px)/1 var(--display); color:var(--dim); }
+  .ticker span::after { content:"✳"; margin-left:48px; color:var(--sig); }
+
+  /* ---------- заголовки разделов ---------- */
+  .label { display:flex; align-items:center; gap:14px; color:var(--muted); margin-bottom:22px; }
+  .label b { font-weight:400; color:var(--sig); }
+  .label::after { content:""; flex:1; height:1px; background:var(--line); }
+  h2 { font-family:var(--display); font-weight:600; font-size:clamp(30px, 3.8vw, 52px); line-height:1.06;
+       letter-spacing:-.03em; margin-bottom:48px; max-width:900px; }
+
+  /* ---------- карточки ---------- */
+  .grid { display:grid; gap:14px; }
+  .g4 { grid-template-columns:repeat(4, 1fr); }
+  .g3 { grid-template-columns:repeat(3, 1fr); }
+  /* ---------- стекло + свет синего кристалла ---------- */
+  .glass { position:relative; overflow:hidden; isolation:isolate;
+           background:
+             radial-gradient(300px circle at var(--mx, 50%) var(--my, 30%),
+               rgb(var(--crystal) / calc(var(--glow) * .30)), rgb(var(--crystal-deep) / calc(var(--glow) * .14)) 45%, transparent 72%),
+             linear-gradient(145deg, rgba(255,255,255,.075), rgba(255,255,255,.015) 55%, rgba(255,255,255,.04));
+           -webkit-backdrop-filter:blur(16px) saturate(150%); backdrop-filter:blur(16px) saturate(150%);
+           border:1px solid rgba(255,255,255,.09);
+           box-shadow:inset 0 1px 0 rgba(255,255,255,.14), inset 0 -1px 0 rgba(0,0,0,.35), 0 24px 48px -28px rgba(0,0,0,.9);
+           transition:--glow .45s, border-color .45s, box-shadow .45s, transform .35s; }
+  /* Блик, пробегающий по стеклу при наведении */
+  .glass::after { content:""; position:absolute; inset:0; z-index:-1; pointer-events:none;
+                  background:linear-gradient(115deg, transparent 35%, rgb(190 235 255 / .16) 48%, transparent 60%);
+                  transform:translateX(-120%); transition:transform .9s cubic-bezier(.2,.7,.2,1); }
+  .glass:hover { --glow:1; border-color:rgb(var(--crystal) / .5);
+                 box-shadow:inset 0 1px 0 rgb(200 240 255 / .35), inset 0 0 24px rgb(var(--crystal) / .10),
+                            0 0 0 1px rgb(var(--crystal) / .12), 0 0 46px -8px rgb(var(--crystal) / .55), 0 28px 56px -28px rgba(0,0,0,.95); }
+  .glass:hover::after { transform:translateX(120%); }
+
+  .card { border-radius:var(--r); padding:26px; display:flex; flex-direction:column; gap:10px; min-height:280px; }
+  .card:hover { transform:translateY(-4px); }
+  .card .num { font:400 12px/1 var(--mono); color:var(--dim); letter-spacing:.08em; margin-bottom:auto; padding-bottom:36px; }
+  .card h3 { font-family:var(--display); font-weight:600; font-size:19px; line-height:1.2; letter-spacing:-.01em; }
+  .card p { font-size:14px; line-height:1.5; color:var(--muted); }
+  .card .price { margin-top:14px; padding-top:16px; border-top:1px dashed var(--line-2); font:400 14px/1.3 var(--mono); color:var(--text); }
+  .card.link { text-decoration:none; min-height:320px; }
+  .card .go { margin-top:auto; padding-top:20px; display:flex; justify-content:space-between; align-items:center; gap:12px;
+              font:400 12px/1.3 var(--mono); letter-spacing:.04em; color:var(--text); }
+  .card .go::after { content:"↗"; width:40px; height:40px; border-radius:50%; border:1px solid var(--line-2); display:grid; place-items:center;
+                     font-size:16px; flex:none; transition:background .3s, color .3s, border-color .3s; }
+  .card.link:hover .go::after { background:rgb(var(--crystal)); color:#06131c; border-color:rgb(var(--crystal));
+                                box-shadow:0 0 20px rgb(var(--crystal) / .6); }
+  .card .live { position:absolute; top:24px; right:24px; display:flex; align-items:center; gap:6px; color:var(--live);
+                font:400 11px/1 var(--mono); letter-spacing:.08em; z-index:1; }
+  .card .live .dot { width:6px; height:6px; }
+
+  /* ---------- этапы ---------- */
+  .steps { list-style:none; padding:0; margin:0; counter-reset:s; display:grid; grid-template-columns:repeat(4, 1fr); gap:14px; }
+  .steps li { counter-increment:s; position:relative; padding-top:28px; }
+  .steps li::before { content:counter(s, decimal-leading-zero); display:block; font:600 64px/1 var(--display); letter-spacing:-.04em;
+                      color:transparent; -webkit-text-stroke:1px var(--line-2); margin-bottom:24px; transition:color .4s, -webkit-text-stroke-color .4s; }
+  .steps li:hover::before { color:var(--sig); -webkit-text-stroke-color:var(--sig); }
+  .steps li::after { content:""; position:absolute; top:0; left:0; right:0; height:2px; background:var(--line); }
+  .steps li:first-child::after { background:linear-gradient(90deg, #7c6cff, #00d4ff); }
+  .steps h3 { font-family:var(--display); font-weight:600; font-size:18px; line-height:1.25; margin-bottom:8px; }
+  .steps p { font-size:14px; color:var(--muted); max-width:260px; }
+  .facts { display:grid; grid-template-columns:repeat(3, 1fr); gap:14px; margin-top:64px; }
+  .facts > div { padding:28px; border-radius:var(--r); }
+  .facts > div:first-child { background:var(--sig-g); color:#fff; border-color:rgba(255,255,255,.18); }
+  .facts > div:first-child span { color:rgba(255,255,255,.75); }
+  .facts span { display:block; color:var(--muted); margin-bottom:14px; }
+  .facts strong { font:600 clamp(24px, 2.6vw, 36px)/1.1 var(--display); letter-spacing:-.02em; }
+
+  /* ---------- цены: светлая панель для контраста ---------- */
+  #prices { padding-top:0; margin-top:120px; }
+  .paper { background:var(--paper); color:var(--paper-ink); border-radius:28px; padding:72px 64px; position:relative; overflow:hidden; }
+  .paper .label { color:var(--paper-muted); }
+  .paper .label::after { background:var(--paper-line); }
+  .paper::before { content:"₽"; position:absolute; right:-30px; bottom:-120px; font:600 420px/1 var(--display); color:rgba(0,0,0,.04); pointer-events:none; }
+  table { width:100%; border-collapse:collapse; font-size:17px; position:relative; }
+  td { padding:20px 0; border-top:1px solid var(--paper-line); vertical-align:top; transition:background .2s; }
+  tr:last-child td { border-bottom:1px solid var(--paper-line); }
+  tr:hover td { background:rgba(124,108,255,.08); }
+  td:first-child { padding-left:4px; }
+  td:last-child { text-align:right; white-space:nowrap; padding-left:24px; padding-right:4px; font:400 16px/1.5 var(--mono); }
+  td small { display:block; color:var(--paper-muted); font-size:13px; margin-top:3px; }
+  .table-note { font-size:14px; color:var(--paper-muted); margin-top:20px; max-width:620px; }
+
+  /* ---------- FAQ ---------- */
+  .faq-grid { display:grid; grid-template-columns:1fr 1.6fr; gap:56px; align-items:start; }
+  .faq-grid h2 { position:sticky; top:40px; }
+  details { border-top:1px solid var(--line); }
+  details:last-of-type { border-bottom:1px solid var(--line); }
+  summary { cursor:pointer; list-style:none; padding:22px 56px 22px 0; font-size:18px; line-height:1.4; position:relative; transition:color .2s; }
+  summary:hover { color:var(--sig); }
+  summary::-webkit-details-marker { display:none; }
+  summary::after { content:"+"; position:absolute; right:0; top:50%; translate:0 -50%; width:34px; height:34px; border-radius:50%;
+                   border:1px solid var(--line-2); display:grid; place-items:center; font:400 18px/1 var(--mono); color:var(--muted);
+                   transition:transform .3s, background .3s, color .3s; }
+  details[open] summary::after { transform:rotate(45deg); background:var(--sig-g); border-color:rgba(255,255,255,.2); color:#fff; }
+  details p { padding:0 56px 24px 0; font-size:16px; color:var(--muted); }
+
+  /* ---------- честно ---------- */
+  .honest { list-style:none; padding:0; margin:0; display:grid; grid-template-columns:repeat(2, 1fr); gap:14px; }
+  .honest li { display:flex; gap:18px; align-items:flex-start; padding:26px; border-radius:var(--r); font-size:17px; }
+  .honest li::before { content:"✕"; flex:none; width:34px; height:34px; border-radius:50%; display:grid; place-items:center;
+                       background:var(--sig-soft); color:var(--sig); font:400 14px/1 var(--mono); }
+
+  /* ---------- контакты ---------- */
+  .contact { text-align:center; padding-top:140px; }
+  .contact .label { justify-content:center; }
+  .contact .label::after { display:none; }
+  .contact h2 { margin:0 auto 48px; font-size:clamp(36px, 6vw, 84px); }
+  .contact-links { display:flex; justify-content:center; gap:14px; flex-wrap:wrap; }
+  .contact-links a { display:inline-flex; align-items:center; gap:14px; text-decoration:none; font:600 clamp(18px, 2vw, 24px)/1 var(--display);
+                     padding:22px 30px; border:1px solid var(--line-2); border-radius:999px; transition:background .25s, color .25s, border-color .25s; }
+  .contact-links a::after { content:"→"; font-family:var(--mono); font-weight:400; transition:transform .25s; }
+  .contact-links a:hover { background:var(--sig-g); color:#fff; border-color:rgba(124,108,255,.45); }
+  .contact-links a:hover::after { transform:translateX(4px); }
+
+  footer { margin-top:120px; padding:28px 0 36px; border-top:1px solid var(--line); color:var(--dim);
+           display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+  footer a { color:var(--muted); }
+
+  /* ---------- движение ---------- */
+  @keyframes pulse { 50% { transform:scale(.6); opacity:.6; } }
+  @keyframes ping { 0% { box-shadow:0 0 0 0 rgba(94,227,122,.55); } 70%,100% { box-shadow:0 0 0 8px rgba(94,227,122,0); } }
+  @keyframes flow { to { stroke-dashoffset:-32; } }
+  @keyframes marquee { to { transform:translateX(-50%); } }
+  @keyframes in { from { opacity:0; transform:translateY(6px); } }
+  @keyframes rise { from { opacity:0; transform:translateY(24px); } }
+  .hero > * { animation:rise .9s cubic-bezier(.2,.7,.2,1) both; }
+  .hero > :nth-child(2) { animation-delay:.05s; }
+  .hero > :nth-child(3) { animation-delay:.2s; }
+  .rv { opacity:0; transform:translateY(28px); transition:opacity .8s cubic-bezier(.2,.7,.2,1), transform .8s cubic-bezier(.2,.7,.2,1); }
+  .rv.in { opacity:1; transform:none; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation:none !important; transition:none !important; }
+    .rv { opacity:1; transform:none; }
+  }
+  @supports not (backdrop-filter:blur(1px)) { .glass { background-color:rgba(28,28,26,.92); } }
+
+  /* ---------- адаптив ---------- */
+  @media (max-width: 1040px) {
+    .hero { grid-template-columns:1fr; gap:40px; padding-top:32px; }
+    .hero h1 .sub { max-width:620px; }
+    .g4 { grid-template-columns:repeat(2, 1fr); }
+    .g3 { grid-template-columns:1fr; }
+    .card.link { min-height:0; }
+    .steps { grid-template-columns:repeat(2, 1fr); row-gap:40px; }
+    .faq-grid { grid-template-columns:1fr; gap:0; }
+    .faq-grid h2 { position:static; }
+  }
+  /* Меню-таблетки вместе с логотипом и кнопкой не помещаются уже ~900px */
+  @media (max-width: 900px) { .navlinks { display:none; } }
+  @media (max-width: 640px) {
+    .wrap { padding:0 16px; }
+    section { padding-top:88px; }
+    .navlinks { display:none; }
+    nav .pill { padding:9px 14px; font-size:13px; white-space:nowrap; }
+    .wave { display:none; }
+    #form { padding:10px; }
+    #text { font-size:14px; padding:11px 12px; }
+    #send { padding-left:16px; padding-right:16px; }
+    .logo { font-size:13px; white-space:nowrap; gap:8px; }
+    .logo i { width:22px; height:22px; }
+    .notice { font-size:13px; }
+    .notice a { display:none; }
+    .hero { padding-top:16px; }
+    .status-line { margin-bottom:20px; }
+    .hero h1 .sub { margin-top:18px; }
+    .hero-meta { margin-top:24px; }
+    .chat { height:74dvh; min-height:460px; border-radius:20px; }
+    .chat-head { padding:14px 16px; }
+    .chat-head .tools { width:100%; }
+    .chat-note, #log, #status { padding-left:16px; padding-right:16px; }
+    .ticker { margin-top:64px; }
+    .g4 { grid-template-columns:1fr; }
+    .card { min-height:0; }
+    .card .num { padding-bottom:20px; }
+    .steps { grid-template-columns:1fr; }
+    .steps li::before { font-size:48px; margin-bottom:16px; }
+    .facts { grid-template-columns:1fr; }
+    #prices { margin-top:88px; }
+    .paper { padding:48px 20px; border-radius:22px; margin:0 -4px; }
+    table { font-size:15px; }
+    td:last-child { padding-left:12px; font-size:13px; }
+    summary { font-size:16px; }
+    details p { padding-right:0; }
+    .honest { grid-template-columns:1fr; }
+    .honest li { padding:20px; font-size:16px; }
+    .contact { padding-top:100px; }
+    .contact-links a { width:100%; justify-content:space-between; }
+    footer { margin-top:88px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="notice">
+  <span>Попробуйте ИИ-менеджера по продажам — он прямо на этой странице</span>
+  <a href="#chat">Поговорить ↓</a>
+</div>
+
+<div class="wrap">
+  <nav>
+    <a class="logo" href="/"><i aria-hidden="true"></i>Бизнес Генератор</a>
+    <div class="navlinks">
+      <a class="glass" href="#services">Услуги</a>
+      <a class="glass" href="#examples">Примеры</a>
+      <a class="glass" href="#prices">Цены</a>
+      <a class="glass" href="#faq">Вопросы</a>
+      <a class="glass" href="#contacts">Контакты</a>
+    </div>
+    <a class="pill" href="#chat">Обсудить задачу</a>
+  </nav>
+
+  <header class="hero">
+    <div class="hero-bg" aria-hidden="true"></div>
+    <div>
+      <div class="status-line mono"><span class="dot"></span>ИИ-менеджер по продажам на связи</div>
+      <h1>ИИ&#8209;помощники для бизнеса. <span class="sub">Не верьте на слово — <em>поговорите с одним из них</em></span></h1>
+      <div class="hero-meta">
+        <span class="tag">Модель <b>GigaChat</b></span>
+        <span class="tag">Облако <b>cloud.ru</b></span>
+        <span class="tag">Срок <b>1–2 недели</b></span>
+      </div>
+    </div>
+
+    <div class="chat glass" id="chat">
+      <div class="chat-head">
+        <div class="chat-title">
+          <span class="avatar" aria-hidden="true">ИИ</span>
+          <div><strong>ИИ-менеджер по продажам</strong><small><span class="dot"></span>GigaChat · онлайн</small></div>
+        </div>
+        <span class="tools">
+          <button class="ghost" id="reset" type="button">Сбросить</button>
+          <button class="ghost" id="stop" type="button">Остановить автоответы</button>
+        </span>
+      </div>
+      <p class="chat-note">Вы общаетесь с ИИ, а не с человеком. Цены — только из утверждённого прайса. <span id="demo" hidden>Сейчас демо-режим: модель не подключена.</span></p>
+      <div id="log" aria-live="polite"></div>
+      <div id="status"></div>
+      <form id="form">
+        <textarea id="text" maxlength="2000" rows="1" placeholder="Опишите задачу своими словами" aria-label="Сообщение"></textarea>
+        <button id="send" class="pill" type="submit">Отправить</button>
+      </form>
+    </div>
+
+    <svg class="wave" viewBox="0 0 1200 120" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M0 60 C 100 10, 200 110, 300 60 S 500 10, 600 60 S 800 110, 900 60 S 1100 10, 1200 60"/>
+      <path d="M0 60 H 1200"/>
+    </svg>
+  </header>
+</div>
+
+<div class="ticker" aria-hidden="true">
+  <div>
+    <span>GigaChat</span><span>cloud.ru</span><span>сервер в России</span><span>без VPN</span><span>сайт</span><span>Telegram</span><span>MAX</span>
+    <span>GigaChat</span><span>cloud.ru</span><span>сервер в России</span><span>без VPN</span><span>сайт</span><span>Telegram</span><span>MAX</span>
+  </div>
+</div>
+
+<div class="wrap">
+  <section id="services">
+    <div class="label mono"><b>01</b> Что делаем</div>
+    <h2>Решения на российской модели GigaChat — без VPN и зарубежных сервисов</h2>
+    <div class="grid g4">
+      <div class="card glass"><span class="num">/01</span><h3>ИИ-консультант</h3><p>Для сайта или мессенджера. Отвечает по материалам компании и передаёт заявки человеку.</p><div class="price">50 000 – 150 000 ₽</div></div>
+      <div class="card glass"><span class="num">/02</span><h3>ИИ-агент под задачу</h3><p>ИИ-агент под конкретную задачу бизнеса.</p><div class="price">70 000 – 200 000 ₽</div></div>
+      <div class="card glass"><span class="num">/03</span><h3>Бот для Telegram или MAX</h3><p>Бот для мессенджера под вашу задачу. Второй мессенджер — +50% к цене.</p><div class="price">20 000 – 150 000 ₽</div></div>
+      <div class="card glass"><span class="num">/04</span><h3>Ответы по документам</h3><p>Помощник, который отвечает на вопросы по документам компании.</p><div class="price">100 000 – 250 000 ₽</div></div>
+    </div>
+  </section>
+
+  <section id="examples">
+    <div class="label mono"><b>02</b> Работает сейчас</div>
+    <h2>Три работающих примера</h2>
+    <div class="grid g3">
+      <a class="card link glass" href="#chat"><span class="live mono"><span class="dot"></span>live</span><span class="num">/A</span><h3>ИИ-менеджер по продажам</h3><p>Отвечает на вопросы об услугах, называет цены из прайса и передаёт заявку Александру.</p><span class="go">Он на этой странице</span></a>
+      <a class="card link glass" href="https://нейро.бизнесгенератор.рф" target="_blank" rel="noopener"><span class="live mono"><span class="dot"></span>live</span><span class="num">/B</span><h3>Нейро-маркетолог</h3><p>Задаёт вопросы о вашем бизнесе и выдаёт маркетинговый анализ: аудитория, конкуренты, SWOT, каналы.</p><span class="go">нейро.бизнесгенератор.рф</span></a>
+      <a class="card link glass" href="https://ответы.бизнесгенератор.рф" target="_blank" rel="noopener"><span class="live mono"><span class="dot"></span>live</span><span class="num">/C</span><h3>Ответы по документам</h3><p>Отвечает на вопросы по документам компании. Вход по коду доступа — его выдаёт Александр на встрече.</p><span class="go">ответы.бизнесгенератор.рф</span></a>
+    </div>
+  </section>
+
+  <section id="process">
+    <div class="label mono"><b>03</b> Как проходит работа</div>
+    <h2>Четыре шага от разговора до запуска</h2>
+    <ol class="steps">
+      <li><div><h3>Разговор с ИИ-менеджером</h3><p>Опишите задачу в чате выше. Он уточнит детали и передаст заявку Александру.</p></div></li>
+      <li><div><h3>Решение и цена</h3><p>Александр предлагает решение и цену из прайса.</p></div></li>
+      <li><div><h3>Разработка и запуск</h3><p>На модели GigaChat в облаке cloud.ru и на сервере в России.</p></div></li>
+      <li><div><h3>Проверка и доработки</h3><p>Проверяем на ваших реальных вопросах и дорабатываем.</p></div></li>
+    </ol>
+    <div class="facts">
+      <div class="glass"><span class="mono">Срок</span><strong>1–2 недели</strong></div>
+      <div class="glass"><span class="mono">Модель</span><strong>GigaChat</strong></div>
+      <div class="glass"><span class="mono">Ежемесячные расходы</span><strong>обсуждаются</strong></div>
+    </div>
+  </section>
+
+  <section id="prices">
+    <div class="paper">
+      <div class="label mono">04 Цены</div>
+      <h2>Открытые цены — без «по запросу»</h2>
+      <table>
+        <tr><td>ИИ-консультант на GigaChat<small>Отвечает по материалам компании, передаёт заявки человеку</small></td><td>50 000 – 150 000 ₽</td></tr>
+        <tr><td>ИИ-агент под задачу</td><td>70 000 – 200 000 ₽</td></tr>
+        <tr><td>Бот для Telegram или MAX<small>Второй мессенджер — +50% к цене</small></td><td>20 000 – 150 000 ₽</td></tr>
+        <tr><td>Ответы по документам компании (RAG)</td><td>100 000 – 250 000 ₽</td></tr>
+        <tr><td>Автоматизация бизнес-процессов<small>Рутинные операции и связка сервисов</small></td><td>30 000 – 120 000 ₽</td></tr>
+        <tr><td>Лендинг</td><td>25 000 – 70 000 ₽</td></tr>
+        <tr><td>Интернет-магазин</td><td>70 000 – 200 000 ₽</td></tr>
+        <tr><td>Lead Parser<small>Сбор лидов из разных источников</small></td><td>30 000 – 80 000 ₽</td></tr>
+        <tr><td>Content Agent под клиента<small>SMM-бот под ваши задачи</small></td><td>от 80 000 ₽</td></tr>
+      </table>
+      <p class="table-note">Разовая оплата за разработку. Ежемесячные расходы на нейросеть, сервер и поддержку обсуждаются отдельно.</p>
+    </div>
+  </section>
+
+  <section id="faq">
+    <div class="label mono"><b>05</b> Частые вопросы</div>
+    <div class="faq-grid">
+      <h2>Что обычно спрашивают</h2>
+      <div>
+        <details><summary>Сколько стоит и что платить каждый месяц?</summary><p>Разработка — по ценам в таблице выше. Ежемесячные расходы на нейросеть, сервер и поддержку обсуждаются отдельно под вашу задачу.</p></details>
+        <details><summary>Как быстро сделаете?</summary><p>1–2 недели.</p></details>
+        <details><summary>На какой нейросети это работает и где данные?</summary><p>По умолчанию — российская модель GigaChat через облако cloud.ru. Работает в России без VPN и зарубежных сервисов. Другие варианты — обсуждаются.</p></details>
+        <details><summary>Где может работать бот?</summary><p>На сайте, в Telegram и в MAX.</p></details>
+        <details><summary>Заменит ли бот менеджеров?</summary><p>Консультант отвечает на вопросы по материалам компании, а заявки передаёт человеку.</p></details>
+        <details><summary>Можно начать без технического задания?</summary><p>Да. Опишите задачу своими словами ИИ-менеджеру на этой странице — он уточнит детали и передаст заявку.</p></details>
+        <details><summary>Кто будет делать проект?</summary><p>Александр Бадеев.</p></details>
+        <details><summary>Заявка — это уже заказ?</summary><p>Нет. Заявка — это просьба связаться. Заказ и оплата обсуждаются с Александром отдельно.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <section id="honest">
+    <div class="label mono"><b>06</b> Честно</div>
+    <h2>Чего наш ИИ-менеджер делать не будет</h2>
+    <ul class="honest">
+      <li class="glass">Выдавать себя за человека — по вашей просьбе он передаст разговор Александру.</li>
+      <li class="glass">Придумывать скидки, сроки и цены, которых нет в прайсе.</li>
+      <li class="glass">Требовать телефон, чтобы назвать цену.</li>
+      <li class="glass">Брать контакт без вашего согласия — и передаёт его только Александру.</li>
+    </ul>
+  </section>
+
+  <section id="contacts" class="contact">
+    <div class="label mono"><b>07</b> Контакты</div>
+    <h2>Удобнее написать напрямую?</h2>
+    <div class="contact-links">
+      <!-- Номер телефона на сайте НЕ показывать — только ссылка на профиль MAX. -->
+      <a href="https://max.ru/u/f9LHodD0cOIRnmiaTLmNbAO_bPk7XetTZURYbnTQTgBeGajyv88HLxyWeT4" target="_blank" rel="noopener">MAX</a>
+      <a href="https://t.me/CowboyAleksandr" target="_blank" rel="noopener">Telegram</a>
+      <a href="mailto:cowboy-bad@yandex.ru">Почта</a>
+    </div>
+  </section>
+
+  <footer class="mono">
+    <span>© 2026 Badeev Agency</span>
+    <a href="/privacy.html">Политика конфиденциальности</a>
+  </footer>
+</div>
+
+<script>
+"use strict";
+// Появление блоков при прокрутке; без JS всё видно сразу — класс .rv ставится только здесь.
+(() => {
+  if (!("IntersectionObserver" in window)) return;
+  const els = document.querySelectorAll("section .label, section h2, .grid > *, .steps li, .facts, .paper, details, .honest li, .contact-links");
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } });
+  }, {rootMargin: "0px 0px -8% 0px"});
+  els.forEach((el) => {
+    const sib = el.parentElement ? Array.prototype.indexOf.call(el.parentElement.children, el) : 0;
+    el.style.transitionDelay = Math.min(sib, 5) * 70 + "ms";
+    el.classList.add("rv");
+    io.observe(el);
+  });
+})();
+
+// Свет кристалла следует за курсором внутри стеклянной карточки.
+document.querySelectorAll(".glass").forEach((el) => {
+  el.addEventListener("pointermove", (e) => {
+    const r = el.getBoundingClientRect();
+    el.style.setProperty("--mx", (e.clientX - r.left) + "px");
+    el.style.setProperty("--my", (e.clientY - r.top) + "px");
+  });
+});
+
+// Логика клиента перенесена из sales-agent/app/static/index.html: повтор с тем же client_message_id не создаёт дубль.
+const $ = (id) => document.getElementById(id);
+const log = $("log"), statusEl = $("status"), input = $("text"), sendBtn = $("send");
+// Полная подсказка на телефоне переносится и срезается в однострочном поле
+if (matchMedia("(max-width: 640px)").matches) input.placeholder = "Опишите задачу";
+let conversationId = null;
+let busy = false;
+
+function newId() {
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
+
+function bubble(text, kind) {
+  const el = document.createElement("div");
+  el.className = "msg " + kind;
+  el.textContent = text;
+  log.appendChild(el);
+  log.scrollTop = log.scrollHeight;  // скроллим ленту, а не страницу — чат стоит в первом экране
+  return el;
+}
+
+function detailOf(data, fallback) {
+  return data && typeof data.detail === "string" ? data.detail : fallback;
+}
+
+const REQUEST_TIMEOUT_MS = 60000;
+
+async function post(url, body) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const r = await fetch(url, {method: "POST", headers: {"Content-Type": "application/json"},
+                                body: JSON.stringify(body || {}), credentials: "same-origin", signal: ctrl.signal});
+    let data = null;
+    try { data = await r.json(); } catch (e) { data = null; }
+    return {status: r.status, data};
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function greet() {
+  bubble("Здравствуйте! Расскажите, какую задачу хотите решить — подскажу подходящий вариант и цену.", "bot");
+}
+
+function adopt(data) {
+  conversationId = data.conversation_id;
+  $("demo").hidden = !data.demo;
+  statusEl.textContent = "";
+}
+
+async function start(url, body, keepLog) {
+  let res;
+  try { res = await post(url, body); } catch (e) { res = {status: 0, data: null}; }
+  if (res.status !== 200 || !res.data) {
+    bubble(detailOf(res.data, "Не удалось начать диалог. Обновите страницу или напишите на почту ниже."), "error");
+    return false;
+  }
+  adopt(res.data);
+  if (!keepLog) { log.replaceChildren(); greet(); }
+  return true;
+}
+
+function markUnsent(el) {
+  el.classList.remove("pending");
+  el.classList.add("unsent");
+  const note = document.createElement("span");
+  note.className = "note";
+  note.textContent = " — не отправлено";
+  el.appendChild(note);
+}
+
+function setBusy(on) {
+  busy = on;
+  sendBtn.disabled = on;
+  statusEl.textContent = on ? "ИИ-менеджер печатает…" : "";
+}
+
+async function send(text, mid, userEl) {
+  if (busy) return;
+  if (!conversationId) {
+    markUnsent(userEl);
+    bubble("Диалог не начат. Обновите страницу.", "error");
+    return;
+  }
+  setBusy(true);
+  userEl.classList.add("pending");
+  let res;
+  try {
+    res = await post("/api/chat", {conversation_id: conversationId, client_message_id: mid, text});
+  } catch (e) {
+    res = {status: 0, data: null};
+  }
+  setBusy(false);
+  if (res.status === 200 && res.data) {
+    userEl.classList.remove("pending");
+    if (res.data.reply === null) bubble("Автоответы остановлены. Сообщение сохранено.", "system");
+    else bubble(res.data.reply, "bot");
+    $("demo").hidden = !res.data.demo;
+    return;
+  }
+  if (res.status === 403) {
+    markUnsent(userEl);
+    if (await start("/api/conversations", null, true)) {
+      bubble("Диалог был недоступен в этой сессии, поэтому начат новый. Отправьте сообщение ещё раз.", "system");
+    }
+    return;
+  }
+  if (res.status === 422) {
+    userEl.remove();
+    bubble(detailOf(res.data, "Сообщение должно быть от 1 до 2000 символов."), "error");
+    return;
+  }
+  const box = bubble(detailOf(res.data, "Связь прервалась. Сообщение не потеряно."), "error");
+  const retry = document.createElement("button");
+  retry.type = "button";
+  retry.className = "pill sm";
+  retry.textContent = "Повторить";
+  retry.addEventListener("click", () => {
+    if (busy) return;
+    box.remove();
+    send(text, mid, userEl);
+  });
+  box.appendChild(document.createElement("br"));
+  box.appendChild(retry);
+}
+
+$("form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const text = input.value.trim();
+  if (!text || busy) return;
+  input.value = "";
+  input.style.height = "";
+  send(text, newId(), bubble(text, "user"));
+});
+input.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("form").requestSubmit(); }
+});
+input.addEventListener("input", () => {
+  input.style.height = "";
+  input.style.height = Math.min(input.scrollHeight, 140) + "px";
+});
+$("reset").addEventListener("click", async () => {
+  if (!conversationId || busy) return;
+  let res;
+  try { res = await post("/api/reset", {conversation_id: conversationId}); } catch (e) { res = {status: 0, data: null}; }
+  if (res.status === 200 && res.data) {
+    log.replaceChildren();
+    adopt(res.data);
+    greet();
+    return;
+  }
+  if (res.status === 403) {
+    if (await start("/api/conversations")) bubble("Диалог был недоступен в этой сессии, поэтому начат новый.", "system");
+    return;
+  }
+  bubble(detailOf(res.data, "Не удалось сбросить диалог. Попробуйте ещё раз."), "error");
+});
+$("stop").addEventListener("click", async () => {
+  if (!conversationId) return;
+  let status = 0;
+  try { status = (await post("/api/stop", {conversation_id: conversationId})).status; } catch (e) { status = 0; }
+  bubble(status === 200 ? "Автоответы в этом диалоге остановлены." : "Не удалось остановить автоответы.", "system");
+});
+start("/api/conversations");
+</script>
+</body>
+</html>
