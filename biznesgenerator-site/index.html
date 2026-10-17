@@ -332,7 +332,12 @@
     #prices { margin-top:88px; }
     .paper { padding:48px 20px; border-radius:22px; margin:0 -4px; }
     table { font-size:15px; }
-    td:last-child { padding-left:12px; font-size:13px; }
+    tr, td { display:block; }
+    td { border-top:0; padding:0 4px; }
+    tr { border-top:1px solid var(--paper-line); padding:16px 0; }
+    tr:last-child { border-bottom:1px solid var(--paper-line); }
+    tr:last-child td { border-bottom:0; }
+    td:last-child { text-align:left; padding:8px 4px 0; font-size:14px; }
     summary { font-size:16px; }
     details p { padding-right:0; }
     .honest { grid-template-columns:1fr; }
@@ -461,15 +466,15 @@
       <div class="label mono">04 Цены</div>
       <h2>Открытые цены — без «по запросу»</h2>
       <table>
-        <tr><td>ИИ-консультант на GigaChat<small>Отвечает по материалам компании, передаёт заявки человеку</small></td><td>50 000 – 150 000 ₽</td></tr>
-        <tr><td>ИИ-агент под задачу</td><td>70 000 – 200 000 ₽</td></tr>
-        <tr><td>Бот для Telegram или MAX<small>Второй мессенджер — +50% к цене</small></td><td>20 000 – 150 000 ₽</td></tr>
-        <tr><td>Ответы по документам компании (RAG)</td><td>100 000 – 250 000 ₽</td></tr>
-        <tr><td>Автоматизация бизнес-процессов<small>Рутинные операции и связка сервисов</small></td><td>30 000 – 120 000 ₽</td></tr>
-        <tr><td>Лендинг</td><td>25 000 – 70 000 ₽</td></tr>
-        <tr><td>Интернет-магазин</td><td>70 000 – 200 000 ₽</td></tr>
-        <tr><td>Lead Parser<small>Сбор лидов из разных источников</small></td><td>30 000 – 80 000 ₽</td></tr>
-        <tr><td>Content Agent под клиента<small>SMM-бот под ваши задачи</small></td><td>от 80 000 ₽</td></tr>
+        <tr><td>ИИ-консультант на GigaChat<small>Чат для сайта или мессенджера: отвечает клиентам по материалам компании и передаёт заявки человеку</small></td><td>50 000 – 150 000 ₽</td></tr>
+        <tr><td>ИИ-агент под задачу<small>Не только отвечает, а сам выполняет шаги конкретной задачи вашего бизнеса</small></td><td>70 000 – 200 000 ₽</td></tr>
+        <tr><td>Бот для Telegram или MAX<small>Бот в мессенджере под вашу задачу. Второй мессенджер — +50% к цене</small></td><td>20 000 – 150 000 ₽</td></tr>
+        <tr><td>Ответы по документам компании (RAG)<small>Помощник находит ответ в ваших документах — инструкциях, регламентах, договорах</small></td><td>100 000 – 250 000 ₽</td></tr>
+        <tr><td>Автоматизация бизнес-процессов<small>Рутинные операции выполняются сами, сервисы обмениваются данными без ручного переноса</small></td><td>30 000 – 120 000 ₽</td></tr>
+        <tr><td>Лендинг<small>Одностраничный продающий сайт под продукт или услугу</small></td><td>25 000 – 70 000 ₽</td></tr>
+        <tr><td>Интернет-магазин<small>Сайт с каталогом товаров и приёмом заказов</small></td><td>70 000 – 200 000 ₽</td></tr>
+        <tr><td>Lead Parser<small>Собирает потенциальных клиентов и заказы из разных источников в одно место</small></td><td>30 000 – 80 000 ₽</td></tr>
+        <tr><td>Content Agent под клиента<small>SMM-бот: пишет и переписывает посты, подсказывает хэштеги и время публикации</small></td><td>от 80 000 ₽</td></tr>
       </table>
       <p class="table-note">Разовая оплата за разработку. Ежемесячные расходы на нейросеть, сервер и поддержку обсуждаются отдельно.</p>
     </div>
