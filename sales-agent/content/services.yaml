@@ -25,8 +25,8 @@
   source: Manager-saler/app/prompts/system.py
 - id: tg-bot
   title: Telegram- или MAX-бот под заказ
-  description: Бот для мессенджера под задачу клиента
-  includes: [второй мессенджер (Telegram + MAX) — +50% к цене]
+  description: Бот для мессенджера под задачу клиента. Второй мессенджер (Telegram + MAX) — +50% к цене
+  includes: []
   price_from: 20000
   price_to: 150000
   currency: RUB
