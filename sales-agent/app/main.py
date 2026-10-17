@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 
 from app.catalog import load_catalog
 from app.config import Settings
-from app.handoff import Channel, StubChannel
+from app.handoff import Channel, StubChannel, TelegramChannel
 from app.llm_client import LLM, CloudRuLLM, LLMError
 from app.pipeline import Pipeline
 from app.skills import load_skills
@@ -77,12 +77,16 @@ def create_app(settings: Settings | None = None, *, llm: LLM | None = None,
     store = Store(settings.db_path)
     catalog = load_catalog(Path(settings.content_dir))
     key = settings.cloudru_api_key.strip()
-    pipeline = Pipeline(store, catalog, load_skills(Path(settings.skills_dir)), llm, channel or StubChannel(),
-                        [key] if key else [])
+    if channel is None:
+        token, chat = settings.notify_bot_token.strip(), settings.notify_chat_id.strip()
+        channel = TelegramChannel(token, chat) if token and chat else StubChannel()
+    pipeline = Pipeline(store, catalog, load_skills(Path(settings.skills_dir)), llm, channel,
+                        [s for s in (key, settings.notify_bot_token.strip()) if s])
     limiter = RateLimiter(settings.rate_limit_per_minute)
 
     app = FastAPI(title="sales-agent", docs_url=None, redoc_url=None, openapi_url=None)
     app.state.store = store
+    app.state.channel = channel
 
     def session(request: Request, response: Response) -> str:
         sid = request.cookies.get(COOKIE)

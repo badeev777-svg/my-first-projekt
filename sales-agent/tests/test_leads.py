@@ -90,6 +90,7 @@ def test_approved_lead_is_sent_with_masked_payload(store):
     assert row["consent_status"] == "given" and row["consent_time"] is not None
     kind, payload = ch.sent[0]
     assert kind == "lead" and "+79123456789" not in str(payload)
+    assert ch.contacts == ["+79123456789"]
 
 
 def test_repeat_returns_same_lead_without_resend(store):

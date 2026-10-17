@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     max_message_chars: int = 2000
     rate_limit_per_minute: int = 20
     cookie_secure: bool = False
+    # Оба пустые = заявки уходят в канал-заглушку (только лог).
+    notify_bot_token: str = ""
+    notify_chat_id: str = ""
 
     @property
     def demo(self) -> bool:
