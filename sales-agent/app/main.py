@@ -71,6 +71,8 @@ def _host_name(header: str) -> str:
 def create_app(settings: Settings | None = None, *, llm: LLM | None = None,
                channel: Channel | None = None) -> FastAPI:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
+    # httpx на INFO пишет полный URL запроса, а в URL Bot API лежит токен.
+    logging.getLogger("httpx").setLevel(logging.WARNING)
     settings = settings or Settings()
     if llm is None and not settings.demo:
         llm = CloudRuLLM(settings)
