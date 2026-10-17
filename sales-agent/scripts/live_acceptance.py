@@ -101,7 +101,7 @@ def s01(tmp: Path) -> Result:
     cid = live.start()
     states = []
     for text in ("Здравствуйте! Нужен бот, чтобы клиенты сами записывались в салон",
-                 "Что можете предложить и сколько это стоит?", "Да, давайте", PHONE):
+                 "Что можете предложить и сколько это стоит?", "В Telegram, МАКС. Да, давайте обсудим", PHONE):
         code, body = live.say(cid, text)
         states.append(body.get("state", str(code)))
     if states[-1] == "consent_pending":
