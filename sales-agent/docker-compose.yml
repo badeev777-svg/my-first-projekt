@@ -2,7 +2,7 @@ services:
   sales-agent:
     build: .
     ports:
-      - "127.0.0.1:8090:8000"
+      - "127.0.0.1:8092:8000"
     env_file: .env
     volumes:
       - sales-data:/srv/data
