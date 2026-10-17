@@ -26,7 +26,7 @@
 - id: tg-bot
   title: Telegram- или MAX-бот под заказ
   description: Бот для мессенджера под задачу клиента
-  includes: [второй мессенджер (Telegram + MAX) — +30% к цене]
+  includes: [второй мессенджер (Telegram + MAX) — +50% к цене]
   price_from: 20000
   price_to: 150000
   currency: RUB
