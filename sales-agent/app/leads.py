@@ -53,11 +53,11 @@ def mask_text(text: str) -> str:
     return _PHONE.sub(lambda m: mask_contact(_normalize_phone(m.group())), text)
 
 
-def _deliver(channel: Channel, kind: str, payload: dict, demo: bool) -> str:
+def _deliver(channel: Channel, kind: str, payload: dict, demo: bool, contact: str = "") -> str:
     if demo:
         return "demo"
     try:
-        return channel.send(kind, payload)
+        return channel.send(kind, payload, contact=contact)
     except Exception:
         # Любой сбой = доставка не подтверждена; клиенту нельзя сообщать об успехе.
         log.exception("delivery failed for %s %s", kind, payload.get("id"))
@@ -79,7 +79,7 @@ def create_lead(store: Store, channel: Channel, *, conversation_id: str, contact
         return Outcome(lead_id, store.get_lead(lead_id)["delivery_status"], False)
     payload = {"id": lead_id, "conversation_id": conversation_id, "contact_masked": masked,
                "need": mask_text(need)[:500], "product_id": product_id or "unknown"}
-    status = _deliver(channel, "lead", payload, demo=not real)
+    status = _deliver(channel, "lead", payload, demo=not real, contact=contact)
     store.set_lead_delivery(lead_id, status)
     return Outcome(lead_id, status, True)
 
