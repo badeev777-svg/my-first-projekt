@@ -100,7 +100,14 @@
   .hero h1 .sub { display:block; margin-top:26px; font:400 clamp(20px, 2vw, 26px)/1.35 var(--body); letter-spacing:0;
                   color:var(--muted); max-width:470px; }
   .hero h1 .sub em { font-style:normal; color:var(--text); background:linear-gradient(transparent 62%, var(--sig-soft) 62%); }
-  .hero-meta { display:flex; gap:10px; flex-wrap:wrap; margin-top:36px; }
+  .offer { list-style:none; margin:30px 0 0; padding:0; display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr));
+           gap:10px 24px; max-width:600px; font-size:16px; align-items:start; }
+  .offer li { display:flex; align-items:center; gap:10px; }
+  .offer li::before { content:""; width:8px; height:8px; border-radius:2px; background:var(--sig-g); flex:none;
+                      transform:rotate(45deg); }
+  .offer-more { display:inline-block; margin-top:16px; color:var(--sig); font-size:14px; text-decoration:none; }
+  .offer-more:hover { color:var(--text); }
+  .hero-meta { display:flex; gap:10px; flex-wrap:wrap; margin-top:28px; }
   .tag { font:400 12px/1 var(--mono); letter-spacing:.06em; text-transform:uppercase; color:var(--muted);
          border:1px solid var(--line-2); border-radius:999px; padding:9px 14px; }
   .tag b { font-weight:400; color:var(--text); }
@@ -308,6 +315,7 @@
     .hero { padding-top:16px; }
     .status-line { margin-bottom:20px; }
     .hero h1 .sub { margin-top:18px; }
+    .offer { grid-template-columns:1fr; margin-top:22px; font-size:15px; }
     .hero-meta { margin-top:24px; }
     .chat { height:74dvh; min-height:460px; border-radius:20px; }
     .chat-head { padding:14px 16px; }
@@ -359,6 +367,15 @@
     <div>
       <div class="status-line mono"><span class="dot"></span>ИИ-менеджер по продажам на связи</div>
       <h1>ИИ&#8209;помощники для бизнеса. <span class="sub">Не верьте на слово — <em>поговорите с одним из них</em></span></h1>
+      <ul class="offer" aria-label="Что делаем">
+        <li>ИИ-консультант для сайта</li>
+        <li>Боты для Telegram и MAX</li>
+        <li>ИИ-агенты под задачу</li>
+        <li>Ответы по документам</li>
+        <li>Автоматизация процессов</li>
+        <li>Лендинги и магазины</li>
+      </ul>
+      <a class="offer-more" href="#prices">Все услуги и цены →</a>
       <div class="hero-meta">
         <span class="tag">Модель <b>GigaChat</b></span>
         <span class="tag">Облако <b>cloud.ru</b></span>
