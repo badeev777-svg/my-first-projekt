@@ -38,8 +38,8 @@
   title: Ответы по документам компании (RAG)
   description: Помощник, который отвечает на вопросы по документам компании
   includes: []
-  price_from: null
-  price_to: null
+  price_from: 100000
+  price_to: 250000
   currency: RUB
   period: one_time
   duration_note: ""
