@@ -52,3 +52,26 @@ def test_app_uses_telegram_only_when_both_settings_given(tmp_path):
     assert isinstance(chosen(notify_bot_token=TOKEN, notify_chat_id="42"), TelegramChannel)
     assert isinstance(chosen(notify_bot_token=TOKEN), StubChannel)
     assert isinstance(chosen(), StubChannel)
+
+
+def test_httpx_request_urls_are_not_logged(tmp_path):
+    import logging
+    create_app(Settings(db_path=str(tmp_path / "x.db")))
+    assert logging.getLogger("httpx").getEffectiveLevel() >= logging.WARNING
+
+
+class _SentChannel(StubChannel):
+    def send(self, kind, payload, contact=""):
+        super().send(kind, payload, contact)
+        return "sent"
+
+
+def test_delivered_lead_tells_client_it_was_sent(make_client):
+    from app.state import State
+    h = make_client(channel=_SentChannel())
+    cid = h.start()
+    h.store.set_state(cid, State.CONSENT_PENDING)
+    body = h.say(cid, "ivan@example.com").json()
+    assert body["state"] == "human_pending" and body["lead"]["delivery_status"] == "sent"
+    assert "свяжется с вами" in body["reply"] and "Не удалось" not in body["reply"]
+    assert h.channel.contacts == ["ivan@example.com"]
