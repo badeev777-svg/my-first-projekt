@@ -9,14 +9,16 @@ from tests.helpers import DEFAULT_POLICY, make_content, service
 REAL_CONTENT = Path(__file__).resolve().parent.parent / "content"
 
 
-def test_real_content_loads_and_hides_unapproved_prices():
+def test_real_content_loads_with_owner_approved_prices():
     cat = load_catalog(REAL_CONTENT)
     assert "ai-agent" in cat.service_ids
-    assert cat.price_status("ai-agent") == "unapproved"
-    assert cat.price_text("ai-agent") is None
-    joined = " ".join(f.text for f in cat.facts())
-    assert "200 000" not in joined and "200000" not in joined
-    assert "не утверждена" in joined
+    assert cat.price_status("ai-agent") == "approved"
+    assert "200 000" in cat.price_text("ai-agent")
+    # rag-docs is approved but has no price: the bot must not invent one
+    assert cat.price_status("rag-docs") == "none"
+    assert cat.price_text("rag-docs") is None
+    # owner dropped the Content Agent subscription on 2026-10-17
+    assert "content-agent-subscription" not in cat.service_ids
     assert cat.policy.recipient == "Александр"
     assert cat.version
 

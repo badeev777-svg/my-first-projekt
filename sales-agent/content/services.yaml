@@ -1,6 +1,6 @@
 # Цена показывается клиенту только при approved: true.
 # Один id дважды с разными ценами = конфликт: цену не называем, вопрос уходит человеку.
-# Источник вилок: ../Manager-saler/app/prompts/system.py и стратегия 2026-09-26. Всё — черновик.
+# Источник вилок: ../Manager-saler/app/prompts/system.py и стратегия 2026-09-26. Прайс утверждён владельцем 2026-10-17 (подписка Content Agent убрана).
 - id: ai-consultant-gigachat
   title: ИИ-консультант на GigaChat
   description: Консультант для сайта или мессенджера на российской модели GigaChat (cloud.ru), отвечает по материалам компании и передаёт заявки человеку
@@ -10,7 +10,7 @@
   currency: RUB
   period: one_time
   duration_note: ""
-  approved: false
+  approved: true
   source: стратегия 2026-09-26
 - id: ai-agent
   title: AI-агент под заказ
@@ -21,7 +21,7 @@
   currency: RUB
   period: one_time
   duration_note: ""
-  approved: false
+  approved: true
   source: Manager-saler/app/prompts/system.py
 - id: tg-bot
   title: Telegram- или MAX-бот под заказ
@@ -32,7 +32,7 @@
   currency: RUB
   period: one_time
   duration_note: ""
-  approved: false
+  approved: true
   source: Manager-saler/app/prompts/system.py
 - id: rag-docs
   title: Ответы по документам компании (RAG)
@@ -43,7 +43,7 @@
   currency: RUB
   period: one_time
   duration_note: ""
-  approved: false
+  approved: true
   source: "—"
 - id: automation
   title: Автоматизация бизнес-процессов
@@ -54,7 +54,7 @@
   currency: RUB
   period: one_time
   duration_note: ""
-  approved: false
+  approved: true
   source: Manager-saler/app/prompts/system.py
 - id: landing
   title: Лендинг / продающий сайт
@@ -65,7 +65,7 @@
   currency: RUB
   period: one_time
   duration_note: ""
-  approved: false
+  approved: true
   source: Manager-saler/app/prompts/system.py
 - id: e-shop
   title: Интернет-магазин
@@ -76,7 +76,7 @@
   currency: RUB
   period: one_time
   duration_note: ""
-  approved: false
+  approved: true
   source: Manager-saler/app/prompts/system.py
 - id: lead-parser
   title: Lead Parser
@@ -87,18 +87,7 @@
   currency: RUB
   period: one_time
   duration_note: ""
-  approved: false
-  source: Manager-saler/app/prompts/system.py
-- id: content-agent-subscription
-  title: Content Agent Bot — подписка
-  description: Telegram-бот для SMM — генерация и переписывание постов (продукт в разработке)
-  includes: []
-  price_from: 2499
-  price_to: 2499
-  currency: RUB
-  period: monthly
-  duration_note: ""
-  approved: false
+  approved: true
   source: Manager-saler/app/prompts/system.py
 - id: content-agent-custom
   title: Content Agent Bot — разработка под клиента
@@ -109,5 +98,5 @@
   currency: RUB
   period: one_time
   duration_note: ""
-  approved: false
+  approved: true
   source: Manager-saler/app/prompts/system.py
