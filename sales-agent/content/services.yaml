@@ -71,8 +71,8 @@
   title: Интернет-магазин
   description: Сайт с каталогом товаров и заказами
   includes: []
-  price_from: 50000
-  price_to: 150000
+  price_from: 70000
+  price_to: 200000
   currency: RUB
   period: one_time
   duration_note: ""
