@@ -1,0 +1,9 @@
+.env
+.venv/
+data/
+screenshots/
+tests/
+docs/
+scripts/
+**/__pycache__/
+**/*.pyc

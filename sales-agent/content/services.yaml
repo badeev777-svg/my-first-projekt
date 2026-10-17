@@ -1,0 +1,102 @@
+# Цена показывается клиенту только при approved: true.
+# Один id дважды с разными ценами = конфликт: цену не называем, вопрос уходит человеку.
+# Источник вилок: ../Manager-saler/app/prompts/system.py и стратегия 2026-09-26. Прайс утверждён владельцем 2026-10-17 (подписка Content Agent убрана).
+- id: ai-consultant-gigachat
+  title: ИИ-консультант на GigaChat
+  description: Консультант для сайта или мессенджера на российской модели GigaChat (cloud.ru), отвечает по материалам компании и передаёт заявки человеку
+  includes: [настройка под материалы компании, передача заявок человеку, сопровождение — цена уточняется отдельно]
+  price_from: 50000
+  price_to: 150000
+  currency: RUB
+  period: one_time
+  duration_note: ""
+  approved: true
+  source: владелец 2026-10-17 — стартовая цена для выхода на рынок
+- id: ai-agent
+  title: AI-агент под заказ
+  description: ИИ-агент под конкретную задачу бизнеса
+  includes: []
+  price_from: 70000
+  price_to: 200000
+  currency: RUB
+  period: one_time
+  duration_note: ""
+  approved: true
+  source: Manager-saler/app/prompts/system.py
+- id: tg-bot
+  title: Telegram- или MAX-бот под заказ
+  description: Бот для мессенджера под задачу клиента. Второй мессенджер (Telegram + MAX) — +50% к цене
+  includes: []
+  price_from: 20000
+  price_to: 150000
+  currency: RUB
+  period: one_time
+  duration_note: ""
+  approved: true
+  source: Manager-saler/app/prompts/system.py
+- id: rag-docs
+  title: Ответы по документам компании (RAG)
+  description: Помощник, который отвечает на вопросы по документам компании
+  includes: []
+  price_from: 100000
+  price_to: 250000
+  currency: RUB
+  period: one_time
+  duration_note: ""
+  approved: true
+  source: "—"
+- id: automation
+  title: Автоматизация бизнес-процессов
+  description: Автоматизация рутинных операций и связка сервисов
+  includes: []
+  price_from: 30000
+  price_to: 120000
+  currency: RUB
+  period: one_time
+  duration_note: ""
+  approved: true
+  source: Manager-saler/app/prompts/system.py
+- id: landing
+  title: Лендинг / продающий сайт
+  description: Одностраничный сайт под продукт или услугу
+  includes: []
+  price_from: 25000
+  price_to: 70000
+  currency: RUB
+  period: one_time
+  duration_note: ""
+  approved: true
+  source: Manager-saler/app/prompts/system.py
+- id: e-shop
+  title: Интернет-магазин
+  description: Сайт с каталогом товаров и заказами
+  includes: []
+  price_from: 70000
+  price_to: 200000
+  currency: RUB
+  period: one_time
+  duration_note: ""
+  approved: true
+  source: Manager-saler/app/prompts/system.py
+- id: lead-parser
+  title: Lead Parser
+  description: Парсер лидов из различных источников
+  includes: []
+  price_from: 30000
+  price_to: 80000
+  currency: RUB
+  period: one_time
+  duration_note: ""
+  approved: true
+  source: Manager-saler/app/prompts/system.py
+- id: content-agent-custom
+  title: Content Agent Bot — разработка под клиента
+  description: Отдельная версия SMM-бота под задачи клиента (продукт в разработке)
+  includes: []
+  price_from: 80000
+  price_to: null
+  currency: RUB
+  period: one_time
+  duration_note: ""
+  approved: true
+  source: Manager-saler/app/prompts/system.py
