@@ -60,8 +60,8 @@
   title: Лендинг / продающий сайт
   description: Одностраничный сайт под продукт или услугу
   includes: []
-  price_from: 15000
-  price_to: 50000
+  price_from: 25000
+  price_to: 70000
   currency: RUB
   period: one_time
   duration_note: ""
