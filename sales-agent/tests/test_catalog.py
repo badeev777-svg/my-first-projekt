@@ -21,6 +21,28 @@ def test_real_content_loads_with_owner_approved_prices():
     assert cat.version
 
 
+def test_real_content_lists_approved_solutions():
+    cat = load_catalog(REAL_CONTENT)
+    works = [f for f in cat.facts() if f.id.startswith("works:")]
+    text = " ".join(f.text for f in works)
+    assert "ИИ-аналитик конкурентов" in text
+    assert "уточнит Александр" in works[0].text and "не называй сумму" in works[0].text
+    assert "не проверено" not in text
+    assert sum(t.count(";") + 1 for t in (f.text.split(": ", 1)[1].split(". Цена")[0] for f in works)) >= 100
+
+
+def test_solutions_file_is_optional(tmp_path):
+    cat = load_catalog(make_content(tmp_path, [service()]))
+    assert not [f for f in cat.facts() if f.id.startswith("works:")]
+
+
+def test_bad_solutions_file_rejected(tmp_path):
+    root = make_content(tmp_path, [service()])
+    (root / "solutions.yaml").write_text("Группа: не список\n", encoding="utf-8")
+    with pytest.raises(CatalogError, match="solutions.yaml"):
+        load_catalog(root)
+
+
 def test_real_content_has_no_url_for_description_only_projects():
     cat = load_catalog(REAL_CONTENT)
     aleks = [f for f in cat.facts() if f.id == "project:aleks"]

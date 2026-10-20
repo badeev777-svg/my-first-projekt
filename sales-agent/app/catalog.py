@@ -99,8 +99,9 @@ def _format_price(s: Service) -> str:
 
 class Catalog:
     def __init__(self, version: str, role: str, services: list[Service], projects: list[Project],
-                 faq: list[FaqItem], policy: Policy):
+                 faq: list[FaqItem], policy: Policy, works: dict[str, tuple[str, ...]] | None = None):
         self.version = version
+        self._works = works or {}
         self.role = role
         self.policy = policy
         self._projects = projects
@@ -147,6 +148,14 @@ class Catalog:
                 facts.append(Fact(f"price:{sid}", f"Цена «{s.title}»: {price}."))
             else:
                 facts.append(Fact(f"price:{sid}", f"Цена «{s.title}»: не утверждена — уточнит {self.policy.recipient}."))
+        # Список работ без своих цен: «ИИ-аналитик конкурентов» не было в 9 услугах, бот не знал, что мы это делаем.
+        for n, (group, items) in enumerate(self._works.items(), start=1):
+            facts.append(Fact(
+                f"works:{n}",
+                # Живая проверка 2026-10-20: «по прайсу подходящей услуги» → модель назвала аналитику «от 100 000» (цена RAG).
+                f"Также выполняем ({group}): {'; '.join(items)}. Своей цены у этих работ нет: не называй сумму "
+                f"и не бери её из цен услуг — стоимость уточнит {self.policy.recipient}.",
+            ))
         for p in self._projects:
             if p.public == "no":
                 continue
@@ -236,6 +245,20 @@ def _load_policy(path: Path) -> Policy:
     )
 
 
+def _load_works(path: Path) -> dict[str, tuple[str, ...]]:
+    if not path.exists():
+        return {}
+    data = _read_yaml(path) or {}
+    if not isinstance(data, dict):
+        raise CatalogError("solutions.yaml: ожидаются группы вида «Название группы: [работы]»")
+    out: dict[str, tuple[str, ...]] = {}
+    for group, items in data.items():
+        if not isinstance(items, list) or not all(isinstance(x, str) and x.strip() for x in items):
+            raise CatalogError(f"solutions.yaml: группа «{group}» должна быть списком строк")
+        out[str(group)] = tuple(x.strip() for x in items)
+    return out
+
+
 def load_catalog(content_dir: Path) -> Catalog:
     return Catalog(
         version=(content_dir / "VERSION").read_text(encoding="utf-8").strip(),
@@ -244,4 +267,5 @@ def load_catalog(content_dir: Path) -> Catalog:
         projects=_load_projects(content_dir / "projects.yaml"),
         faq=_load_faq(content_dir / "faq.yaml"),
         policy=_load_policy(content_dir / "policy.yaml"),
+        works=_load_works(content_dir / "solutions.yaml"),
     )
