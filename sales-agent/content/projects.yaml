@@ -12,7 +12,7 @@
 - {id: primerka, title: Виртуальная примерка, description: "Приложение виртуальной примерки одежды по фото пользователя", status: in_dev, public: "yes", verified: true}
 - {id: ai-tyutor, title: AI-тьютор английского, description: "Бот для практики разговорного английского с AI-наставником: исправляет ошибки, предлагает альтернативы", status: in_dev, public: "yes", verified: true}
 - {id: ai-montage, title: ai-montage, description: "", status: in_dev, public: "yes", verified: false}
-- {id: sales-agent, title: ИИ-продажник, description: "Этот помощник: выясняет задачу, подбирает услугу из утверждённого каталога и передаёт заявку человеку", status: in_dev, public: "yes", verified: true}
+- {id: sales-agent, title: ИИ-менеджер по продажам, description: "Этот помощник: выясняет задачу, подбирает услугу из утверждённого каталога и передаёт заявку человеку", status: in_dev, public: "yes", verified: true}
 - {id: lead-parser, title: Lead Parser, description: "Парсер лидов из различных источников", status: paused, public: "yes", verified: true}
 - {id: inter-sales, title: inter-sales, description: "Утилита для B2B-продаж", status: paused, public: "yes", verified: true}
 - {id: elektra, title: Elektra, description: "", status: paused, public: "yes", verified: false}
