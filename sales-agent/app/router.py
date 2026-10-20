@@ -35,6 +35,12 @@ _HUMAN = re.compile(
     r"|^\s*(нужен|можно|дайте|позовите)\s+(живого\s+)?(человек|менеджер|оператор)\w*\s*[?!.]*\s*$",
     re.I,
 )
+# «Вы человек или бот?» — вопрос о помощнике, а не просьба позвать человека (живая проверка 2026-10-20).
+_ASKS_IF_BOT = re.compile(
+    r"\b(?:человек|бот|робот|ии)\s+или\s+(?:человек|бот|робот|ии|нейросеть)\b"
+    r"|^\W*(?:а\s+)?(?:вы|ты|это)\s+(?:\w+\s+)?(?:бот|робот|ии|нейросеть)\W*$",
+    re.I,
+)
 # Отказ от отдачи своих контактов; «без контактной формы» и «на почту» (о боте) — не отказ.
 _CONTACT_REFUSED = re.compile(
     r"не\s+(?:хочу|буду|дам|оставлю|готов\w*)\s+"
@@ -59,7 +65,7 @@ intent — одно из:
 - objection: сомнение или возражение (дорого, не уверен, а если не получится)
 - agree: согласен на предложенный следующий шаг
 - refuse: отказывается от общения или покупки
-- human: просит живого человека
+- human: просит живого человека (вопрос «вы человек или бот?» — это question)
 - other: всё остальное
 service_id — id услуги из списка (id — название), о которой идёт речь, иначе null.
 Услуги:
@@ -82,7 +88,7 @@ def priority_route(text: str, conv: Conversation) -> RouteKind | None:
         return "closed"
     if _INJECTION.search(text):
         return "injection"
-    if _HUMAN.search(text):
+    if _HUMAN.search(text) and not _ASKS_IF_BOT.search(text):
         return "handoff"
     if _CONTACT_REFUSED.search(text):
         return "contact_refused"
@@ -96,6 +102,8 @@ def classify(llm: LLM, text: str, history: list[tuple[str, str]], services: dict
     system = CLASSIFIER_SYSTEM.format(services="\n".join(f"- {sid} — {title}" for sid, title in services.items()))
     data = extract_json(llm.chat(system, build_user(history[-4:], text))) or {}
     intent = data.get("intent")
+    if intent == "human" and _ASKS_IF_BOT.search(text):
+        intent = "question"
     service_id = data.get("service_id")
     return Classification(
         intent=intent if intent in INTENTS else "other",
