@@ -27,6 +27,8 @@ def test_forbidden(src, dst):
 def test_model_cannot_set_code_only_states():
     assert model_may_set(S.DISCOVERY, S.OFFER)
     assert model_may_set(S.OFFER, S.CONSENT_PENDING)
+    assert model_may_set(S.DISCOVERY, S.CONSENT_PENDING)  # через offer, как _reachable в pipeline
+    assert not model_may_set(S.LEAD_DRAFT, S.CONSENT_PENDING)
     assert not model_may_set(S.CONSENT_PENDING, S.LEAD_DRAFT)
     assert not model_may_set(S.OFFER, S.HUMAN_PENDING)
     assert not model_may_set(S.OFFER, S.CLOSED)

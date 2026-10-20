@@ -158,6 +158,11 @@ def test_bad_next_state(ns):
     assert "next_state" in codes(check("Хорошо.", next_state=ns))
 
 
+def test_discovery_may_jump_to_consent_via_offer():
+    # Живой тест 2026-10-20: lead-capture из discovery дважды отбраковывался по next_state, заявка не создалась.
+    assert "next_state" not in codes(check("Хорошо.", state=State.DISCOVERY, next_state="consent_pending"))
+
+
 def test_unknown_fact_id():
     assert "facts_used" in codes(check("Хорошо.", facts_used=["price:invented"]))
 

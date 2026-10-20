@@ -34,7 +34,10 @@ def can_transition(src: State, dst: State) -> bool:
 
 
 def model_may_set(src: State, dst: State) -> bool:
-    return (dst is src or dst in _MODEL_STATES) and can_transition(src, dst)
+    if not (dst is src or dst in _MODEL_STATES):
+        return False
+    # Через offer — как pipeline._reachable: lead-capture из discovery сразу просит согласие.
+    return can_transition(src, dst) or (can_transition(src, State.OFFER) and can_transition(State.OFFER, dst))
 
 
 def parse_state(value: str) -> State | None:
