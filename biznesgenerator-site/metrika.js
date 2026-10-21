@@ -2,7 +2,7 @@
 // Яндекс Метрика для всех страниц. Номер счётчика — только здесь; пока 0, скрипт ничего не грузит.
 // Вебвизор выключен: он записывал бы текст, который посетитель набирает в чате (ПДн).
 (() => {
-  const YM_ID = 0;
+  const YM_ID = 113707938;
 
   const sent = new Set();
   // Цели, которые не должны дублироваться за визит (повтор запроса чата возвращает ту же заявку).
@@ -17,7 +17,7 @@
   window.ym.l = Date.now();
   const s = document.createElement("script");
   s.async = true;
-  s.src = "https://mc.yandex.ru/metrika/tag.js";
+  s.src = "https://mc.yandex.ru/metrika/tag.js?id=" + YM_ID;
   document.head.appendChild(s);
   window.ym(YM_ID, "init", {clickmap: true, trackLinks: true, accurateTrackBounce: true, webvisor: false});
 
