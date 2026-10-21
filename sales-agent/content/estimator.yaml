@@ -1,0 +1,35 @@
+# Ориентир цены по формуле калькулятора AI-проектов (platform.aibasis.ru, Plan B 2027).
+# Часы × ставка, вилка обрезается по прайсу услуги из services.yaml. Нет файла — бот называет только прайс.
+# Ставка утверждена владельцем 2026-10-21. reserve_percent и one_time владелец не задавал — 0.
+rate: 1600
+reserve_percent: 0
+one_time: 0
+services: [ai-consultant-gigachat, ai-agent, tg-bot, rag-docs, automation]
+scope:
+  personal: {hours: 18, label: для одного человека}
+  team: {hours: 32, label: для команды}
+  client: {hours: 44, label: для клиентов компании}
+  product: {hours: 70, label: продукт для продажи}
+stage:
+  demo: {factor: 0.7, label: демо}
+  pilot: {factor: 1.0, label: ""}
+  launch: {factor: 1.35, label: полноценный запуск}
+modules:
+  knowledge: {hours: 12, label: база знаний}
+  interface: {hours: 18, label: свой интерфейс}
+  documents: {hours: 12, label: работа с документами}
+  actions: {hours: 20, label: действия во внешних системах}
+  analytics: {hours: 10, label: аналитика}
+  access: {hours: 18, label: роли и доступы}
+integration_hours: 10
+max_integrations: 10
+data:
+  ready: {hours: 0, label: ""}
+  partial: {hours: 10, label: данные нужно доработать}
+  raw: {hours: 24, label: данные нужно собрать с нуля}
+risk:
+  low: {hours: 0, label: ""}
+  sensitive: {hours: 14, label: работа с личными данными}
+  critical: {hours: 28, label: критичные данные}
+# Если клиент не сказал — берём эти значения.
+defaults: {stage: pilot, data: ready, risk: low}

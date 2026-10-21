@@ -1,7 +1,8 @@
 import logging
 from dataclasses import dataclass
 
-from app.catalog import Catalog
+from app.catalog import Catalog, Fact
+from app.estimate import MARKER, Estimator, extract_params, render
 from app.handoff import Channel
 from app.leads import Outcome, create_handoff, create_lead, extract_contact, mask_text
 from app.llm_client import LLM
@@ -78,13 +79,22 @@ def _reachable(src: State, dst: State) -> bool:
     return can_transition(src, dst) or (can_transition(src, State.OFFER) and can_transition(State.OFFER, dst))
 
 
+def _last_estimate(history: list[tuple[str, str]]) -> list[Fact]:
+    # Ориентир дописал код, в фактах его нет: без этого повтор суммы в следующем ответе отклонял валидатор чисел.
+    for role, text in reversed(history):
+        if role != "user" and (start := text.find(MARKER + " ")) >= 0:
+            return [Fact("estimate:last", "Уже названный клиенту " + text[start:].split("\n")[0])]
+    return []
+
+
 def _codes(issues: list[str]) -> list[str]:
     return [i.split(":")[0] for i in issues]
 
 
 class Pipeline:
     def __init__(self, store: Store, catalog: Catalog, skills: dict[str, str], llm: LLM | None,
-                 channel: Channel, secrets: list[str]):
+                 channel: Channel, secrets: list[str], estimator: Estimator | None = None):
+        self._estimator = estimator
         self._store = store
         self._catalog = catalog
         self._skills = skills
@@ -187,7 +197,7 @@ class Pipeline:
         if skill == "sales-human-handoff":
             return self._handoff(conv, "client_request", text, history, product=product)
 
-        facts = self._catalog.facts()
+        facts = self._catalog.facts() + _last_estimate(history)
         draft = run_skill(llm, self._skills[skill], self._catalog, facts, conv.state, history, text)
         verdict, issues = self._vet(llm, draft, facts, conv.state, text)
         if verdict == "revise":
@@ -199,7 +209,7 @@ class Pipeline:
         if verdict != "ok" or draft is None:
             log.warning("fallback conv=%s skill=%s issues=%s", conv.id, skill, _codes(issues))
             return Turn(FALLBACK_REPLY.format(recipient=self._recipient), conv.state, skill=skill, fallback=True, product=product)
-        return self._finish(conv, cls, product, skill, draft, text, history)
+        return self._finish(llm, conv, cls, product, skill, draft, text, history)
 
     def _vet(self, llm: LLM, draft: SkillReply | None, facts: list, state: State,
              text: str) -> tuple[str, list[str]]:
@@ -219,7 +229,19 @@ class Pipeline:
                 return "revise", ["quality: проверка качества вернула ответ на доработку"]
         return "ok", []
 
-    def _finish(self, conv: Conversation, cls: Classification, product: str | None, skill: str,
+    def _estimate(self, llm: LLM, product: str, text: str, history: list[tuple[str, str]]) -> str | None:
+        est = self._estimator
+        bounds = self._catalog.price_range(product)
+        if est is None or product not in est.services or bounds is None:
+            return None
+        params = extract_params(llm, est, text, history)
+        if params is None:
+            return None
+        e = est.estimate(params, *bounds)
+        log.info("estimate product=%s hours=%s over_price=%s", product, e.hours, e.over_price)
+        return render(e, self._recipient)
+
+    def _finish(self, llm: LLM, conv: Conversation, cls: Classification, product: str | None, skill: str,
                 draft: SkillReply, text: str, history: list[tuple[str, str]]) -> Turn:
         if draft.proposed_action == "handoff":
             return self._handoff(conv, "model_request", text, history, prefix=draft.reply + "\n\n", product=product)
@@ -241,7 +263,9 @@ class Pipeline:
             price = self._catalog.price_text(product)
             if status == "approved" and price:
                 price_shown = True
-                if not mentions_price(price, reply):
+                if estimate := self._estimate(llm, product, text, history):
+                    reply += "\n\n" + estimate
+                elif not mentions_price(price, reply):
                     reply += f"\n\nЦена «{title}»: {price}."
             elif status in ("unapproved", "none") and "уточн" not in reply.lower():
                 reply += f"\n\nЦена «{title}» в каталоге не утверждена — её уточнит {self._recipient}."

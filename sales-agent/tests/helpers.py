@@ -67,7 +67,8 @@ class Script:
     """
 
     def __init__(self, intent: str = "need", service_id: str | None = None, replies: list | None = None,
-                 verdict: str = "pass", fail: Exception | None = None):
+                 verdict: str = "pass", fail: Exception | None = None, estimate: dict | None = None):
+        self.estimate = estimate or {}
         self.intent = intent
         self.service_id = service_id
         self.replies = list(replies or [contract("Расскажите, пожалуйста, о задаче.")])
@@ -80,6 +81,8 @@ class Script:
             raise self.fail
         if system.startswith("Ты — классификатор намерений"):
             return json.dumps({"intent": self.intent, "service_id": self.service_id})
+        if system.startswith("Ты — оценщик параметров"):
+            return json.dumps(self.estimate)
         if "name: sales-quality-check" in system:
             return json.dumps({"verdict": self.verdict})
         m = re.search(r"^name: (sales-[a-z-]+)$", system, re.M)

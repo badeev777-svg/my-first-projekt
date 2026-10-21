@@ -38,9 +38,14 @@ class Harness:
 def make_client(tmp_path):
     def factory(script: Script | None = None, *, services: list[dict] | None = None, policy: dict | None = None,
                 channel: StubChannel | None = None, admin: bool = False, rate: int = 100,
-                demo: bool = False) -> Harness:
+                demo: bool = False, estimator: bool = False) -> Harness:
         root = tmp_path / uuid.uuid4().hex
         content = make_content(root / "content", services or [service()], policy=policy)
+        if estimator:
+            (content / "estimator.yaml").write_text(
+                (ROOT / "content" / "estimator.yaml").read_text(encoding="utf-8")
+                .replace("services: [ai-consultant-gigachat, ai-agent, tg-bot, rag-docs, automation]",
+                         "services: [ai-agent]"), encoding="utf-8")
         settings = Settings(_env_file=None, cloudru_api_key="" if demo else "test-key",
                             db_path=str(root / "sales.db"), content_dir=str(content),
                             skills_dir=str(ROOT / "skills"), rate_limit_per_minute=rate)

@@ -128,6 +128,12 @@ class Catalog:
             return "none"
         return "approved" if all(s.approved for s in items) else "unapproved"
 
+    def price_range(self, service_id: str) -> tuple[int | None, int | None] | None:
+        if self.price_status(service_id) != "approved":
+            return None
+        s = self._by_id[service_id][0]
+        return s.price_from, s.price_to
+
     def price_text(self, service_id: str) -> str | None:
         if self.price_status(service_id) != "approved":
             return None

@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 from app import avito_bot, max_bot, vk_bot
 from app.avito_bot import AvitoClient
 from app.catalog import load_catalog
+from app.estimate import load_estimator
 from app.config import Settings
 from app.handoff import Channel, StubChannel, TelegramChannel
 from app.llm_client import LLM, CloudRuLLM, LLMError
@@ -92,7 +93,10 @@ def create_app(settings: Settings | None = None, *, llm: LLM | None = None,
         llm = CloudRuLLM(settings)
     store = Store(settings.db_path)
     catalog = load_catalog(Path(settings.content_dir))
-    key = settings.cloudru_api_key.strip()
+    estimator = load_estimator(Path(settings.content_dir) / "estimator.yaml")
+    if estimator and (unknown := sorted(estimator.services - set(catalog.service_ids))):
+        raise ValueError(f"estimator.yaml: таких услуг нет в services.yaml: {', '.join(unknown)}")
+    key =settings.cloudru_api_key.strip()
     if channel is None:
         token, chat = settings.notify_bot_token.strip(), settings.notify_chat_id.strip()
         channel = TelegramChannel(token, chat) if token and chat else StubChannel()
@@ -108,7 +112,8 @@ def create_app(settings: Settings | None = None, *, llm: LLM | None = None,
     if avito_client is None and avito_id and avito_key and settings.avito_user_id.strip() and avito_secret:
         avito_client = AvitoClient(avito_id, avito_key, settings.avito_user_id.strip())
     pipeline = Pipeline(store, catalog, load_skills(Path(settings.skills_dir)), llm, channel,
-                        [s for s in (key, settings.notify_bot_token.strip(), max_token, vk_token, avito_key) if s])
+                        [s for s in (key, settings.notify_bot_token.strip(), max_token, vk_token, avito_key) if s],
+                        estimator)
     limiter = RateLimiter(settings.rate_limit_per_minute)
 
     @asynccontextmanager
