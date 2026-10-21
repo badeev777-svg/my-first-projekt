@@ -19,7 +19,9 @@
   s.async = true;
   s.src = "https://mc.yandex.ru/metrika/tag.js?id=" + YM_ID;
   document.head.appendChild(s);
-  window.ym(YM_ID, "init", {clickmap: true, trackLinks: true, accurateTrackBounce: true, webvisor: false});
+  // Параметры — из официального кода счётчика (2026-10-21); webvisor:false оставлен явно на случай включения в настройках.
+  window.ym(YM_ID, "init", {ssr: true, clickmap: true, referrer: document.referrer, url: location.href,
+    accurateTrackBounce: true, trackLinks: true, webvisor: false});
 
   document.addEventListener("click", (e) => {
     const a = e.target.closest && e.target.closest("a[href]");
