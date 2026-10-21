@@ -69,6 +69,15 @@ def test_classify_unknown_service_is_none():
     assert c.service_id is None
 
 
+@pytest.mark.parametrize("raw,expected", [
+    ('{"intent": "price", "service_id": ["rocket", "landing", "tg-bot"]}', ("price", "landing")),
+    ('{"intent": ["price"], "service_id": {"a": 1}}', ("other", None)),
+])
+def test_classify_non_string_fields(raw, expected):
+    c = classify(FakeLLM(lambda s, u: raw), "x", [], {"tg-bot": "Telegram-бот", "landing": "Лендинг"})
+    assert (c.intent, c.service_id) == expected
+
+
 @pytest.mark.parametrize("state,intent,skill", [
     (State.NEW, "price", "sales-product-match"),
     (State.NEW, "agree", "sales-discovery"),

@@ -105,6 +105,13 @@ def classify(llm: LLM, text: str, history: list[tuple[str, str]], services: dict
     if intent == "human" and _ASKS_IF_BOT.search(text):
         intent = "question"
     service_id = data.get("service_id")
+    # На вопрос про несколько услуг модель возвращала список → TypeError и 500 (живая проверка 2026-10-21).
+    if isinstance(service_id, list):
+        service_id = next((s for s in service_id if isinstance(s, str) and s in services), None)
+    if not isinstance(service_id, str):
+        service_id = None
+    if not isinstance(intent, str):
+        intent = None
     return Classification(
         intent=intent if intent in INTENTS else "other",
         service_id=service_id if service_id in services else None,

@@ -78,6 +78,50 @@
   duration_note: ""
   approved: true
   source: Manager-saler/app/prompts/system.py
+- id: vizitka
+  title: Сайт-визитка
+  description: Небольшой сайт из 1–3 страниц — о компании, услуги, контакты
+  includes: []
+  price_from: 20000
+  price_to: 40000
+  currency: RUB
+  period: one_time
+  duration_note: ""
+  approved: true
+  source: владелец 2026-10-21 (по рынку)
+- id: corporate-site
+  title: Корпоративный сайт
+  description: Многостраничный сайт компании. Итоговая цена зависит от объёма
+  includes: []
+  price_from: 100000
+  price_to: null
+  currency: RUB
+  period: one_time
+  duration_note: ""
+  approved: true
+  source: владелец 2026-10-21 (по рынку)
+- id: tilda-site
+  title: Сайт на Тильде
+  description: Лендинг или сайт на конструкторе Tilda. Тариф Тильды клиент оплачивает отдельно
+  includes: []
+  price_from: 25000
+  price_to: 70000
+  currency: RUB
+  period: one_time
+  duration_note: ""
+  approved: true
+  source: владелец 2026-10-21 (по рынку)
+- id: seo
+  title: SEO-продвижение
+  description: Продвижение сайта в Яндексе и Google, оплата помесячно
+  includes: [аудит и техническая оптимизация, тексты, работа со ссылками, ежемесячный отчёт]
+  price_from: 20000
+  price_to: null
+  currency: RUB
+  period: monthly
+  duration_note: ""
+  approved: true
+  source: владелец 2026-10-21 (по рынку)
 - id: lead-parser
   title: Lead Parser
   description: Парсер лидов из различных источников
