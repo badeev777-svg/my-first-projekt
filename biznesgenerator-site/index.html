@@ -83,6 +83,7 @@
 }
 </script>
 <link rel="stylesheet" href="/site.css">
+<script src="/metrika.js" defer></script>
 </head>
 <body>
 
@@ -425,6 +426,10 @@ async function send(text, mid, userEl) {
   setBusy(false);
   if (res.status === 200 && res.data) {
     userEl.classList.remove("pending");
+    if (window.ymGoal) {
+      window.ymGoal("chat_message", true);
+      if (res.data.lead) window.ymGoal("lead", true);
+    }
     if (res.data.reply === null) bubble("Автоответы остановлены. Сообщение сохранено.", "system");
     else bubble(res.data.reply, "bot");
     $("demo").hidden = !res.data.demo;
