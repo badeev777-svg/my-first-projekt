@@ -252,6 +252,7 @@
   .works-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:28px 40px; padding:24px 4px 8px; }
   .works-grid h3 { font-size:15px; font-weight:600; margin:0 0 8px; }
   .works-grid ul { margin:0; padding-left:18px; color:var(--paper-muted); font-size:14px; line-height:1.55; }
+  .works-more { display:none; }
 
   /* ---------- FAQ ---------- */
   .faq-grid { display:grid; grid-template-columns:1fr 1.6fr; gap:56px; align-items:start; }
@@ -356,6 +357,8 @@
     .paper { padding:48px 20px; border-radius:22px; margin:0 -4px; }
     table { font-size:15px; }
     .works-grid { grid-template-columns:1fr; }
+    .works.collapsed .works-grid > div:nth-child(n+3) { display:none; }
+    .works.collapsed .works-more { display:flex; width:100%; justify-content:center; margin-top:16px; padding:14px 20px; font-size:15px; }
     tr, td { display:block; }
     td { border-top:0; padding:0 4px; }
     tr { border-top:1px solid var(--paper-line); padding:16px 0; }
@@ -522,6 +525,7 @@
           <div><h3>Отраслевые решения</h3><ul><li>Салон красоты: запись, напоминания, каталог услуг</li><li>Ресторан и доставка: меню, заказ, бронь стола</li><li>Недвижимость: подбор объектов, квалификация покупателей</li><li>Автосервис: запись, расчёт ремонта, статус авто</li><li>Медицинский центр: запись и ответы об услугах (без диагнозов)</li><li>Юристы: первичная консультация и сбор документов</li><li>Стройка и ремонт: расчёт сметы, приём заявок</li><li>Туризм: подбор туров, ответы по визам и отелям</li><li>Фитнес: запись, абонементы, программы тренировок</li><li>Розница: виртуальная примерка одежды</li><li>Образование: приём заявок и расписание</li><li>Производство: приём заказов от дилеров</li></ul></div>
           <div><h3>ИИ-агенты под заказ</h3><ul><li>ИИ-агент, выполняющий задачу по шагам (поиск, анализ, отчёт)</li><li>Мультиагентная система под процесс</li><li>Персональный ИИ-ассистент руководителя</li><li>Агент для работы с почтой и календарём</li><li>Перенос ИИ-решения на российские модели (GigaChat)</li></ul></div>
         </div>
+        <button class="pill works-more" id="works-more" type="button">Показать все 117 решений</button>
       </div>
     </div>
   </section>
@@ -585,6 +589,14 @@
     el.classList.add("rv");
     io.observe(el);
   });
+})();
+
+// На телефоне список решений слишком длинный — показываем 2 группы; без JS открыт целиком.
+(() => {
+  const works = document.querySelector(".works"), more = document.getElementById("works-more");
+  if (!works || !more) return;
+  works.classList.add("collapsed");
+  more.addEventListener("click", () => works.classList.remove("collapsed"));
 })();
 
 // Свет кристалла следует за курсором внутри стеклянной карточки.
