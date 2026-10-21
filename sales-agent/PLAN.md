@@ -59,5 +59,15 @@
 - [ ] Деплой: `.env` + `MAX_BOT_TOKEN`/`MAX_WEBHOOK_SECRET`; nginx `location /api/max/` без `limit_req` (все запросы MAX с немногих IP).
 - [ ] Подписка `POST /subscriptions` (url https://бизнесгенератор.рф/api/max/webhook — нужен ли punycode, не проверено).
 - [ ] Сверить форму живого апдейта по логу «max update skipped» (вложенность message/sender/body — по описанию, не проверено), живой тест с телефона.
+- Блокер 2026-10-21: профиль business.max.ru создан как «Организация», платформа требует ИП; запрос в поддержку отправлен.
+
+## 2026-10-21 — каналы ВКонтакте и Avito (Директ на паузе)
+
+- [x] `app/messenger.py` (общие тексты, `Incoming`, `split_text`), `app/vk_bot.py` + `POST /api/vk/callback`, `app/avito_bot.py` + `POST /api/avito/webhook/<секрет>`, общий `messenger_turn` для MAX/VK/Avito.
+- [x] VK/Avito: менеджер отвечает в том же чате — тексты «ответит вам здесь», бот молчит в HUMAN_PENDING и после ручного сообщения владельца; эхо ответов бота в Avito отсеивается. В уведомлении Telegram — «Канал: …». 17 тестов, всего 415.
+- [ ] Александр (VK): сообщество → «Сообщения» вкл. → возможности ботов → Callback API (адрес, строка подтверждения, секрет, события message_new + message_reply) → ключ доступа с правом «сообщения».
+- [ ] Александр (Avito): developers.avito.ru → client_id/client_secret; номер профиля. Нужен ли платный тариф для Messenger API — не проверено.
+- [ ] Деплой: `.env`, nginx `location ~ ^/api/(max|vk|avito)/` без `limit_req`, `scripts/subscribe_avito.py`.
+- [ ] Живые проверки: `admin_author_id` у ручного ответа VK, форма вебхука и эха Avito (лог «… update skipped»).
 
 Сделано 2026-10-15 после утверждения прайса: классификатору передаются id + названия услуг (вопрос про документы уходил в ai-agent, к ответу дописывалась чужая цена); `mentions_price` считает цену названной по нижней границе (не дублирует «от 15 000»). Коммиты fab1db63, a27d4a03; 367 тестов.

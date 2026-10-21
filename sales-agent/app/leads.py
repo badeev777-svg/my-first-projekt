@@ -65,7 +65,7 @@ def _deliver(channel: Channel, kind: str, payload: dict, demo: bool, contact: st
 
 
 def create_lead(store: Store, channel: Channel, *, conversation_id: str, contact: str, need: str,
-                product_id: str | None, policy: Policy, demo: bool, epoch: int = 0) -> Outcome:
+                product_id: str | None, policy: Policy, demo: bool, epoch: int = 0, source: str = "") -> Outcome:
     real = policy.consent_approved and not demo
     masked = mask_contact(contact)
     lead_id, created = store.create_lead(
@@ -78,14 +78,14 @@ def create_lead(store: Store, channel: Channel, *, conversation_id: str, contact
     if not created:
         return Outcome(lead_id, store.get_lead(lead_id)["delivery_status"], False)
     payload = {"id": lead_id, "conversation_id": conversation_id, "contact_masked": masked,
-               "need": mask_text(need)[:500], "product_id": product_id or "unknown"}
+               "need": mask_text(need)[:500], "product_id": product_id or "unknown", "source": source}
     status = _deliver(channel, "lead", payload, demo=not real, contact=contact)
     store.set_lead_delivery(lead_id, status)
     return Outcome(lead_id, status, True)
 
 
 def create_handoff(store: Store, channel: Channel, *, conversation_id: str, reason: str, summary: str,
-                   question: str, demo: bool, epoch: int = 0) -> Outcome:
+                   question: str, demo: bool, epoch: int = 0, source: str = "") -> Outcome:
     handoff_id, created = store.create_handoff(
         conversation_id=conversation_id, idempotency_key=f"handoff:{conversation_id}:{epoch}:{reason}", reason=reason,
         summary=mask_text(summary)[:1000], question=mask_text(question)[:500], delivery_status="pending",
@@ -93,7 +93,7 @@ def create_handoff(store: Store, channel: Channel, *, conversation_id: str, reas
     if not created:
         return Outcome(handoff_id, store.get_handoff(handoff_id)["delivery_status"], False)
     payload = {"id": handoff_id, "conversation_id": conversation_id, "reason": reason,
-               "summary": mask_text(summary)[:1000]}
+               "summary": mask_text(summary)[:1000], "source": source}
     status = _deliver(channel, "handoff", payload, demo=demo)
     store.set_handoff_delivery(handoff_id, status)
     return Outcome(handoff_id, status, True)

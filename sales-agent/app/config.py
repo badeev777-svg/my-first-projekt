@@ -21,6 +21,15 @@ class Settings(BaseSettings):
     # Оба пустые = канал MAX выключен (вебхук отвечает 404).
     max_bot_token: str = ""
     max_webhook_secret: str = ""
+    # VK Callback API: ключ доступа сообщества, секретный ключ и строка подтверждения из настроек сервера.
+    vk_group_token: str = ""
+    vk_secret: str = ""
+    vk_confirmation: str = ""
+    # Avito Messenger API: client_id/secret и номер профиля; секрет вебхука — часть URL (подписи у Avito нет).
+    avito_client_id: str = ""
+    avito_client_secret: str = ""
+    avito_user_id: str = ""
+    avito_webhook_secret: str = ""
     # Сроки хранения из политики конфиденциальности бизнесгенератор.рф — менять только вместе с ней.
     retention_plain_days: int = 30
     retention_contact_days: int = 90

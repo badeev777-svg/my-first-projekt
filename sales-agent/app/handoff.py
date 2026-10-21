@@ -40,13 +40,15 @@ class StubChannel:
 
 
 def format_message(kind: str, payload: dict, contact: str = "") -> str:
+    # Из VK и Avito клиенту отвечают в том же чате — менеджеру нужно знать, где его искать.
+    where = f"Канал: {payload['source']}\n" if payload.get("source") else ""
     if kind == "lead":
-        return (f"Новая заявка №{payload['id']}\n"
+        return (f"Новая заявка №{payload['id']}\n{where}"
                 f"Контакт: {contact or payload.get('contact_masked', '—')}\n"
                 f"Услуга: {payload.get('product_id', 'unknown')}\n"
                 f"Задача: {payload.get('need', '')}")
     reason = payload.get("reason", "")
-    return (f"Нужен человек, передача №{payload['id']}\n"
+    return (f"Нужен человек, передача №{payload['id']}\n{where}"
             f"Причина: {REASONS.get(reason, reason)}\n"
             f"{payload.get('summary', '')}")
 

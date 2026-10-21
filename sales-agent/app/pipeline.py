@@ -5,6 +5,7 @@ from app.catalog import Catalog
 from app.handoff import Channel
 from app.leads import Outcome, create_handoff, create_lead, extract_contact, mask_text
 from app.llm_client import LLM
+from app.messenger import channel_label, in_chat
 from app.router import Classification, admit, classify, priority_route
 from app.skills import SkillReply, quality_check, run_skill
 from app.state import State, can_transition, parse_state
@@ -34,6 +35,8 @@ LEAD_REPLY = {
     "sent": ("Заявка передана — {recipient} свяжется с вами по оставленному контакту. "
              "Это ещё не заказ и не оплата. Если захотите что-то добавить, напишите в Telegram или MAX "
              "— кнопки под чатом."),
+    "sent_in_chat": ("Заявка передана — {recipient} ответит вам здесь, в этом чате. "
+                     "Это ещё не заказ и не оплата."),
     "failed": ("Не удалось подтвердить передачу заявки №{id}. Она сохранена во внутреннем списке; "
                "отправлять контакт ещё раз не нужно."),
 }
@@ -45,6 +48,7 @@ HANDOFF_REPLY = {
     # Контакт в запрос не попадает (маска), поэтому направляем клиента написать самому.
     "sent": ("{recipient} получил ваш запрос. Ваших контактов у него нет, поэтому быстрее всего — "
              "написать в Telegram или MAX (кнопки под чатом)."),
+    "sent_in_chat": "{recipient} получил ваш запрос и ответит вам здесь, в этом чате.",
     "failed": ("Не удалось подтвердить передачу запроса №{id} человеку. Он сохранён во внутреннем списке. "
                "Автоответы в этом диалоге остановлены."),
 }
@@ -63,6 +67,10 @@ class Turn:
 
 def _outcome(o: Outcome | None) -> dict | None:
     return {"id": o.id, "delivery_status": o.delivery_status} if o else None
+
+
+def _status_key(o: Outcome, conv: Conversation) -> str:
+    return "sent_in_chat" if o.delivery_status == "sent" and in_chat(conv.session_id) else o.delivery_status
 
 
 def _reachable(src: State, dst: State) -> bool:
@@ -151,8 +159,9 @@ class Pipeline:
         need = " | ".join(t for role, t in history if role == "user")[-500:] or text
         out = create_lead(self._store, self._channel, conversation_id=conv.id, contact=contact, need=need,
                           product_id=conv.product_id, policy=self._catalog.policy, demo=self.demo,
-                          epoch=conv.epoch)
-        reply = LEAD_REPLY.get(out.delivery_status, LEAD_REPLY["failed"]).format(id=out.id, recipient=self._recipient)
+                          epoch=conv.epoch, source=channel_label(conv.session_id))
+        reply = LEAD_REPLY.get(_status_key(out, conv), LEAD_REPLY["failed"]).format(
+            id=out.id, recipient=self._recipient)
         state = State.LEAD_DRAFT if out.delivery_status == "failed" else State.HUMAN_PENDING
         return Turn(reply, state, skill="sales-lead-capture", lead=out)
 
@@ -160,8 +169,9 @@ class Pipeline:
                  prefix: str = "", product: str | None = None) -> Turn:
         summary = " | ".join(t for role, t in history[-6:] if role == "user") or text
         out = create_handoff(self._store, self._channel, conversation_id=conv.id, reason=reason, summary=summary,
-                             question=text, demo=self.demo, epoch=conv.epoch)
-        reply = HANDOFF_REPLY.get(out.delivery_status, HANDOFF_REPLY["failed"]).format(
+                             question=text, demo=self.demo, epoch=conv.epoch,
+                             source=channel_label(conv.session_id))
+        reply = HANDOFF_REPLY.get(_status_key(out, conv), HANDOFF_REPLY["failed"]).format(
             id=out.id, recipient=self._recipient)
         return Turn(prefix + reply, State.HUMAN_PENDING, skill="sales-human-handoff", handoff=out, product=product)
 

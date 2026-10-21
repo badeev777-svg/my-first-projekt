@@ -1,30 +1,16 @@
-import logging
-from dataclasses import dataclass
-
 import httpx
 
-log = logging.getLogger("sales_agent.max")
+from app.messenger import Incoming
 
 API = "https://platform-api2.max.ru"
 MAX_TEXT = 4000
 SESSION_PREFIX = "max:"
-GREETING = "Здравствуйте! Я ИИ-менеджер Бизнес Генератора. Расскажите, какую задачу хотите решить — подскажу подходящий вариант и цену."
-RESTART_WORDS = {"/start", "/new", "начать заново"}
-LLM_DOWN_REPLY = "Модель сейчас не ответила. Отправьте сообщение ещё раз через минуту — оно не потеряется."
-BUSY_REPLY = "Слишком много сообщений подряд. Подождите минуту и напишите снова."
 CONTACT_BUTTONS = [("MAX", "https://max.ru/u/f9LHodD0cOIRnmiaTLmNbAO_bPk7XetTZURYbnTQTgBeGajyv88HLxyWeT4"),
                    ("Telegram", "https://t.me/CowboyAleksandr")]
 
 
 class MaxError(Exception):
     pass
-
-
-@dataclass(frozen=True)
-class Incoming:
-    user_id: str
-    mid: str
-    text: str | None  # None — пользователь нажал «Начать» (bot_started)
 
 
 def parse_update(body: dict) -> Incoming | None:

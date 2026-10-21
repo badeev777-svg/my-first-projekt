@@ -5,21 +5,25 @@ import time
 from collections import deque
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Protocol
 
 from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Request, Response
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, PlainTextResponse
 from pydantic import BaseModel, Field
 
+from app import avito_bot, max_bot, vk_bot
+from app.avito_bot import AvitoClient
 from app.catalog import load_catalog
 from app.config import Settings
 from app.handoff import Channel, StubChannel, TelegramChannel
 from app.llm_client import LLM, CloudRuLLM, LLMError
-from app.max_bot import (BUSY_REPLY, GREETING, LLM_DOWN_REPLY, RESTART_WORDS, SESSION_PREFIX, Incoming, MaxClient,
-                         adapt_reply, parse_update)
+from app.max_bot import MaxClient
+from app.messenger import BUSY_REPLY, GREETING, LLM_DOWN_REPLY, RESTART_WORDS, Incoming, adapt_in_chat, in_chat
 from app.pipeline import Pipeline
 from app.skills import load_skills
 from app.state import State
 from app.store import AlreadyProcessing, Conversation, Store
+from app.vk_bot import VkClient
 
 STATIC = Path(__file__).resolve().parent / "static"
 LOCAL_HOSTS = {"127.0.0.1", "::1"}
@@ -73,8 +77,13 @@ def _host_name(header: str) -> str:
     return value.split(":", 1)[0] if value.count(":") == 1 else value
 
 
+class Messenger(Protocol):
+    def send(self, peer: str, text: str, buttons: list[tuple[str, str]] | None = None) -> None: ...
+
+
 def create_app(settings: Settings | None = None, *, llm: LLM | None = None,
-               channel: Channel | None = None, max_client: MaxClient | None = None) -> FastAPI:
+               channel: Channel | None = None, max_client: Messenger | None = None,
+               vk_client: Messenger | None = None, avito_client: AvitoClient | None = None) -> FastAPI:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
     # httpx на INFO пишет полный URL запроса, а в URL Bot API лежит токен.
     logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -90,8 +99,16 @@ def create_app(settings: Settings | None = None, *, llm: LLM | None = None,
     max_token, max_secret = settings.max_bot_token.strip(), settings.max_webhook_secret.strip()
     if max_client is None and max_token and max_secret:
         max_client = MaxClient(max_token)
+    vk_token, vk_secret = settings.vk_group_token.strip(), settings.vk_secret.strip()
+    vk_confirmation = settings.vk_confirmation.strip()
+    if vk_client is None and vk_token and vk_secret and vk_confirmation:
+        vk_client = VkClient(vk_token)
+    avito_id, avito_key = settings.avito_client_id.strip(), settings.avito_client_secret.strip()
+    avito_secret = settings.avito_webhook_secret.strip()
+    if avito_client is None and avito_id and avito_key and settings.avito_user_id.strip() and avito_secret:
+        avito_client = AvitoClient(avito_id, avito_key, settings.avito_user_id.strip())
     pipeline = Pipeline(store, catalog, load_skills(Path(settings.skills_dir)), llm, channel,
-                        [s for s in (key, settings.notify_bot_token.strip(), max_token) if s])
+                        [s for s in (key, settings.notify_bot_token.strip(), max_token, vk_token, avito_key) if s])
     limiter = RateLimiter(settings.rate_limit_per_minute)
 
     @asynccontextmanager
@@ -171,32 +188,45 @@ def create_app(settings: Settings | None = None, *, llm: LLM | None = None,
         store.set_stopped(conv.id, True)
         return {"conversation_id": conv.id, "stopped": True}
 
-    def max_turn(client: MaxClient, msg: Incoming) -> None:
-        sid = SESSION_PREFIX + msg.user_id
+    def messenger_turn(prefix: str, client: Messenger, msg: Incoming) -> None:
+        sid = prefix + msg.peer
+        adapt = adapt_in_chat if in_chat(sid) else max_bot.adapt_reply
         try:
             conv = store.latest_conversation(sid)
+            if msg.from_owner:
+                # Александр написал клиенту сам — бот молчит, пока клиент не начнёт заново.
+                if conv is not None:
+                    store.set_state(conv.id, State.HUMAN_PENDING)
+                return
             if msg.text is None or msg.text.strip().lower() in RESTART_WORDS:
                 store.create_conversation(sid)
-                client.send(msg.user_id, GREETING)
+                client.send(msg.peer, GREETING)
                 return
             conv = conv or store.create_conversation(sid)
+            if in_chat(sid) and conv.state is State.HUMAN_PENDING:
+                return  # диалог ведёт человек в этом же чате — автоответ «ждёт человека» на каждую реплику мешал бы
             if store.saved_response(conv.id, msg.mid) is not None:
-                return  # MAX повторил доставку уже отвеченного сообщения
+                return  # мессенджер повторил доставку уже отвеченного сообщения
             if not limiter.allow(sid):
-                client.send(msg.user_id, BUSY_REPLY)
+                client.send(msg.peer, BUSY_REPLY)
                 return
             try:
                 reply = pipeline.handle(conv, msg.mid, msg.text)["reply"]
             except AlreadyProcessing:
                 return
             except LLMError:
-                client.send(msg.user_id, LLM_DOWN_REPLY)
+                client.send(msg.peer, LLM_DOWN_REPLY)
                 return
             if reply:
-                client.send(msg.user_id, *adapt_reply(reply))
+                client.send(msg.peer, *adapt(reply))
         except Exception:
             # Текст клиента в лог не пишем (ПДн).
-            log.exception("max turn failed")
+            log.exception("%s turn failed", prefix.rstrip(":"))
+
+    def skipped(name: str, update: dict) -> None:
+        # Только структура, без текста: по ней сверяем форму апдейта с документацией.
+        log.info("%s update skipped keys=%s inner=%s", name, sorted(update),
+                 {k: sorted(v) for k, v in update.items() if isinstance(v, dict)})
 
     @app.post("/api/max/webhook")
     def max_webhook(update: dict, tasks: BackgroundTasks,
@@ -205,14 +235,40 @@ def create_app(settings: Settings | None = None, *, llm: LLM | None = None,
             raise HTTPException(404)
         if not secrets.compare_digest(x_max_bot_api_secret.encode(), max_secret.encode()):
             raise HTTPException(403)
-        msg = parse_update(update)
+        msg = max_bot.parse_update(update)
         if msg is None:
-            # Только структура, без текста: по ней сверяем форму апдейта с документацией.
-            log.info("max update skipped type=%s keys=%s message_keys=%s", update.get("update_type"),
-                     sorted(update), sorted(update.get("message") or {}))
+            skipped("max", update)
             return {"ok": True}
-        # MAX ждёт ответ 30 с, а ход модели бывает дольше — отвечаем сразу, сообщение обрабатываем после.
-        tasks.add_task(max_turn, max_client, msg)
+        # Мессенджеры ждут ответ секунды, а ход модели бывает дольше — отвечаем сразу, сообщение обрабатываем после.
+        tasks.add_task(messenger_turn, max_bot.SESSION_PREFIX, max_client, msg)
+        return {"ok": True}
+
+    @app.post("/api/vk/callback")
+    def vk_callback(update: dict, tasks: BackgroundTasks) -> PlainTextResponse:
+        if vk_client is None:
+            raise HTTPException(404)
+        if not secrets.compare_digest(str(update.get("secret", "")).encode(), vk_secret.encode()):
+            raise HTTPException(403)
+        if update.get("type") == "confirmation":
+            return PlainTextResponse(vk_confirmation)
+        msg = vk_bot.parse_event(update)
+        if msg is None:
+            skipped("vk", update)
+        else:
+            tasks.add_task(messenger_turn, vk_bot.SESSION_PREFIX, vk_client, msg)
+        return PlainTextResponse("ok")  # любой другой ответ VK считает ошибкой и повторяет событие
+
+    @app.post("/api/avito/webhook/{secret}")
+    def avito_webhook(secret: str, update: dict, tasks: BackgroundTasks) -> dict:
+        if avito_client is None:
+            raise HTTPException(404)
+        if not secrets.compare_digest(secret.encode(), avito_secret.encode()):
+            raise HTTPException(404)  # неверный путь не отличается от выключенного канала
+        msg = avito_bot.parse_update(update)
+        if msg is None:
+            skipped("avito", update)
+        elif not (msg.from_owner and avito_client.is_own(msg)):
+            tasks.add_task(messenger_turn, avito_bot.SESSION_PREFIX, avito_client, msg)
         return {"ok": True}
 
     @app.get("/admin", dependencies=[Depends(require_local)])

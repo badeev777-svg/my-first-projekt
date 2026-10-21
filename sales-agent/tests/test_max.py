@@ -7,7 +7,8 @@ from fastapi.testclient import TestClient
 from app.config import Settings
 from app.handoff import StubChannel
 from app.main import create_app
-from app.max_bot import CONTACT_BUTTONS, GREETING, MaxClient, MaxError, adapt_reply, parse_update
+from app.max_bot import CONTACT_BUTTONS, MaxClient, MaxError, adapt_reply, parse_update
+from app.messenger import GREETING
 from app.pipeline import DEMO_REPLY
 from tests.helpers import make_content, service
 
