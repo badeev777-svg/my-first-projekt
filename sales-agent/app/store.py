@@ -93,6 +93,12 @@ class Store:
             row = c.execute("SELECT * FROM conversations WHERE id=?", (cid,)).fetchone()
         return _conv(row) if row else None
 
+    def latest_conversation(self, session_id: str) -> Conversation | None:
+        with self._conn() as c:
+            row = c.execute("SELECT * FROM conversations WHERE session_id=? ORDER BY rowid DESC LIMIT 1",
+                            (session_id,)).fetchone()
+        return _conv(row) if row else None
+
     def set_state(self, cid: str, state: State) -> None:
         with self._conn() as c:
             c.execute("UPDATE conversations SET state=? WHERE id=?", (state.value, cid))

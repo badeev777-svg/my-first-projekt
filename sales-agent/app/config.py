@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     # Оба пустые = заявки уходят в канал-заглушку (только лог).
     notify_bot_token: str = ""
     notify_chat_id: str = ""
+    # Оба пустые = канал MAX выключен (вебхук отвечает 404).
+    max_bot_token: str = ""
+    max_webhook_secret: str = ""
     # Сроки хранения из политики конфиденциальности бизнесгенератор.рф — менять только вместе с ней.
     retention_plain_days: int = 30
     retention_contact_days: int = 90

@@ -6,7 +6,7 @@ from collections import deque
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, HTTPException, Request, Response
+from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Request, Response
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
@@ -14,6 +14,8 @@ from app.catalog import load_catalog
 from app.config import Settings
 from app.handoff import Channel, StubChannel, TelegramChannel
 from app.llm_client import LLM, CloudRuLLM, LLMError
+from app.max_bot import (BUSY_REPLY, GREETING, LLM_DOWN_REPLY, RESTART_WORDS, SESSION_PREFIX, Incoming, MaxClient,
+                         adapt_reply, parse_update)
 from app.pipeline import Pipeline
 from app.skills import load_skills
 from app.state import State
@@ -72,7 +74,7 @@ def _host_name(header: str) -> str:
 
 
 def create_app(settings: Settings | None = None, *, llm: LLM | None = None,
-               channel: Channel | None = None) -> FastAPI:
+               channel: Channel | None = None, max_client: MaxClient | None = None) -> FastAPI:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
     # httpx на INFO пишет полный URL запроса, а в URL Bot API лежит токен.
     logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -85,8 +87,11 @@ def create_app(settings: Settings | None = None, *, llm: LLM | None = None,
     if channel is None:
         token, chat = settings.notify_bot_token.strip(), settings.notify_chat_id.strip()
         channel = TelegramChannel(token, chat) if token and chat else StubChannel()
+    max_token, max_secret = settings.max_bot_token.strip(), settings.max_webhook_secret.strip()
+    if max_client is None and max_token and max_secret:
+        max_client = MaxClient(max_token)
     pipeline = Pipeline(store, catalog, load_skills(Path(settings.skills_dir)), llm, channel,
-                        [s for s in (key, settings.notify_bot_token.strip()) if s])
+                        [s for s in (key, settings.notify_bot_token.strip(), max_token) if s])
     limiter = RateLimiter(settings.rate_limit_per_minute)
 
     @asynccontextmanager
@@ -165,6 +170,50 @@ def create_app(settings: Settings | None = None, *, llm: LLM | None = None,
         conv = own(body.conversation_id, sid)
         store.set_stopped(conv.id, True)
         return {"conversation_id": conv.id, "stopped": True}
+
+    def max_turn(client: MaxClient, msg: Incoming) -> None:
+        sid = SESSION_PREFIX + msg.user_id
+        try:
+            conv = store.latest_conversation(sid)
+            if msg.text is None or msg.text.strip().lower() in RESTART_WORDS:
+                store.create_conversation(sid)
+                client.send(msg.user_id, GREETING)
+                return
+            conv = conv or store.create_conversation(sid)
+            if store.saved_response(conv.id, msg.mid) is not None:
+                return  # MAX повторил доставку уже отвеченного сообщения
+            if not limiter.allow(sid):
+                client.send(msg.user_id, BUSY_REPLY)
+                return
+            try:
+                reply = pipeline.handle(conv, msg.mid, msg.text)["reply"]
+            except AlreadyProcessing:
+                return
+            except LLMError:
+                client.send(msg.user_id, LLM_DOWN_REPLY)
+                return
+            if reply:
+                client.send(msg.user_id, *adapt_reply(reply))
+        except Exception:
+            # Текст клиента в лог не пишем (ПДн).
+            log.exception("max turn failed")
+
+    @app.post("/api/max/webhook")
+    def max_webhook(update: dict, tasks: BackgroundTasks,
+                    x_max_bot_api_secret: str = Header(default="")) -> dict:
+        if max_client is None or not max_secret:
+            raise HTTPException(404)
+        if not secrets.compare_digest(x_max_bot_api_secret.encode(), max_secret.encode()):
+            raise HTTPException(403)
+        msg = parse_update(update)
+        if msg is None:
+            # Только структура, без текста: по ней сверяем форму апдейта с документацией.
+            log.info("max update skipped type=%s keys=%s message_keys=%s", update.get("update_type"),
+                     sorted(update), sorted(update.get("message") or {}))
+            return {"ok": True}
+        # MAX ждёт ответ 30 с, а ход модели бывает дольше — отвечаем сразу, сообщение обрабатываем после.
+        tasks.add_task(max_turn, max_client, msg)
+        return {"ok": True}
 
     @app.get("/admin", dependencies=[Depends(require_local)])
     def admin_page() -> FileResponse:
