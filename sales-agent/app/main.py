@@ -239,7 +239,10 @@ def create_app(settings: Settings | None = None, *, llm: LLM | None = None,
             conv = conv or store.create_conversation(sid)
             if in_chat(sid) and conv.state is State.HUMAN_PENDING:
                 if conv.owner_at is not None and store.now() - conv.owner_at < OWNER_SILENCE_SECONDS:
-                    return  # Александр сейчас переписывается с клиентом сам — бот не вмешивается
+                    # Александр сейчас переписывается с клиентом сам — бот не вмешивается, но запоминает реплику,
+                    # чтобы потом ответить с учётом всего, что клиент дописал.
+                    store.note_message(conv.id, msg.mid, "user", mask_text(msg.text))
+                    return
                 # Александр в чат не пишет: без этого клиент получал тишину навсегда (живой тест VK 2026-10-22).
                 # Эпоху не меняем — повторный контакт вернёт ту же заявку, а не пришлёт дубль.
                 store.set_state(conv.id, State.DISCOVERY)

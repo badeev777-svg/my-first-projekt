@@ -159,6 +159,18 @@ def test_owner_messages_reach_model_history(bots):
     assert "Менеджер: Сделаем за 2 недели" in build_user(store.history(cid), "ок")
 
 
+def test_client_messages_during_silence_are_kept_for_context(bots):
+    http, vk, _, store = bots
+    post_vk(http, vk_message("Нужен чат-бот", mid=1))
+    post_vk(http, owner_reply(2))
+    post_vk(http, vk_message("Забыла: ещё нужна запись к мастеру", mid=3))
+    post_vk(http, vk_message("Забыла: ещё нужна запись к мастеру", mid=3))  # повтор доставки
+    cid = store.latest_conversation("vk:42").id
+    assert len(vk.sent) == 1
+    assert [r for r, t in store.history(cid) if "запись к мастеру" in t] == ["user"]
+    assert store.history(cid)[-2:] == [("owner", "Здравствуйте"), ("user", "Забыла: ещё нужна запись к мастеру")]
+
+
 def test_owner_first_message_opens_dialog(bots):
     http, vk, _, store = bots
     post_vk(http, owner_reply(1))
