@@ -8,8 +8,47 @@ from app.main import create_app
 TOKEN = "123:secret-token"
 
 
-def channel(handler):
-    return TelegramChannel(TOKEN, "42", http=httpx.Client(transport=httpx.MockTransport(handler)))
+def channel(handler, sleeps=None):
+    return TelegramChannel(TOKEN, "42", http=httpx.Client(transport=httpx.MockTransport(handler)),
+                           sleep=(sleeps.append if sleeps is not None else lambda s: None))
+
+
+def test_connect_error_is_retried_then_sent():
+    calls, sleeps = [], []
+
+    def handler(req):
+        calls.append(1)
+        if len(calls) < 3:
+            raise httpx.ConnectError("down")
+        return httpx.Response(200, json={"ok": True})
+
+    assert channel(handler, sleeps).send("lead", {"id": 1}) == "sent"
+    assert len(calls) == 3 and sleeps == [1, 3]
+
+
+def test_connect_error_gives_up_after_retries():
+    calls = []
+
+    def handler(req):
+        calls.append(1)
+        raise httpx.ConnectError("down")
+
+    with pytest.raises(HandoffError):
+        channel(handler).send("lead", {"id": 1})
+    assert len(calls) == 3
+
+
+def test_read_timeout_is_not_retried():
+    # Запрос мог дойти до Telegram — повтор дал бы менеджеру дубль заявки.
+    calls = []
+
+    def handler(req):
+        calls.append(1)
+        raise httpx.ReadTimeout("slow")
+
+    with pytest.raises(HandoffError):
+        channel(handler).send("lead", {"id": 1})
+    assert len(calls) == 1
 
 
 def test_lead_message_carries_full_contact_to_manager():

@@ -54,6 +54,20 @@ def strip_contact_asks(text: str) -> str:
     return "".join(kept).strip()
 
 
+_CONSENT_QUESTION = re.compile(r"соглас\w*[^.!?]*\?", re.I)
+
+
+def strip_consent_questions(text: str) -> str:
+    """Убирает вопрос «Согласны передать?» перед текстом согласия: согласие — это присланный контакт.
+
+    На такой вопрос клиент отвечает «Согласна» без контакта (живой тест VK 2026-10-22).
+    """
+    parts = _PIECES.split(text)
+    kept = [s + (parts[i + 1] if i + 1 < len(parts) else "")
+            for i, s in enumerate(parts) if i % 2 == 0 and not _CONSENT_QUESTION.search(s)]
+    return "".join(kept).strip()
+
+
 def _norm(s: str) -> str:
     return re.sub(rf"[{_SPACES}]", "", s)
 

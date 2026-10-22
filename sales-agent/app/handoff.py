@@ -1,4 +1,5 @@
 import logging
+import time
 from typing import Protocol
 
 import httpx
@@ -56,18 +57,29 @@ def format_message(kind: str, payload: dict, contact: str = "") -> str:
 class TelegramChannel:
     """Уведомления менеджеру через Bot API; полный контакт уходит только сюда (на это клиент дал согласие)."""
 
-    def __init__(self, token: str, chat_id: str, http: httpx.Client | None = None):
+    def __init__(self, token: str, chat_id: str, http: httpx.Client | None = None,
+                 retry_delays: tuple[float, ...] = (1, 3), sleep=time.sleep):
         self._url = f"https://api.telegram.org/bot{token}/sendMessage"
         self._chat_id = chat_id
         self._http = http or httpx.Client(timeout=10)
+        self._delays = retry_delays
+        self._sleep = sleep
 
     def send(self, kind: str, payload: dict, contact: str = "") -> str:
-        try:
-            r = self._http.post(self._url, json={"chat_id": self._chat_id, "text": format_message(kind, payload, contact)})
-            ok = r.status_code == 200 and r.json().get("ok") is True
-        except (httpx.HTTPError, ValueError) as e:
-            # Текст исключения httpx содержит URL с токеном — в лог уходит только тип ошибки.
-            raise HandoffError(f"telegram {type(e).__name__}") from None
+        body = {"chat_id": self._chat_id, "text": format_message(kind, payload, contact)}
+        for delay in (*self._delays, None):
+            try:
+                r = self._http.post(self._url, json=body)
+                ok = r.status_code == 200 and r.json().get("ok") is True
+                break
+            except httpx.ConnectError as e:
+                # Соединение не установлено — сообщение точно не ушло, повтор не создаст дубль (живой сбой 2026-10-22).
+                if delay is None:
+                    raise HandoffError(f"telegram {type(e).__name__}") from None
+                self._sleep(delay)
+            except (httpx.HTTPError, ValueError) as e:
+                # Текст исключения httpx содержит URL с токеном — в лог уходит только тип ошибки.
+                raise HandoffError(f"telegram {type(e).__name__}") from None
         if not ok:
             raise HandoffError(f"telegram status {r.status_code}")
         return "sent"

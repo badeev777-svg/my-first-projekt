@@ -1,10 +1,12 @@
 import logging
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from app.catalog import Policy
 from app.handoff import Channel
+from app.state import State
 from app.store import Store
 
 log = logging.getLogger("sales_agent.leads")
@@ -82,6 +84,36 @@ def create_lead(store: Store, channel: Channel, *, conversation_id: str, contact
     status = _deliver(channel, "lead", payload, demo=not real, contact=contact)
     store.set_lead_delivery(lead_id, status)
     return Outcome(lead_id, status, True)
+
+
+def resend_failed(store: Store, channel: Channel, label: Callable[[str], str]) -> int:
+    """Досылает заявки и передачи, не дошедшие до менеджера; возвращает число доставленных.
+
+    Клиенту уже сказано «не удалось подтвердить», поэтому без досылки заявка теряется до ручной проверки.
+    """
+    sent = 0
+    for kind, rows, set_delivery in (("lead", store.list_leads(), store.set_lead_delivery),
+                                     ("handoff", store.list_handoffs(), store.set_handoff_delivery)):
+        for row in rows:
+            if row["delivery_status"] != "failed":
+                continue
+            conv = store.get_conversation(row["conversation_id"])
+            payload = {"id": row["id"], "conversation_id": row["conversation_id"],
+                       "source": label(conv.session_id) if conv else ""}
+            if kind == "lead":
+                payload |= {"contact_masked": row["contact_masked"], "need": row["need"],
+                            "product_id": row["product_id"]}
+            else:
+                payload |= {"reason": row["reason"], "summary": row["summary"]}
+            status = _deliver(channel, kind, payload, demo=False, contact=row.get("contact", ""))
+            if status == "failed":
+                continue
+            set_delivery(row["id"], status)
+            sent += 1
+            if kind == "lead" and conv is not None and conv.state is State.LEAD_DRAFT:
+                # Как при доставке с первого раза: заявка у человека — бот больше не ведёт диалог.
+                store.set_state(conv.id, State.HUMAN_PENDING)
+    return sent
 
 
 def create_handoff(store: Store, channel: Channel, *, conversation_id: str, reason: str, summary: str,

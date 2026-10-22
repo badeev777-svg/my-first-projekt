@@ -1,4 +1,5 @@
 import logging
+import re
 from dataclasses import dataclass
 
 from app.catalog import Catalog, Fact
@@ -11,7 +12,7 @@ from app.router import Classification, admit, classify, priority_route
 from app.skills import SkillReply, quality_check, run_skill
 from app.state import State, can_transition, parse_state
 from app.store import Conversation, Store
-from app.validators import check_reply, mentions_price, strip_contact_asks
+from app.validators import check_reply, mentions_price, strip_consent_questions, strip_contact_asks
 
 log = logging.getLogger("sales_agent.pipeline")
 
@@ -26,7 +27,11 @@ FALLBACK_REPLY = ("Не получилось подготовить точный
                   "«позовите человека», и к разговору подключится {recipient}.")
 CONTACT_BEFORE_CONSENT_REPLY = ("Спасибо! Контакт я пока не сохранил: сначала прочитайте, кому и зачем он передаётся. "
                                 "Если согласны, отправьте его ещё раз.")
-CONFLICT_PREFIX = "В каталоге указаны две разные цены на «{title}», поэтому называть цену не буду. "
+ASK_CONTACT_REPLY = "Спасибо! Напишите, пожалуйста, телефон или e-mail — {recipient} свяжется с вами."
+_AGREE_WORDS = {"да", "ага", "угу", "ок", "окей", "ok", "хорошо", "конечно", "давайте", "давай", "можно", "ну",
+                "я", "согласна", "согласен", "согласны", "согласие", "передавайте", "отлично", "супер"}
+_AGREE_MARKERS = _AGREE_WORDS - {"ну", "я"}
+CONFLICT_PREFIX ="В каталоге указаны две разные цены на «{title}», поэтому называть цену не буду. "
 LEAD_REPLY = {
     "demo": ("Заявка №{id} сохранена локально в демо-режиме и никому не отправлена. Это не заказ и не оплата. "
              "Автоответы в этом диалоге остановлены."),
@@ -77,6 +82,12 @@ def _status_key(o: Outcome, conv: Conversation) -> str:
 def _reachable(src: State, dst: State) -> bool:
     # Прямой переход или через offer: discovery → offer → consent_pending.
     return can_transition(src, dst) or (can_transition(src, State.OFFER) and can_transition(State.OFFER, dst))
+
+
+def _is_agreement(text: str) -> bool:
+    # Только короткое «да/согласна» целиком: «да, но сначала про сроки» — уже вопрос для модели.
+    words = re.findall(r"[a-zа-яё]+", text.lower())
+    return 0 < len(words) <= 4 and set(words) <= _AGREE_WORDS and bool(set(words) & _AGREE_MARKERS)
 
 
 def _last_estimate(history: list[tuple[str, str]]) -> list[Fact]:
@@ -157,6 +168,9 @@ class Pipeline:
             return self._lead(conv, contact, text, history)
         if conv.state is State.LEAD_DRAFT:
             return self._handoff(conv, "lead_not_delivered", text, history)
+        if conv.state is State.CONSENT_PENDING and _is_agreement(text):
+            # Без готового ответа модель на «Согласна» писала «заявка передана» → заглушка (живой тест VK 2026-10-22).
+            return Turn(ASK_CONTACT_REPLY.format(recipient=self._recipient), conv.state, skill="sales-lead-capture")
         if contact and _reachable(conv.state, State.CONSENT_PENDING):
             # Контакт без согласия не сохраняем: показываем условия передачи, клиент пришлёт контакт повторно.
             reply = CONTACT_BEFORE_CONSENT_REPLY + "\n\n" + self._catalog.policy.consent_text
@@ -254,7 +268,8 @@ class Pipeline:
                       or (conv.state is State.DISCOVERY and product is not None))
         if draft.proposed_action == "ask_consent" and consent_ok:
             # Текст согласия добавляет код: модель не может исказить, кому и зачем уходит контакт.
-            reply += "\n\n" + self._catalog.policy.consent_text
+            reply = strip_consent_questions(reply)
+            reply = (reply + "\n\n" if reply else "") + self._catalog.policy.consent_text
             target = State.CONSENT_PENDING
         price_shown = False
         if cls.intent == "price" and product:

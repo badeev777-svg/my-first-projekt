@@ -2,7 +2,7 @@ import pytest
 
 from app.catalog import Policy
 from app.handoff import StubChannel
-from app.leads import create_handoff, create_lead, extract_contact, mask_contact, mask_text
+from app.leads import create_handoff, create_lead, extract_contact, mask_contact, mask_text, resend_failed
 from app.store import Store
 
 APPROVED = Policy("на вы", "Александр", "согласие", True, ())
@@ -108,6 +108,36 @@ def test_channel_failure_is_failed_not_sent(store):
     assert store.get_lead(out.id)["delivery_status"] == "failed"
     _, again = lead(store, ch, cid=cid)
     assert again.delivery_status == "failed" and again.id == out.id
+
+
+def test_resend_failed_delivers_lead_with_contact_and_frees_dialog(store):
+    from app.state import State
+    cid, out = lead(store, StubChannel(fail=True))
+    store.set_state(cid, State.LEAD_DRAFT)
+    ch = StubChannel()
+    assert resend_failed(store, ch, lambda sid: "ВКонтакте") == 1
+    kind, payload = ch.sent[0]
+    assert kind == "lead" and payload["id"] == out.id and payload["source"] == "ВКонтакте"
+    assert ch.contacts == ["+79123456789"] and "+79123456789" not in str(payload)
+    assert store.get_lead(out.id)["delivery_status"] == "sent_stub"
+    assert store.get_conversation(cid).state is State.HUMAN_PENDING
+    assert resend_failed(store, ch, lambda sid: "") == 0 and len(ch.sent) == 1
+
+
+def test_resend_failed_keeps_failed_when_channel_still_down(store):
+    _, out = lead(store, StubChannel(fail=True))
+    assert resend_failed(store, StubChannel(fail=True), lambda sid: "") == 0
+    assert store.get_lead(out.id)["delivery_status"] == "failed"
+
+
+def test_resend_failed_delivers_handoff(store):
+    cid = store.create_conversation("s").id
+    h = create_handoff(store, StubChannel(fail=True), conversation_id=cid, reason="client_request",
+                       summary="позовите", question="позовите", demo=False)
+    ch = StubChannel()
+    assert resend_failed(store, ch, lambda sid: "") == 1
+    assert ch.sent[0][0] == "handoff" and ch.sent[0][1]["reason"] == "client_request"
+    assert store.get_handoff(h.id)["delivery_status"] == "sent_stub"
 
 
 def test_handoff_idempotent_per_reason(store):

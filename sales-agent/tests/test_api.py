@@ -219,6 +219,35 @@ def test_ask_consent_appends_consent_text_and_moves_state(make_client):
     assert body["state"] == "consent_pending" and "Оставьте телефон" in body["reply"]
 
 
+@pytest.mark.parametrize("text", ["Согласна", "Да, согласна", "да", "Хорошо!", "ок, давайте"])
+def test_bare_agreement_in_consent_pending_asks_contact_without_model(make_client, text):
+    h = make_client()
+    cid = h.start()
+    h.store.set_state(cid, State.CONSENT_PENDING)
+    body = h.say(cid, text).json()
+    assert body["state"] == "consent_pending" and body["fallback"] is False and h.llm.calls == []
+    assert "телефон или e-mail" in body["reply"] and body["lead"] is None
+
+
+@pytest.mark.parametrize("text", ["не согласна", "да, но сначала про сроки", "Согласна, а сколько по времени?"])
+def test_agreement_with_more_goes_to_model(make_client, text):
+    h = make_client()
+    cid = h.start()
+    h.store.set_state(cid, State.CONSENT_PENDING)
+    h.say(cid, text)
+    assert h.llm.calls != []
+
+
+def test_ask_consent_drops_models_yes_no_consent_question(make_client):
+    h = make_client(Script(replies=[contract("Отлично! Согласны на этот шаг?", next_state="offer",
+                                             action="ask_consent")]))
+    cid = h.start()
+    h.store.set_state(cid, State.OFFER)
+    body = h.say(cid, "Да, подходит").json()
+    assert "Согласны на этот шаг" not in body["reply"] and body["reply"].startswith("Отлично!")
+    assert "Оставьте телефон" in body["reply"]
+
+
 def test_approved_price_line_appended(make_client):
     h = make_client(Script(intent="price", service_id="ai-agent"))
     cid = h.start()

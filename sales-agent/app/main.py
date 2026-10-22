@@ -17,9 +17,11 @@ from app.catalog import load_catalog
 from app.estimate import load_estimator
 from app.config import Settings
 from app.handoff import Channel, StubChannel, TelegramChannel
+from app.leads import resend_failed
 from app.llm_client import LLM, CloudRuLLM, LLMError
 from app.max_bot import MaxClient
-from app.messenger import BUSY_REPLY, GREETING, LLM_DOWN_REPLY, RESTART_WORDS, Incoming, adapt_in_chat, in_chat
+from app.messenger import (BUSY_REPLY, GREETING, LLM_DOWN_REPLY, RESTART_WORDS, Incoming, adapt_in_chat,
+                           channel_label, in_chat)
 from app.pipeline import Pipeline
 from app.skills import load_skills
 from app.state import State
@@ -31,6 +33,7 @@ LOCAL_HOSTS = {"127.0.0.1", "::1"}
 LOCAL_HOST_NAMES = {"127.0.0.1", "localhost", "::1", "[::1]"}
 COOKIE = "sid"
 PURGE_INTERVAL_SECONDS = 24 * 3600
+RESEND_INTERVAL_SECONDS = 300
 log = logging.getLogger("sales-agent")
 
 
@@ -145,7 +148,16 @@ def create_app(settings: Settings | None = None, *, llm: LLM | None = None,
                     log.exception("retention purge failed")
                 stop.wait(PURGE_INTERVAL_SECONDS)
 
+        def resend_loop() -> None:
+            while not stop.wait(RESEND_INTERVAL_SECONDS):
+                try:
+                    if sent := resend_failed(store, channel, channel_label):
+                        log.info("resent %d undelivered leads/handoffs", sent)
+                except Exception:
+                    log.exception("resend failed")
+
         threading.Thread(target=purge_daily, name="retention-purge", daemon=True).start()
+        threading.Thread(target=resend_loop, name="resend-failed", daemon=True).start()
         yield
         stop.set()
 
