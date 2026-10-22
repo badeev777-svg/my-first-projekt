@@ -145,6 +145,27 @@ def test_bot_answers_after_lead_when_owner_has_not_written(bots):
     assert len(vk.sent) == 2 and vk.sent[-1] == ("42", DEMO_REPLY)
 
 
+def test_owner_messages_reach_model_history(bots):
+    from app.skills import build_user
+    http, vk, _, store = bots
+    post_vk(http, vk_message("Нужен чат-бот", mid=1))
+    body = owner_reply(2)
+    body["object"]["text"] = "Сделаем за 2 недели, мой тел +7 912 345-67-89"
+    post_vk(http, body)
+    post_vk(http, body)  # VK повторил доставку события
+    cid = store.latest_conversation("vk:42").id
+    owner = [t for role, t in store.history(cid) if role == "owner"]
+    assert len(owner) == 1 and "Сделаем за 2 недели" in owner[0] and "345-67-89" not in owner[0]
+    assert "Менеджер: Сделаем за 2 недели" in build_user(store.history(cid), "ок")
+
+
+def test_owner_first_message_opens_dialog(bots):
+    http, vk, _, store = bots
+    post_vk(http, owner_reply(1))
+    conv = store.latest_conversation("vk:42")
+    assert conv.state is State.HUMAN_PENDING and store.history(conv.id) == [("owner", "Здравствуйте")]
+
+
 def test_resumed_dialog_does_not_duplicate_lead(bots):
     http, vk, _, store = bots
     post_vk(http, vk_message("Нужен чат-бот", mid=1))

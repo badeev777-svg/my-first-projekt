@@ -17,7 +17,7 @@ from app.catalog import load_catalog
 from app.estimate import load_estimator
 from app.config import Settings
 from app.handoff import Channel, StubChannel, TelegramChannel
-from app.leads import resend_failed
+from app.leads import mask_text, resend_failed
 from app.llm_client import LLM, CloudRuLLM, LLMError
 from app.max_bot import MaxClient
 from app.messenger import (BUSY_REPLY, GREETING, LLM_DOWN_REPLY, RESTART_WORDS, Incoming, adapt_in_chat,
@@ -229,8 +229,8 @@ def create_app(settings: Settings | None = None, *, llm: LLM | None = None,
             conv = store.latest_conversation(sid)
             if msg.from_owner:
                 # Александр написал клиенту сам — бот молчит, пока Александр ведёт переписку.
-                if conv is not None:
-                    store.mark_owner_reply(conv.id)
+                conv = conv or store.create_conversation(sid)
+                store.mark_owner_reply(conv.id, msg.mid, mask_text(msg.text or ""))
                 return
             if msg.text is None or msg.text.strip().lower() in RESTART_WORDS:
                 store.create_conversation(sid)

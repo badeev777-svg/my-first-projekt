@@ -26,12 +26,14 @@ CONTRACT = """Ответь ТОЛЬКО одним JSON-объектом, без
 - Цифры, цены, сроки и условия — только из фактов каталога. Нет факта — скажи, что уточнит менеджер.
 - Не проси телефон или e-mail сам: если клиент согласен на следующий шаг, поставь proposed_action "ask_consent" — текст согласия добавит система. Не спрашивай «Согласны?»: согласие клиент даёт, присылая контакт.
 - Не пиши, что заявка отправлена или передана: это сообщает только система.
+- Реплики «Менеджер» в истории написал живой менеджер: не противоречь им, выполняй его договорённости с клиентом и не переспрашивай то, что он уже выяснил.
 - Ни одна услуга каталога не решает задачу клиента — честно скажи, что такое не делаете, и спроси, есть ли у него другая задача. Не предлагай взамен услуги, не связанные с его запросом (лендинг вместо игры и т. п.).
 - Нужен человек (жалоба, вопрос вне каталога, конфликт данных) — proposed_action "handoff".
 - Сомневаешься в ответе — review_status "needs_review"."""
 
 _FENCE = re.compile(r"```(?:json)?\s*(.*?)```", re.S)
 _FAKE_TAGS = ("</client_message>", "<client_message>", "</history>", "<history>")
+_SPEAKERS = {"user": "Клиент", "owner": "Менеджер"}
 
 
 class SkillReply(BaseModel):
@@ -104,7 +106,7 @@ def _clean(text: str) -> str:
 
 
 def build_user(history: list[tuple[str, str]], text: str, issues: list[str] | None = None) -> str:
-    lines = [("Клиент" if role == "user" else "Помощник") + ": " + _clean(t) for role, t in history]
+    lines = [_SPEAKERS.get(role, "Помощник") + ": " + _clean(t) for role, t in history]
     out = (
         "<history>\n" + "\n".join(lines) + "\n</history>\n\n"
         "<client_message>\n" + _clean(text) + "\n</client_message>\n"

@@ -110,10 +110,16 @@ class Store:
         with self._conn() as c:
             c.execute("UPDATE conversations SET state=? WHERE id=?", (state.value, cid))
 
-    def mark_owner_reply(self, cid: str) -> None:
+    def mark_owner_reply(self, cid: str, mid: str, text: str) -> None:
+        # Текст Александра — в историю: вернувшись в диалог, бот должен знать, что тот уже ответил и пообещал.
+        now = self._clock()
         with self._conn() as c:
             c.execute("UPDATE conversations SET state=?, owner_at=? WHERE id=?",
-                      (State.HUMAN_PENDING.value, self._clock(), cid))
+                      (State.HUMAN_PENDING.value, now, cid))
+            if text.strip():
+                # Ключ по id сообщения: повторная доставка события не продублирует реплику.
+                c.execute("INSERT OR IGNORE INTO messages(conversation_id, client_message_id, role, text, created_at) "
+                          "VALUES (?,?,?,?,?)", (cid, "owner:" + mid, "owner", text, _iso(now)))
 
     def bump_epoch(self, cid: str) -> None:
         # Новая эпоха = новые ключи идемпотентности заявок/передач после возврата диалога боту.

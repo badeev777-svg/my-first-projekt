@@ -29,7 +29,9 @@ def parse_event(body: dict) -> Incoming | None:
     if kind == "message_reply" and obj.get("admin_author_id") and obj.get("peer_id"):
         # admin_author_id есть только у ответа, написанного админом вручную, у сообщений бота его нет
         # (проверено на живом сообществе 2026-10-22: после ручного ответа диалог перешёл в human_pending).
-        return Incoming(str(obj["peer_id"]), str(obj.get("id") or ""), None, from_owner=True)
+        text = obj.get("text")
+        return Incoming(str(obj["peer_id"]), str(obj.get("id") or ""), text if isinstance(text, str) else "",
+                        from_owner=True)
     return None
 
 
