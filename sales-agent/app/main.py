@@ -34,6 +34,8 @@ LOCAL_HOST_NAMES = {"127.0.0.1", "localhost", "::1", "[::1]"}
 COOKIE = "sid"
 PURGE_INTERVAL_SECONDS = 24 * 3600
 RESEND_INTERVAL_SECONDS = 300
+# Столько бот молчит в чате VK/Avito после ручного сообщения Александра; потом снова отвечает сам.
+OWNER_SILENCE_SECONDS = 30 * 60
 log = logging.getLogger("sales-agent")
 
 
@@ -226,9 +228,9 @@ def create_app(settings: Settings | None = None, *, llm: LLM | None = None,
         try:
             conv = store.latest_conversation(sid)
             if msg.from_owner:
-                # Александр написал клиенту сам — бот молчит, пока клиент не начнёт заново.
+                # Александр написал клиенту сам — бот молчит, пока Александр ведёт переписку.
                 if conv is not None:
-                    store.set_state(conv.id, State.HUMAN_PENDING)
+                    store.mark_owner_reply(conv.id)
                 return
             if msg.text is None or msg.text.strip().lower() in RESTART_WORDS:
                 store.create_conversation(sid)
@@ -236,7 +238,12 @@ def create_app(settings: Settings | None = None, *, llm: LLM | None = None,
                 return
             conv = conv or store.create_conversation(sid)
             if in_chat(sid) and conv.state is State.HUMAN_PENDING:
-                return  # диалог ведёт человек в этом же чате — автоответ «ждёт человека» на каждую реплику мешал бы
+                if conv.owner_at is not None and store.now() - conv.owner_at < OWNER_SILENCE_SECONDS:
+                    return  # Александр сейчас переписывается с клиентом сам — бот не вмешивается
+                # Александр в чат не пишет: без этого клиент получал тишину навсегда (живой тест VK 2026-10-22).
+                # Эпоху не меняем — повторный контакт вернёт ту же заявку, а не пришлёт дубль.
+                store.set_state(conv.id, State.DISCOVERY)
+                conv = store.get_conversation(conv.id)
             if store.saved_response(conv.id, msg.mid) is not None:
                 return  # мессенджер повторил доставку уже отвеченного сообщения
             if not limiter.allow(sid):

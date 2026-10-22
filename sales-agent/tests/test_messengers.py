@@ -99,16 +99,62 @@ def test_vk_restart_word_greets(bots):
     assert vk.sent == [("42", GREETING)]
 
 
+def owner_reply(mid: int) -> dict:
+    return {"type": "message_reply", "secret": VK_SECRET,
+            "object": {"id": mid, "peer_id": 42, "from_id": -1, "admin_author_id": 5, "text": "Здравствуйте"}}
+
+
 def test_owner_reply_pauses_bot_until_restart(bots):
     http, vk, _, store = bots
     post_vk(http, vk_message("Нужен чат-бот", mid=1))
-    post_vk(http, {"type": "message_reply", "secret": VK_SECRET,
-                   "object": {"id": 2, "peer_id": 42, "from_id": -1, "admin_author_id": 5, "text": "Здравствуйте"}})
+    post_vk(http, owner_reply(2))
     assert store.latest_conversation("vk:42").state is State.HUMAN_PENDING
     post_vk(http, vk_message("ещё вопрос", mid=3))
     assert len(vk.sent) == 1  # пока диалог у человека, бот молчит
     post_vk(http, vk_message("Начать заново", mid=4))
     assert vk.sent[-1] == ("42", GREETING)
+
+
+def test_bot_resumes_after_owner_goes_quiet(bots):
+    from app.main import OWNER_SILENCE_SECONDS
+    http, vk, _, store = bots
+    now = [1000.0]
+    store._clock = lambda: now[0]
+    post_vk(http, vk_message("Нужен чат-бот", mid=1))
+    post_vk(http, owner_reply(2))
+    now[0] += OWNER_SILENCE_SECONDS - 1
+    post_vk(http, vk_message("ещё вопрос", mid=3))
+    assert len(vk.sent) == 1
+    post_vk(http, owner_reply(4))  # новое сообщение Александра продлевает тишину
+    now[0] += OWNER_SILENCE_SECONDS - 1
+    post_vk(http, vk_message("и ещё", mid=5))
+    assert len(vk.sent) == 1
+    now[0] += 2
+    post_vk(http, vk_message("вы здесь?", mid=6))
+    assert vk.sent[-1] == ("42", DEMO_REPLY)
+    assert store.latest_conversation("vk:42").state is State.DISCOVERY
+
+
+def test_bot_answers_after_lead_when_owner_has_not_written(bots):
+    # Заявка ушла, а Александр в чат ещё не писал: клиент не должен упираться в тишину.
+    http, vk, _, store = bots
+    post_vk(http, vk_message("Нужен чат-бот", mid=1))
+    conv = store.latest_conversation("vk:42")
+    store.set_state(conv.id, State.HUMAN_PENDING)
+    post_vk(http, vk_message("а когда свяжетесь?", mid=2))
+    assert len(vk.sent) == 2 and vk.sent[-1] == ("42", DEMO_REPLY)
+
+
+def test_resumed_dialog_does_not_duplicate_lead(bots):
+    http, vk, _, store = bots
+    post_vk(http, vk_message("Нужен чат-бот", mid=1))
+    conv = store.latest_conversation("vk:42")
+    store.set_state(conv.id, State.CONSENT_PENDING)
+    post_vk(http, vk_message("ivan@example.com", mid=2))
+    assert store.latest_conversation("vk:42").state is State.HUMAN_PENDING
+    store.set_state(conv.id, State.CONSENT_PENDING)  # бот вернулся в диалог и снова дошёл до согласия
+    post_vk(http, vk_message("ivan@example.com", mid=3))
+    assert len(store.list_leads()) == 1
 
 
 def test_vk_disabled_without_settings(tmp_path):

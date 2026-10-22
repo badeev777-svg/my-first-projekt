@@ -18,7 +18,7 @@ SCHEMA = """
 CREATE TABLE IF NOT EXISTS conversations(
     id TEXT PRIMARY KEY, session_id TEXT NOT NULL, state TEXT NOT NULL,
     stopped INTEGER NOT NULL DEFAULT 0, product_id TEXT, created_at TEXT NOT NULL,
-    epoch INTEGER NOT NULL DEFAULT 0);
+    epoch INTEGER NOT NULL DEFAULT 0, owner_at REAL);
 CREATE TABLE IF NOT EXISTS messages(
     id INTEGER PRIMARY KEY AUTOINCREMENT, conversation_id TEXT NOT NULL, client_message_id TEXT,
     role TEXT NOT NULL, text TEXT NOT NULL, skill TEXT, created_at TEXT NOT NULL, claimed_at REAL,
@@ -50,6 +50,7 @@ class Conversation:
     stopped: bool
     product_id: str | None = None
     epoch: int = 0
+    owner_at: float | None = None  # когда Александр последний раз писал клиенту в чате мессенджера
 
 
 def _iso(ts: float) -> str:
@@ -58,7 +59,7 @@ def _iso(ts: float) -> str:
 
 def _conv(row: sqlite3.Row) -> Conversation:
     return Conversation(row["id"], row["session_id"], State(row["state"]), bool(row["stopped"]), row["product_id"],
-                        row["epoch"])
+                        row["epoch"], row["owner_at"])
 
 
 class Store:
@@ -68,8 +69,14 @@ class Store:
         self._clock = clock
         with self._conn() as c:
             c.executescript(SCHEMA)
-            if "epoch" not in {r["name"] for r in c.execute("PRAGMA table_info(conversations)")}:
+            cols = {r["name"] for r in c.execute("PRAGMA table_info(conversations)")}
+            if "epoch" not in cols:
                 c.execute("ALTER TABLE conversations ADD COLUMN epoch INTEGER NOT NULL DEFAULT 0")
+            if "owner_at" not in cols:
+                c.execute("ALTER TABLE conversations ADD COLUMN owner_at REAL")
+
+    def now(self) -> float:
+        return self._clock()
 
     @contextmanager
     def _conn(self) -> Iterator[sqlite3.Connection]:
@@ -102,6 +109,11 @@ class Store:
     def set_state(self, cid: str, state: State) -> None:
         with self._conn() as c:
             c.execute("UPDATE conversations SET state=? WHERE id=?", (state.value, cid))
+
+    def mark_owner_reply(self, cid: str) -> None:
+        with self._conn() as c:
+            c.execute("UPDATE conversations SET state=?, owner_at=? WHERE id=?",
+                      (State.HUMAN_PENDING.value, self._clock(), cid))
 
     def bump_epoch(self, cid: str) -> None:
         # Новая эпоха = новые ключи идемпотентности заявок/передач после возврата диалога боту.
