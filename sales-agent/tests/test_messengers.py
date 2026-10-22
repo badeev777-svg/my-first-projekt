@@ -228,3 +228,12 @@ def test_avito_client_retries_once_on_401_and_hides_secret():
     with pytest.raises(AvitoError) as e:
         failing.send("c1", "x")
     assert "secret" not in str(e.value)
+
+
+def test_access_log_masks_avito_secret():
+    import logging
+    from app.main import MaskAvitoSecret
+    rec = logging.LogRecord("uvicorn.access", logging.INFO, "", 0, '%s - "%s %s HTTP/%s" %d',
+                            ("1.2.3.4:5", "POST", "/api/avito/webhook/topsecret", "1.1", 200), None)
+    MaskAvitoSecret().filter(rec)
+    assert "topsecret" not in rec.getMessage() and "/api/avito/webhook/***" in rec.getMessage()

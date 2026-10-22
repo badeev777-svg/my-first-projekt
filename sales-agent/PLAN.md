@@ -66,7 +66,7 @@
 - [x] `app/messenger.py` (общие тексты, `Incoming`, `split_text`), `app/vk_bot.py` + `POST /api/vk/callback`, `app/avito_bot.py` + `POST /api/avito/webhook/<секрет>`, общий `messenger_turn` для MAX/VK/Avito.
 - [x] VK/Avito: менеджер отвечает в том же чате — тексты «ответит вам здесь», бот молчит в HUMAN_PENDING и после ручного сообщения владельца; эхо ответов бота в Avito отсеивается. В уведомлении Telegram — «Канал: …». 17 тестов, всего 415.
 - [ ] Александр (VK): сообщество → «Сообщения» вкл. → возможности ботов → Callback API (адрес, строка подтверждения, секрет, события message_new + message_reply) → ключ доступа с правом «сообщения».
-- [ ] Александр (Avito): developers.avito.ru → client_id/client_secret; номер профиля. Нужен ли платный тариф для Messenger API — не проверено.
+- [ ] Александр (Avito): developers.avito.ru → client_id/client_secret; номер профиля 3729963 (в локальном `.env`). **Платный тариф нужен — подтверждено 2026-10-22:** профиль → «Интеграции и API»: «подключите любой тариф и получите ключи доступа»; без тарифа «Добавить приложение» открывает пустую страницу. Хватило плана «Без подписки» (оплата за просмотры, аванс 600 ₽) — после него кнопка «Получить ключи».
 - [ ] Деплой: `.env`, nginx `location ~ ^/api/(max|vk|avito)/` без `limit_req`, `scripts/subscribe_avito.py`.
 - [ ] Живые проверки: `admin_author_id` у ручного ответа VK, форма вебхука и эха Avito (лог «… update skipped»).
 

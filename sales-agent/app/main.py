@@ -78,6 +78,18 @@ def _host_name(header: str) -> str:
     return value.split(":", 1)[0] if value.count(":") == 1 else value
 
 
+AVITO_HOOK = "/api/avito/webhook/"
+
+
+class MaskAvitoSecret(logging.Filter):
+    # Секрет вебхука Avito — часть адреса, а лог доступа uvicorn пишет путь целиком.
+    def filter(self, record: logging.LogRecord) -> bool:
+        args = record.args
+        if isinstance(args, tuple) and len(args) > 2 and isinstance(args[2], str) and args[2].startswith(AVITO_HOOK):
+            record.args = args[:2] + (AVITO_HOOK + "***",) + args[3:]
+        return True
+
+
 class Messenger(Protocol):
     def send(self, peer: str, text: str, buttons: list[tuple[str, str]] | None = None) -> None: ...
 
@@ -88,6 +100,9 @@ def create_app(settings: Settings | None = None, *, llm: LLM | None = None,
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
     # httpx на INFO пишет полный URL запроса, а в URL Bot API лежит токен.
     logging.getLogger("httpx").setLevel(logging.WARNING)
+    access = logging.getLogger("uvicorn.access")
+    if not any(isinstance(f, MaskAvitoSecret) for f in access.filters):
+        access.addFilter(MaskAvitoSecret())
     settings = settings or Settings()
     if llm is None and not settings.demo:
         llm = CloudRuLLM(settings)
