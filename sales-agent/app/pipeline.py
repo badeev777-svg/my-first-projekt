@@ -171,7 +171,8 @@ class Pipeline:
         if conv.state is State.CONSENT_PENDING and _is_agreement(text):
             # Без готового ответа модель на «Согласна» писала «заявка передана» → заглушка (живой тест VK 2026-10-22).
             return Turn(ASK_CONTACT_REPLY.format(recipient=self._recipient), conv.state, skill="sales-lead-capture")
-        if contact and _reachable(conv.state, State.CONSENT_PENDING):
+        if contact and _reachable(conv.state, State.CONSENT_PENDING) and self._store.lead_of(conv.id) is None:
+            # После заявки согласие уже дано: новый контакт — дополнение, Александр получит его отдельно.
             # Контакт без согласия не сохраняем: показываем условия передачи, клиент пришлёт контакт повторно.
             reply = CONTACT_BEFORE_CONSENT_REPLY + "\n\n" + self._catalog.policy.consent_text
             return Turn(reply, State.CONSENT_PENDING)

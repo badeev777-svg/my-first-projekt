@@ -11,7 +11,7 @@ from app.avito_bot import parse_update as parse_avito
 from app.config import Settings
 from app.handoff import StubChannel, format_message
 from app.leads import Outcome
-from app.main import create_app
+from app.main import ADDITION_SENT, create_app
 from app.messenger import GREETING, Incoming, adapt_in_chat, channel_label, split_text
 from app.pipeline import DEMO_REPLY, _status_key
 from app.state import State
@@ -169,6 +169,40 @@ def test_client_messages_during_silence_are_kept_for_context(bots):
     assert len(vk.sent) == 1
     assert [r for r, t in store.history(cid) if "запись к мастеру" in t] == ["user"]
     assert store.history(cid)[-2:] == [("owner", "Здравствуйте"), ("user", "Забыла: ещё нужна запись к мастеру")]
+
+
+def _with_delivered_lead(http, store):
+    post_vk(http, vk_message("Нужен чат-бот", mid=1))
+    cid = store.latest_conversation("vk:42").id
+    lead_id, _ = store.create_lead(conversation_id=cid, idempotency_key=f"lead:{cid}:0", contact_masked="+7*** ***-**-67",
+                                   contact="", consent_status="given", consent_time=None, need="чат-бот",
+                                   product_id="x", next_step="", delivery_status="sent")
+    store.set_state(cid, State.HUMAN_PENDING)
+    return lead_id
+
+
+def test_client_addition_after_lead_is_answered_and_forwarded(bots):
+    http, vk, _, store = bots
+    lead_id = _with_delivered_lead(http, store)
+    post_vk(http, owner_reply(2))  # Александр пишет сам — после заявки бот всё равно отвечает сразу
+    post_vk(http, vk_message("Ещё нужна запись к мастеру, номер 8 916 123-45-67", mid=3))
+    post_vk(http, vk_message("Ещё нужна запись к мастеру, номер 8 916 123-45-67", mid=3))  # повтор доставки
+    assert len(vk.sent) == 2
+    assert vk.sent[-1][1] == f"{DEMO_REPLY}\n\n{ADDITION_SENT}"  # без повторного запроса согласия
+    channel = http.app.state.channel
+    additions = [(p, c) for (kind, p), c in zip(channel.sent, channel.contacts) if kind == "addition"]
+    assert len(additions) == 1
+    payload, contact = additions[0]
+    assert payload["id"] == lead_id and payload["source"] == channel_label("vk:42")
+    assert "123-45-67" not in payload["text"] and "8 916 123-45-67" in contact
+    assert "8 916 123-45-67" in format_message("addition", payload, contact)
+
+
+def test_no_forwarding_without_lead(bots):
+    http, _, _, _ = bots
+    post_vk(http, vk_message("Нужен чат-бот", mid=1))
+    post_vk(http, vk_message("И ещё вопрос", mid=2))
+    assert not [k for k, _ in http.app.state.channel.sent if k == "addition"]
 
 
 def test_owner_first_message_opens_dialog(bots):

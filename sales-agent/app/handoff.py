@@ -48,6 +48,9 @@ def format_message(kind: str, payload: dict, contact: str = "") -> str:
                 f"Контакт: {contact or payload.get('contact_masked', '—')}\n"
                 f"Услуга: {payload.get('product_id', 'unknown')}\n"
                 f"Задача: {payload.get('need', '')}")
+    if kind == "addition":
+        # Полный текст (с новым контактом, если он есть) — только в Telegram, как и контакт заявки.
+        return f"Дополнение к заявке №{payload['id']}\n{where}Клиент: {contact or payload.get('text', '')}"
     reason = payload.get("reason", "")
     return (f"Нужен человек, передача №{payload['id']}\n{where}"
             f"Причина: {REASONS.get(reason, reason)}\n"

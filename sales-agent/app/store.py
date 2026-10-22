@@ -245,6 +245,11 @@ class Store:
     def list_leads(self) -> list[dict]:
         return self._list("leads")
 
+    def lead_of(self, cid: str) -> dict | None:
+        with self._conn() as c:
+            row = c.execute("SELECT * FROM leads WHERE conversation_id=? ORDER BY id DESC LIMIT 1", (cid,)).fetchone()
+        return dict(row) if row else None
+
     def create_handoff(self, *, conversation_id: str, idempotency_key: str, reason: str, summary: str,
                        question: str, delivery_status: str) -> tuple[int, bool]:
         return self._insert_once("handoffs", dict(

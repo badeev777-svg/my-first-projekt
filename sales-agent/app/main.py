@@ -36,6 +36,8 @@ PURGE_INTERVAL_SECONDS = 24 * 3600
 RESEND_INTERVAL_SECONDS = 300
 # Столько бот молчит в чате VK/Avito после ручного сообщения Александра; потом снова отвечает сам.
 OWNER_SILENCE_SECONDS = 30 * 60
+DELIVERED = ("sent", "sent_stub")
+ADDITION_SENT = "Дополнение к заявке передал менеджеру."
 log = logging.getLogger("sales-agent")
 
 
@@ -237,6 +239,13 @@ def create_app(settings: Settings | None = None, *, llm: LLM | None = None,
                 client.send(msg.peer, GREETING)
                 return
             conv = conv or store.create_conversation(sid)
+            lead = store.lead_of(conv.id)
+            if lead is not None and lead["delivery_status"] not in DELIVERED:
+                lead = None  # недоставленную заявку ведёт pipeline (передача человеку и досылка)
+            if lead is not None and conv.state is State.HUMAN_PENDING:
+                # Клиент уже оставил контакт: бот остаётся на связи и отвечает сразу, даже пока пишет Александр.
+                store.set_state(conv.id, State.DISCOVERY)
+                conv = store.get_conversation(conv.id)
             if in_chat(sid) and conv.state is State.HUMAN_PENDING:
                 if conv.owner_at is not None and store.now() - conv.owner_at < OWNER_SILENCE_SECONDS:
                     # Александр сейчас переписывается с клиентом сам — бот не вмешивается, но запоминает реплику,
@@ -257,8 +266,14 @@ def create_app(settings: Settings | None = None, *, llm: LLM | None = None,
             except AlreadyProcessing:
                 return
             except LLMError:
-                client.send(msg.peer, LLM_DOWN_REPLY)
-                return
+                reply = LLM_DOWN_REPLY  # дополнение всё равно дойдёт до Александра
+            if lead is not None:
+                payload = {"id": lead["id"], "text": mask_text(msg.text), "source": channel_label(sid)}
+                try:
+                    channel.send("addition", payload, contact=msg.text)
+                    reply = f"{reply}\n\n{ADDITION_SENT}" if reply else ADDITION_SENT
+                except Exception:
+                    log.exception("addition to lead %s not delivered", lead["id"])
             if reply:
                 client.send(msg.peer, *adapt(reply))
         except Exception:
