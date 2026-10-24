@@ -6,7 +6,7 @@ import os
 
 HOST = "155.212.208.194"
 USER = "root"
-PASSWORD = "REMOVED_PASSWORD"
+KEY_FILE = os.path.expanduser("~/.ssh/intrepid_milan_key")  # password SSH login is disabled on the VPS
 APP_DIR = "/root/lead-parser/lead-parser"
 
 def run_ssh(client, cmd):
@@ -23,7 +23,7 @@ try:
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     print("[*] Connecting to server...")
-    client.connect(HOST, username=USER, password=PASSWORD, timeout=10)
+    client.connect(HOST, username=USER, key_filename=KEY_FILE, timeout=10)
 
     # Upload files via SFTP
     print("\n[*] Uploading files...")

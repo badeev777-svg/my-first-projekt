@@ -21,7 +21,7 @@ except ImportError:
 # Конфигурация
 HOST = "155.212.208.194"
 USER = "root"
-PASSWORD = "REMOVED_PASSWORD"
+KEY_FILE = os.path.expanduser("~/.ssh/intrepid_milan_key")  # password SSH login is disabled on the VPS
 REMOTE_PATH = "/root/lead-parser"
 
 # Локальная папка проекта
@@ -32,7 +32,7 @@ def connect_ssh():
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     print(f"🔌 Подключаюсь к {HOST}...")
-    client.connect(HOST, username=USER, password=PASSWORD, timeout=10)
+    client.connect(HOST, username=USER, key_filename=KEY_FILE, timeout=10)
     return client
 
 def execute_cmd(client, cmd):

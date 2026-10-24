@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 
 HOST = "155.212.208.194"
 USER = "root"
-PASSWORD = "REMOVED_PASSWORD"
+KEY_FILE = os.path.expanduser("~/.ssh/intrepid_milan_key")  # password SSH login is disabled on the VPS
 
 def run_ssh_command(client, command):
     """Run SSH command and return output."""
@@ -21,7 +21,7 @@ try:
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     print("[*] Connecting to server...")
-    client.connect(HOST, username=USER, password=PASSWORD, timeout=10)
+    client.connect(HOST, username=USER, key_filename=KEY_FILE, timeout=10)
 
     # 1. Check container status
     print("\n" + "="*50)

@@ -5,12 +5,13 @@ import sys
 if sys.platform == 'win32':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
+import os
 import paramiko
 import time
 
 HOST = "155.212.208.194"
 USER = "root"
-PASSWORD = "REMOVED_PASSWORD"
+KEY_FILE = os.path.expanduser("~/.ssh/intrepid_milan_key")  # password SSH login is disabled on the VPS
 REMOTE_PATH = "/root/lead-parser"
 
 def execute_cmd(client, cmd):
@@ -28,7 +29,7 @@ try:
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     print(f"Подключаюсь к {HOST}...")
-    client.connect(HOST, username=USER, password=PASSWORD, timeout=10)
+    client.connect(HOST, username=USER, key_filename=KEY_FILE, timeout=10)
     print("✓ Подключение успешно!\n")
 
     print("Обновляю pyproject.toml...")

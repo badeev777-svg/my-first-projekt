@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
+import os
 import paramiko
 import sys
 
 HOST = "155.212.208.194"
 USER = "root"
-PASSWORD = "REMOVED_PASSWORD"
+KEY_FILE = os.path.expanduser("~/.ssh/intrepid_milan_key")  # password SSH login is disabled on the VPS
 
 try:
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     print(f"Connecting to {HOST}...")
-    client.connect(HOST, username=USER, password=PASSWORD, timeout=10)
+    client.connect(HOST, username=USER, key_filename=KEY_FILE, timeout=10)
 
     sftp = client.open_sftp()
 
